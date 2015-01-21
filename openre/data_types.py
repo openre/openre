@@ -22,4 +22,4 @@ types = DataTypes()
 null = np.iinfo(types.address).max
 
 def test_data_types():
-    assert(null == np.iinfo(types.address).max)
+    assert null == np.iinfo(types.address).max
