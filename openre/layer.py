@@ -2,6 +2,7 @@
 """
 Содержит в себе 2d массив однотипных нейронов.
 """
+import logging
 
 class Layer(object):
     """
@@ -22,6 +23,7 @@ class Layer(object):
         total_spikes:   types.address - количество спайков в слое за последний
                         тик
         """
+        logging.debug('Create layer (id: %s)', config['id'])
         self.config = config
         self.id = self.config['id']
         self.threshold = self.config['threshold']

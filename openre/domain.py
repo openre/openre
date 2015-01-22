@@ -3,6 +3,7 @@
 Содержит в себе слои и синапсы.
 """
 from openre.layer import Layer
+import logging
 
 class Domain(object):
     """
@@ -31,6 +32,7 @@ class Domain(object):
         0 <= learn_threshold <= forget_threshold <= types.tick.max
     """
     def __init__(self, config):
+        logging.debug('Create domain (id: %s)', config['id'])
         self.config = config
         self.id = self.config['id']
         self.ticks = 0
@@ -39,6 +41,7 @@ class Domain(object):
         self.total_spikes = 0
         self.layers = []
         self.deploy()
+        logging.debug('Domain created')
 
     def deploy(self):
         """

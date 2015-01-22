@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from openre.domain import Domain
 from copy import deepcopy
+from time import time
+import logging
 
 __version__ = '0.0.1'
 
@@ -44,7 +46,17 @@ class OpenRE(object):
         """
         Основной цикл.
         """
+        last_sec = int(time())
+        tick_per_sec = 0
+        logger_level = logging.getLogger().getEffectiveLevel()
         while True:
+            if logger_level <= logging.DEBUG:
+                now = int(time())
+                if last_sec != now:
+                    last_sec = now
+                    logging.debug('Ticks/sec: %s', tick_per_sec)
+                    tick_per_sec = 0
+                tick_per_sec += 1
             self.domain.tick()
 
 def test_openre():
