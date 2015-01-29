@@ -33,14 +33,27 @@ class OpenRE(object):
     """
     def __init__(self, config):
         self.config = deepcopy(config)
-        self.domain = None
+        self.domains = []
         self.deploy()
 
     def deploy(self):
         """
         Создание домена.
         """
-        self.domain = Domain(self.config['domain'])
+        layer_by_id = {}
+        for layer in self.config['layers']:
+            layer_by_id[layer['id']] = layer
+
+        # TODO: - выдавать предупреждение если не весь слой моделируется
+        #       - выдавать предупреждение или падать если один и тот же слoй
+        #           частично или полностью моделируется дважды
+        for domain in self.config['domains']:
+            layer_address = -1
+            for domain_layer in domain['layers']:
+                layer_address += 1
+                domain_layer.update(layer_by_id[domain_layer['id']])
+                domain_layer['address'] = layer_address
+            self.domains.append(Domain(domain))
 
     def run(self):
         """
@@ -57,38 +70,66 @@ class OpenRE(object):
                     logging.debug('Ticks/sec: %s', tick_per_sec)
                     tick_per_sec = 0
                 tick_per_sec += 1
-            self.domain.tick()
+            for domain in self.domains:
+                domain.tick()
 
 def test_openre():
     config = {
-        'domain': {
-            'id'        : 1,
-            'device'    : '0',
-            'layers'    : [
-                {
-                    'threshold': 30000,
-                    'relaxation': 1000,
-                },
-                {
-                    'threshold': 30000,
-                }
-            ],
-        },
+        'layers': [
+            {
+                'id': 'V1',
+                'threshold': 30000,
+                'relaxation': 1000,
+                'width': 20,
+                'height': 20,
+            },
+            {
+                'id': 'V2',
+                'threshold': 30000,
+                'width': 10,
+                'height': 10,
+            }
+        ],
+        'domains': [
+            {
+                'id'        : 'D1',
+                'device'    : '0',
+                'layers'    : [
+                    # 'shape': [x, y, width, height]
+                    {'id': 'V1', 'shape': [0, 0, 10, 10]},
+                    {'id': 'V1', 'shape': [10, 0, 10, 10]},
+                    # если параметр shape не указан - подразумеваем весь слой
+                    {'id': 'V2'},
+                ],
+            },
+            {
+                'id'        : 'D2',
+                'device'    : '0',
+                'layers'    : [
+                    {'id': 'V1', 'shape': [10, 10, 10, 10]},
+                    {'id': 'V1', 'shape': [0, 10, 10, 10]},
+                ],
+            },
+        ],
     }
     ore = OpenRE(config)
     assert ore
-    assert ore.domain.id == config['domain']['id']
-    assert ore.domain.learn_threshold == \
-            config['domain'].get('learn_threshold', 0)
-    assert ore.domain.forget_threshold == \
-            config['domain'].get('forget_threshold', 0)
-    assert ore.domain.ticks == 0
-    layer_id = -1
-    for layer_config in config['domain']['layers']:
-        layer_id += 1
-        layer = ore.domain.layers[layer_id]
-        assert layer.id == layer_id
-        assert layer.threshold == layer_config['threshold']
-        assert layer.relaxation == layer_config.get('relaxation', 0)
-    ore.domain.tick()
-    assert ore.domain.ticks == 1
+    for i, domain_config in enumerate(config['domains']):
+        domain = ore.domains[i]
+        assert domain.id == domain_config['id']
+        assert domain.learn_threshold == \
+                domain_config.get('learn_threshold', 0)
+        assert domain.forget_threshold == \
+                domain_config.get('forget_threshold', 0)
+        assert domain.ticks == 0
+        layer_address = -1
+        for layer_config in domain.config['layers']:
+            layer_address += 1
+            layer = domain.layers[layer_address]
+            assert layer.id == layer_config['id']
+            assert layer.address == layer_address
+            assert layer.threshold == layer_config['threshold']
+            assert layer.relaxation == \
+                    layer_config.get('relaxation', 0)
+        domain.tick()
+        assert domain.ticks == 1
