@@ -114,6 +114,7 @@ def test_openre():
     assert ore.domains[0].layers[1].address == 100
     assert ore.domains[0].layers[2].address == 200
     assert ore.domains[0].neurons.length == 300
+    assert ore.domains[0].neurons.length == len(ore.domains[0].neurons)
     assert ore.domains[1].neurons.length == 200
     for i, domain_config in enumerate(config['domains']):
         domain = ore.domains[i]
