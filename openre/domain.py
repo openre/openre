@@ -3,6 +3,7 @@
 Содержит в себе слои и синапсы.
 """
 from openre.layer import Layer
+from openre.neurons import NeuronsVector
 import logging
 
 class Domain(object):
@@ -40,6 +41,7 @@ class Domain(object):
         self.forget_threshold = self.config.get('forget_threshold', 0)
         self.total_spikes = 0
         self.layers = []
+        self.neurons = NeuronsVector()
         self.deploy()
         logging.debug('Domain created')
 
@@ -53,7 +55,10 @@ class Domain(object):
         for layer_config in self.config['layers']:
             layer_id += 1
             layer_config['id'] = layer_id
-            self.layers.append(Layer(layer_config))
+            layer = Layer(layer_config)
+            self.neurons.add(layer.metadata)
+            layer.address = layer.metadata.address
+            self.layers.append(layer)
 
     def send_spikes(self):
         """

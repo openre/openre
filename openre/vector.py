@@ -10,11 +10,11 @@ class Vector(object):
     и с устройства.
     """
 
-    def __init__(self):
+    def __init__(self, type=None):
         self.length = 0
         self.metadata = []
         self.data = None
-        self.type = None
+        self.type = type
 
     def add(self, metadata):
         """
@@ -30,6 +30,9 @@ class Vector(object):
         self.metadata.append(metadata)
         self.length += metadata.shape[0]*metadata.shape[1]
         metadata.set_address(self, address)
+
+    def __len__(self):
+        return self.length
 
     def create(self):
         """
@@ -86,4 +89,6 @@ def test_vector():
     assert np.result_type(vector.data) == vector.type
     with raises(AssertionError):
         vector.create()
+    vector2 = Vector(types.index_flags)
+    assert vector2.type == types.index_flags
 

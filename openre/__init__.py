@@ -48,11 +48,8 @@ class OpenRE(object):
         #       - выдавать предупреждение или падать если один и тот же слoй
         #           частично или полностью моделируется дважды
         for domain in self.config['domains']:
-            layer_address = -1
             for domain_layer in domain['layers']:
-                layer_address += 1
                 domain_layer.update(layer_by_id[domain_layer['id']])
-                domain_layer['address'] = layer_address
             self.domains.append(Domain(domain))
 
     def run(self):
@@ -114,6 +111,10 @@ def test_openre():
     }
     ore = OpenRE(config)
     assert ore
+    assert ore.domains[0].layers[1].address == 100
+    assert ore.domains[0].layers[2].address == 200
+    assert ore.domains[0].neurons.length == 300
+    assert ore.domains[1].neurons.length == 200
     for i, domain_config in enumerate(config['domains']):
         domain = ore.domains[i]
         assert domain.id == domain_config['id']
@@ -122,14 +123,14 @@ def test_openre():
         assert domain.forget_threshold == \
                 domain_config.get('forget_threshold', 0)
         assert domain.ticks == 0
-        layer_address = -1
-        for layer_config in domain.config['layers']:
-            layer_address += 1
-            layer = domain.layers[layer_address]
+        for j, layer_config in enumerate(domain.config['layers']):
+            layer = domain.layers[j]
             assert layer.id == layer_config['id']
-            assert layer.address == layer_address
+            assert layer.address == layer.metadata.address
             assert layer.threshold == layer_config['threshold']
             assert layer.relaxation == \
                     layer_config.get('relaxation', 0)
+            assert layer.metadata
         domain.tick()
         assert domain.ticks == 1
+

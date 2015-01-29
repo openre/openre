@@ -3,6 +3,7 @@
 Содержит в себе 2d массив однотипных нейронов.
 """
 import logging
+from openre.neurons import NeuronsMetadata
 
 class Layer(object):
     """
@@ -14,8 +15,7 @@ class Layer(object):
         """
         id: basestring, int или long - идентификатор слоя. Используется для
             возможности ссылаться на слои из доменов (в конфиге).
-        address: types.address - уникальный внутри одного домена.
-                 Принимает участие в формировании адреса нейрона.
+        address: types.address - aдрес первого элемента в векторе нейронов.
         threshold: types.threshold - если neuron.level больше layer.threshold,
                    то происходит спайк. Не должен быть больше чем максимум у
                    синапса.
@@ -31,7 +31,7 @@ class Layer(object):
         logging.debug('Create layer (id: %s)', config['id'])
         self.config = config
         self.id = self.config['id']
-        self.address = self.config['address']
+        self.address = None
         self.threshold = self.config['threshold']
         self.relaxation = self.config.get('relaxation', 0)
         self.total_spikes = 0
@@ -44,10 +44,10 @@ class Layer(object):
         self.width = self.shape[2]
         self.height = self.shape[3]
         self.length = self.width * self.height
+        self.metadata = NeuronsMetadata(self)
 
     def __len__(self):
         return self.length
-
 
 def test_layer():
     layer_config = {
@@ -59,13 +59,12 @@ def test_layer():
     }
     config = {
         'id': 'V1',
-        'address': 0,
         'shape': [0, 0, 30, 10],
     }
     config.update(layer_config)
     layer = Layer(config)
     assert layer.id == config['id']
-    assert layer.address == config['address']
+    assert layer.address == None
     assert layer.threshold == config['threshold']
     assert layer.relaxation == config['relaxation']
     assert layer.total_spikes == 0
@@ -77,7 +76,6 @@ def test_layer():
 
     config = {
         'id': 'V1',
-        'address': 0,
     }
     config.update(layer_config)
     layer = Layer(config)
