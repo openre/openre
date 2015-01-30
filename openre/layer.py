@@ -4,6 +4,7 @@
 """
 import logging
 from openre.neurons import NeuronsMetadata
+from copy import deepcopy
 
 class Layer(object):
     """
@@ -29,6 +30,7 @@ class Layer(object):
                которая будет моделироваться в данном слое.
         """
         logging.debug('Create layer (id: %s)', config['id'])
+        config = deepcopy(config)
         self.config = config
         self.id = self.config['id']
         self.address = None
@@ -41,10 +43,15 @@ class Layer(object):
             self.shape[2] = self.config['width']
         if self.shape[2] > self.config['height']:
             self.shape[2] = self.config['height']
+        self.x = self.shape[0]
+        self.y = self.shape[1]
         self.width = self.shape[2]
         self.height = self.shape[3]
         self.length = self.width * self.height
         self.metadata = NeuronsMetadata(self)
+
+    def __repr__(self):
+        return 'Layer(%s)' % repr(self.config)
 
     def __len__(self):
         return self.length
@@ -73,6 +80,9 @@ def test_layer():
     assert layer.height == 10
     assert layer.length == 200
     assert len(layer) == 200
+
+    repr_layer = eval(repr(layer))
+    assert repr_layer.id == layer.id
 
     config = {
         'id': 'V1',

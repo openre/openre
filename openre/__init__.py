@@ -34,7 +34,11 @@ class OpenRE(object):
     def __init__(self, config):
         self.config = deepcopy(config)
         self.domains = []
+        self._find = None
         self.deploy()
+
+    def __repr__(self):
+        return 'OpenRE(%s)' % repr(self.config)
 
     def deploy(self):
         """
@@ -48,9 +52,10 @@ class OpenRE(object):
         #       - выдавать предупреждение или падать если один и тот же слoй
         #           частично или полностью моделируется дважды
         for domain in self.config['domains']:
+            domain = deepcopy(domain)
             for domain_layer in domain['layers']:
-                domain_layer.update(layer_by_id[domain_layer['id']])
-            self.domains.append(Domain(domain))
+                domain_layer.update(deepcopy(layer_by_id[domain_layer['id']]))
+            self.domains.append(Domain(domain, self))
 
     def run(self):
         """
@@ -70,6 +75,55 @@ class OpenRE(object):
             for domain in self.domains:
                 domain.tick()
 
+    def find(self, layer_id, x, y):
+        """
+        Ищет домен и слой для заданных координат x и y в слое layer_id
+        """
+        # precache
+        if self._find is None:
+            self._find = {}
+            layer_by_id = {}
+            for layer in self.config['layers']:
+                layer_by_id[layer['id']] = layer
+
+            for domain in self.config['domains']:
+                domain_id = domain['id']
+                layer_index = -1
+                for layer in domain['layers']:
+                    layer = deepcopy(layer)
+                    layer_index += 1
+                    domain_layer_id = layer['id']
+                    if domain_layer_id not in self._find:
+                        self._find[domain_layer_id] = []
+                    layer['domain_id'] = domain_id
+                    layer['layer_index'] = layer_index
+                    layer['width'] = layer_by_id[domain_layer_id]['width']
+                    layer['height'] = layer_by_id[domain_layer_id]['height']
+                    self._find[domain_layer_id].append(layer)
+        if layer_id not in self._find:
+            return None
+        for row in self._find[layer_id]:
+            if 'shape' in row:
+                shape = row['shape']
+                # coordinate out of domains layer bounds
+                if x < shape[0] \
+                   or x >= shape[0] + shape[2] \
+                   or y < shape[1] \
+                   or y >= shape[1] + shape[3] \
+                   or x < 0 or y < 0 \
+                   or x >= row['width'] or y >= row['height']:
+                    continue
+            else:
+                if x < 0 or y < 0 \
+                   or x >= row['width'] or y >= row['height']:
+                    continue
+            return {
+                'domain_id': row['domain_id'],
+                'layer_index': row['layer_index'],
+            }
+        return None
+
+
 def test_openre():
     config = {
         'layers': [
@@ -79,11 +133,31 @@ def test_openre():
                 'relaxation': 1000,
                 'width': 20,
                 'height': 20,
+                'connect': [
+                    {
+                        'id': 'V2',
+                        'radius': 1,
+                        'shift': [0, 0],
+                    }
+                ],
             },
             {
                 'id': 'V2',
                 'threshold': 30000,
                 'width': 10,
+                'height': 10,
+                'connect': [
+                    {
+                        'id': 'V3',
+                        'radius': 1,
+                        'shift': [-1, 1],
+                    }
+                ],
+            },
+            {
+                'id': 'V3',
+                'threshold': 30000,
+                'width': 5,
                 'height': 10,
             }
         ],
@@ -105,17 +179,32 @@ def test_openre():
                 'layers'    : [
                     {'id': 'V1', 'shape': [10, 10, 10, 10]},
                     {'id': 'V1', 'shape': [0, 10, 10, 10]},
+                    {'id': 'V3'},
                 ],
             },
         ],
     }
     ore = OpenRE(config)
     assert ore
+    assert ore.find('V2', 0, 10) == None
+    assert ore.find('V1', 0, 20) == None
+    assert ore.find('V1', 1, 1) == {
+        'domain_id': 'D1',
+        'layer_index': 0
+    }
+    assert ore.find('V1', 1, 11) == {
+        'domain_id': 'D2',
+        'layer_index': 1
+    }
+    assert ore.domains[0].layers[0].id == 'V1'
+    assert ore.domains[0].layers_config[0]['layer'].id == 'V1'
+    assert ore.domains[0] \
+            .layers_config[0]['connect'][0]['domain_layers'][0].id == 'V2'
     assert ore.domains[0].layers[1].address == 100
     assert ore.domains[0].layers[2].address == 200
     assert ore.domains[0].neurons.length == 300
     assert ore.domains[0].neurons.length == len(ore.domains[0].neurons)
-    assert ore.domains[1].neurons.length == 200
+    assert ore.domains[1].neurons.length == 250
     for i, domain_config in enumerate(config['domains']):
         domain = ore.domains[i]
         assert domain.id == domain_config['id']
