@@ -10,7 +10,6 @@ import uuid
 import random
 from copy import deepcopy
 import math
-from openre.errors import OreNoSinapsesError
 
 
 class Domain(object):
@@ -18,7 +17,8 @@ class Domain(object):
     Домен (Domain) - содержит один и более слоев состоящих из нейронов,
     связанных друг с другом синапсами. Домен можно воспринимать как один процесс
     в операционной системе, реализующий частично или полностью какой либо
-    функционал.
+    функционал. В некоторых случаях домен может не содержать синапсов (например,
+    если домен является источником данных с сенсоров)
 
     self.id: types.address - должен быть уникальным для всех доменов
     self.ticks: types.tick - номер тика с момента запуска. При 32 битах и 1000
@@ -87,8 +87,7 @@ class Domain(object):
         # allocate sinapses buffer in memory
         domain_total_sinapses = total_sinapses.get(self.id, 0)
         if not domain_total_sinapses:
-            raise OreNoSinapsesError('No sinapses in domain %s', self.id)
-
+            logging.warn('No sinapses in domain %s', self.id)
         self.sinapses_metadata = SinapsesMetadata(domain_total_sinapses)
         self.sinapses.add(self.sinapses_metadata)
         self.sinapses.create()

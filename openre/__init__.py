@@ -139,11 +139,6 @@ def test_openre():
                         'radius': 1,
                         'shift': [0, 0],
                     },
-                    {
-                        'id': 'V3',
-                        'radius': 1,
-                        'shift': [0, 0],
-                    },
                 ],
             },
             {

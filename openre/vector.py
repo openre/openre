@@ -3,11 +3,12 @@
 Вектор
 """
 import numpy as np
+from openre.errors import OreError
 
 class Vector(object):
     """
     Хранит в себе одномерный массив, который можно копировать на устройство
-    и с устройства.
+    и с устройства. Допускается создание вектора нулевой длины.
     """
 
     def __init__(self, type=None):
@@ -26,6 +27,8 @@ class Vector(object):
             self.type = metadata.type
         else:
             assert self.type == metadata.type
+        if metadata.vector:
+            raise OreError('Metadata already assigned to vector')
         address = self.length
         self.metadata.append(metadata)
         self.length += metadata.shape[0]*metadata.shape[1]
@@ -38,7 +41,6 @@ class Vector(object):
         """
         Создает в памяти вектор заданного типа и помещает его в self.data
         """
-        assert self.length
         assert self.data is None
         self.data = np.zeros((self.length, 1)).astype(self.type)
 
@@ -64,8 +66,6 @@ def test_vector():
 
     vector = Vector()
     assert vector.type is None
-    with raises(AssertionError):
-        vector.create()
     vector.add(meta0)
     assert vector.type == meta0.type
     assert meta0.address == 0
@@ -91,4 +91,15 @@ def test_vector():
         vector.create()
     vector2 = Vector(types.index_flags)
     assert vector2.type == types.index_flags
+
+
+    vector = Vector()
+    meta3 = Metadata((0, 0), types.index_flags)
+    with raises(OreError):
+        vector.add(meta0)
+    vector.add(meta3)
+    vector.create()
+    assert len(vector.data) == 0
+    with raises(AssertionError):
+        vector.create()
 
