@@ -138,7 +138,12 @@ def test_openre():
                         'id': 'V2',
                         'radius': 1,
                         'shift': [0, 0],
-                    }
+                    },
+                    {
+                        'id': 'V3',
+                        'radius': 1,
+                        'shift': [0, 0],
+                    },
                 ],
             },
             {
@@ -151,7 +156,7 @@ def test_openre():
                         'id': 'V3',
                         'radius': 1,
                         'shift': [-1, 1],
-                    }
+                    },
                 ],
             },
             {
@@ -196,15 +201,25 @@ def test_openre():
         'domain_id': 'D2',
         'layer_index': 1
     }
+    # domain layers
     assert ore.domains[0].layers[0].id == 'V1'
     assert ore.domains[0].layers_config[0]['layer'].id == 'V1'
     assert ore.domains[0] \
             .layers_config[0]['connect'][0]['domain_layers'][0].id == 'V2'
     assert ore.domains[0].layers[1].address == 100
     assert ore.domains[0].layers[2].address == 200
+    # neurons
     assert ore.domains[0].neurons.length == 300
     assert ore.domains[0].neurons.length == len(ore.domains[0].neurons)
     assert ore.domains[1].neurons.length == 250
+    # sinapses
+    assert ore.domains[0].sinapses
+    assert ore.domains[0].sinapses.length
+    assert ore.domains[0].sinapses.length == \
+            ore.domains[0].sinapses.level.length
+    assert ore.domains[0].sinapses.length == \
+            len(ore.domains[0].sinapses.level.data)
+
     for i, domain_config in enumerate(config['domains']):
         domain = ore.domains[i]
         assert domain.id == domain_config['id']

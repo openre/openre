@@ -50,6 +50,14 @@ class NeuronsVector(object):
     def __len__(self):
         return self.length
 
+    def create(self):
+        """
+        Выделяем в памяти буфер под данные
+        """
+        self.level.create()
+        self.flags.create()
+        self.spike_tick.create()
+
 
 class NeuronsMetadata(object):
     """
@@ -61,3 +69,4 @@ class NeuronsMetadata(object):
         self.flags = Metadata((layer.width, layer.height), types.neuron_flags)
         self.spike_tick = Metadata((layer.width, layer.height), types.tick)
         self.address = None
+

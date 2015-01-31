@@ -4,11 +4,13 @@
 """
 from openre.layer import Layer
 from openre.neurons import NeuronsVector
+from openre.sinapses import SinapsesVector, SinapsesMetadata
 import logging
 import uuid
 import random
 from copy import deepcopy
 import math
+from openre.errors import OreNoSinapsesError
 
 
 class Domain(object):
@@ -50,6 +52,8 @@ class Domain(object):
         self.layers = []
         self.layers_config = deepcopy(self.config['layers'])
         self.neurons = NeuronsVector()
+        self.sinapses = SinapsesVector()
+        self.sinapses_metadata = None
         self.random = random.Random()
         self.seed = uuid.uuid4().hex
         self.deploy()
@@ -79,8 +83,15 @@ class Domain(object):
                     if connect['id'] == layer.id:
                         connect['domain_layers'].append(layer)
         # Count sinapses (first pass - virtual sinapses connections)
-        self.count_sinapses()
-        # TODO: create sinapses vector
+        total_sinapses = self.count_sinapses()
+        # allocate sinapses buffer in memory
+        domain_total_sinapses = total_sinapses.get(self.id, 0)
+        if not domain_total_sinapses:
+            raise OreNoSinapsesError('No sinapses in domain %s', self.id)
+
+        self.sinapses_metadata = SinapsesMetadata(domain_total_sinapses)
+        self.sinapses.add(self.sinapses_metadata)
+        self.sinapses.create()
         # Create sinapses (second pass)
         self.create_sinapses()
 
@@ -95,6 +106,7 @@ class Domain(object):
                 # TODO: send sinapse counts (in total_sinapses) to other domains
                 pass
         # TODO: recieve sinapse counts from other domains
+        return total_sinapses
 
     def connect_layers(self, virtual=False):
         """
