@@ -159,7 +159,13 @@ def test_openre():
                 'threshold': 30000,
                 'width': 5,
                 'height': 10,
-            }
+            },
+            {
+                'id': 'V4',
+                'threshold': 30000,
+                'width': 5,
+                'height': 10,
+            },
         ],
         'domains': [
             {
@@ -179,7 +185,15 @@ def test_openre():
                 'layers'    : [
                     {'id': 'V1', 'shape': [10, 10, 10, 10]},
                     {'id': 'V1', 'shape': [0, 10, 10, 10]},
-                    {'id': 'V3'},
+                    {'id': 'V3', 'shape': [-1, -1, 20, 20]},
+                ],
+            },
+            {
+                'id'        : 'D3',
+                'device'    : '0',
+                'layers'    : [
+                    {'id': 'V4', 'shape': [4, 4, 20, 20]},
+                    {'id': 'V4', 'shape': [5, 10, 20, 20]},
                 ],
             },
         ],
@@ -214,6 +228,11 @@ def test_openre():
             ore.domains[0].sinapses.level.length
     assert ore.domains[0].sinapses.length == \
             len(ore.domains[0].sinapses.level.data)
+    # check layer shape
+    assert ore.domains[1].layers[2].shape == [0, 0, 5, 10]
+    assert ore.domains[2].layers[0].shape == [4, 4, 1, 6]
+    assert ore.domains[2].layers[1].shape == [5, 10, 0, 0]
+
 
     for i, domain_config in enumerate(config['domains']):
         domain = ore.domains[i]

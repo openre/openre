@@ -31,7 +31,7 @@ class Vector(object):
             raise OreError('Metadata already assigned to vector')
         address = self.length
         self.metadata.append(metadata)
-        self.length += metadata.shape[0]*metadata.shape[1]
+        self.length += metadata.length
         metadata.set_address(self, address)
 
     def __len__(self):
@@ -42,7 +42,7 @@ class Vector(object):
         Создает в памяти вектор заданного типа и помещает его в self.data
         """
         assert self.data is None
-        self.data = np.zeros((self.length, 1)).astype(self.type)
+        self.data = np.zeros((self.length)).astype(self.type)
 
     def to_device(self):
         """
@@ -53,6 +53,16 @@ class Vector(object):
         """
         Копирует данные из устройства в self.data
         """
+
+    def __getitem__(self, key):
+        if key < 0 or key >= self.length:
+            raise IndexError
+        return self.data[key]
+
+    def __setitem__(self, key, value):
+        if key < 0 or key >= self.length:
+            raise IndexError
+        self.data[key] = value
 
 
 def test_vector():
@@ -102,4 +112,41 @@ def test_vector():
     assert len(vector.data) == 0
     with raises(AssertionError):
         vector.create()
+
+    # test meta index
+    index_vector = Vector()
+    index_meta1 = Metadata((2, 3), types.address)
+    index_meta0 = Metadata((0, 2), types.address) # empty meta
+    index_meta2 = Metadata((3, 2), types.address)
+    index_vector.add(index_meta1)
+    index_vector.add(index_meta0)
+    index_vector.add(index_meta2)
+    index_vector.create()
+    for i in xrange(12):
+        index_vector.data[i] = i
+    with raises(IndexError):
+        index_meta1[6] = 20
+    with raises(IndexError):
+        index_meta1[-1] = 20
+    with raises(IndexError):
+        index_meta1[0, 3] = 20
+    with raises(IndexError):
+        index_meta1[2, 0] = 20
+    assert [_ for _ in index_meta1] == [0, 1, 2, 3, 4, 5]
+    assert [_ for _ in index_meta2] == [6, 7, 8, 9, 10, 11]
+    assert [0, 1, 2, 3, 4, 5] == [
+        index_meta1[0, 0], index_meta1[1, 0],
+        index_meta1[0, 1], index_meta1[1, 1],
+        index_meta1[0, 2], index_meta1[1, 2],
+    ]
+    index_meta2[2, 1] = 12
+    assert [6, 7, 8, 9, 10, 12] == [
+        index_meta2[0, 0], index_meta2[1, 0], index_meta2[2, 0],
+        index_meta2[0, 1], index_meta2[1, 1], index_meta2[2, 1],
+    ]
+    with raises(IndexError):
+        index_meta0[0, 0] = 20
+    with raises(IndexError):
+        index_meta0[0] = 20
+    assert [_ for _ in index_meta0] == []
 

@@ -27,7 +27,8 @@ class Layer(object):
         width: types.address - количество колонок в массиве нейронов
         height: types.address - количество рядов в массиве нейронов
         shape: types.shape - координаты и размер области (в исходном слое)
-               которая будет моделироваться в данном слое.
+               которая будет моделироваться в данном слое. Задается в виде
+               (y, x, height, width)
         """
         logging.debug('Create layer (id: %s)', config['id'])
         config = deepcopy(config)
@@ -39,14 +40,24 @@ class Layer(object):
         self.total_spikes = 0
         self.shape = self.config.get(
             'shape', [0, 0, self.config['width'], self.config['height']])
-        if self.shape[2] > self.config['width']:
-            self.shape[2] = self.config['width']
-        if self.shape[2] > self.config['height']:
-            self.shape[2] = self.config['height']
+        if self.shape[0] >= self.config['width']:
+            self.shape[0] = self.config['width']
+        if self.shape[1] >= self.config['height']:
+            self.shape[1] = self.config['height']
+        if self.shape[0] < 0:
+            self.shape[0] = 0
+        if self.shape[1] < 0:
+            self.shape[1] = 0
+        if self.shape[2] > self.config['width'] - self.shape[0]:
+            self.shape[2] = self.config['width'] - self.shape[0]
+        if self.shape[3] > self.config['height'] - self.shape[1]:
+            self.shape[3] = self.config['height'] - self.shape[1]
         self.x = self.shape[0]
         self.y = self.shape[1]
         self.width = self.shape[2]
         self.height = self.shape[3]
+        if self.width == 0 or self.height == 0:
+            logging.warn('Layer zero width or height, shape = %s', self.shape)
         self.length = self.width * self.height
         self.metadata = NeuronsMetadata(self)
 

@@ -21,6 +21,7 @@ class Metadata(object):
 
     def __init__(self, shape, type):
         self.shape = shape
+        self.length = self.shape[0] * self.shape[1]
         self.type = type
         self.address = None
         self.vector = None
@@ -32,3 +33,31 @@ class Metadata(object):
         """
         self.address = address
         self.vector = vector
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, key):
+        if isinstance(key, (tuple, list)):
+            if key[0] < 0 or key[0] >= self.shape[0]:
+                raise IndexError
+            if key[1] < 0 or key[1] >= self.shape[1]:
+                raise IndexError
+        else:
+            if key < 0 or key >= self.length:
+                raise IndexError
+            key = (key, 0)
+        return self.vector[self.address + key[0] + key[1]*self.shape[0]]
+
+    def __setitem__(self, key, value):
+        if isinstance(key, (tuple, list)):
+            if key[0] < 0 or key[0] >= self.shape[0]:
+                raise IndexError
+            if key[1] < 0 or key[1] >= self.shape[1]:
+                raise IndexError
+        else:
+            if key < 0 or key >= self.length:
+                raise IndexError
+            key = (key, 0)
+        self.vector[self.address + key[0] + key[1]*self.shape[0]] = value
+
