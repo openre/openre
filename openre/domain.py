@@ -243,10 +243,10 @@ class Domain(object):
         """
         Соединяем два нейрона с помощью синапса.
         """
-        self.sinapses_metadata.level[sinapse_address] = \
+        self.sinapses.level.data[sinapse_address] = \
                 random.randint(0, self.ore.config['sinapse']['max_level'])
-        self.sinapses_metadata.pre[sinapse_address] = pre_address
-        self.sinapses_metadata.post[sinapse_address] = post_address
+        self.sinapses.pre.data[sinapse_address] = pre_address
+        self.sinapses.post.data[sinapse_address] = post_address
 
     def send_spikes(self):
         """
