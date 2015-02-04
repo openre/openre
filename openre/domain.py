@@ -10,6 +10,7 @@ import uuid
 import random
 from copy import deepcopy
 import math
+from index import Index
 
 
 class Domain(object):
@@ -56,6 +57,8 @@ class Domain(object):
         self.sinapses_metadata = None
         self.random = random.Random()
         self.seed = uuid.uuid4().hex
+        self.pre_sinapse_index = None
+        self.post_sinapse_index = None
         self.deploy()
         logging.debug('Domain created')
 
@@ -98,6 +101,10 @@ class Domain(object):
         self.create_neurons()
         # Create sinapses (second pass)
         self.create_sinapses()
+        logging.debug('Create pre-neuron - sinapse index')
+        self.pre_sinapse_index = Index(len(self.neurons), self.sinapses.pre)
+        logging.debug('Create post-neuron - sinapse index')
+        self.post_sinapse_index = Index(len(self.neurons), self.sinapses.post)
 
     def count_sinapses(self):
         """

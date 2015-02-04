@@ -134,6 +134,7 @@ class OpenRE(object):
 
 def test_openre():
     from openre.neurons import IS_INHIBITORY
+    from openre.data_types import null
     sinapse_max_level = 30000
     config = {
         'sinapse': {
@@ -242,6 +243,18 @@ def test_openre():
             ore.domains[0].sinapses.level.length
     assert ore.domains[0].sinapses.length == \
             len(ore.domains[0].sinapses.level.data)
+    assert len(ore.domains[0].pre_sinapse_index.value.data) \
+            == len(ore.domains[0].sinapses)
+    assert len(ore.domains[0].pre_sinapse_index.key.data) \
+            == len(ore.domains[0].neurons)
+    assert len([x for x in ore.domains[0].pre_sinapse_index.value.data
+                if x != null]) == 0
+    assert len([x for x in ore.domains[0].post_sinapse_index.value.data
+                if x != null]) == 150
+    assert len([x for x in ore.domains[0].pre_sinapse_index.key.data
+                if x != null]) == 200
+    assert len([x for x in ore.domains[0].post_sinapse_index.key.data
+                if x != null]) == 50
     # check layer shape
     assert ore.domains[1].layers[2].shape == [0, 0, 5, 10]
     assert ore.domains[2].layers[0].shape == [4, 4, 1, 6]
