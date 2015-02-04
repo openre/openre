@@ -7,6 +7,12 @@ from openre.metadata import Metadata
 from openre.vector import Vector
 from openre.data_types import types
 
+IS_INHIBITORY = 1<<0
+IS_SPIKED = 1<<1
+IS_DEAD = 1<<2
+IS_TRANSMITTER = 1<<3
+IS_RECEIVER = 1<<4
+
 class NeuronsVector(object):
     """
     Нейрон (neuron) - упрощенная модель биологического нейрона. На данный

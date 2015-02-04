@@ -91,6 +91,8 @@ class Domain(object):
         self.sinapses_metadata = SinapsesMetadata(domain_total_sinapses)
         self.sinapses.add(self.sinapses_metadata)
         self.sinapses.create()
+        # allocate neurons buffer in memory
+        self.neurons.create()
         # Create sinapses (second pass)
         self.create_sinapses()
 
@@ -125,7 +127,6 @@ class Domain(object):
             # pre layer. Connect only neurons in this domain
             layer = layer_config['layer']
             for connect in layer_config.get('connect', []):
-                radius = connect.get('radius', 1)
                 shift = connect.get('shift', [0, 0])
                 if callable(shift[0]):
                     def shift_x():
@@ -141,6 +142,12 @@ class Domain(object):
                         return shift[1]
 
                 post_layer_config = layer_config_by_id[connect['id']]
+                radius = connect.get('radius', max(
+                    int(1.0 * layer_config['width'] \
+                        / post_layer_config['width'] / 2),
+                    int(1.0 * layer_config['height'] \
+                        / post_layer_config['height'] / 2)
+                ) + 1)
                 for pre_y in xrange(layer.y, layer.y + layer.height):
                     for pre_x in xrange(layer.x, layer.x + layer.width):
                         # Determine post x coordinate of neuron in post layer.
@@ -198,8 +205,17 @@ class Domain(object):
                                             ),
                                             sinapse_address
                                         )
+                                        layer.create_neuron(
+                                            pre_x - layer.x,
+                                            pre_y - layer.y
+                                        )
+                                        post_layer.create_neuron(
+                                            post_x - post_layer.x,
+                                            post_y - post_layer.y
+                                        )
                                     else:
-                                        # TODO: connect with other domain
+                                        # TODO: connect neurons with other
+                                        #       domains
                                         pass
 
 #                                print '%s:%s -> %s:%s[%s]' % (

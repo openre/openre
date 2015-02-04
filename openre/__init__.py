@@ -52,6 +52,8 @@ class OpenRE(object):
         for layer in self.config['layers']:
             if 'threshold' not in layer:
                 layer['threshold'] = self.config['sinapse']['max_level']
+            if 'is_inhibitory' not in layer:
+                layer['is_inhibitory'] = False
             layer_by_id[layer['id']] = layer
 
         # TODO: - выдавать предупреждение если не весь слой моделируется
@@ -131,6 +133,7 @@ class OpenRE(object):
 
 
 def test_openre():
+    from openre.neurons import IS_INHIBITORY
     sinapse_max_level = 30000
     config = {
         'sinapse': {
@@ -155,6 +158,7 @@ def test_openre():
                 'id': 'V2',
                 'width': 10,
                 'height': 10,
+                'is_inhibitory': True,
                 'connect': [
                     {
                         'id': 'V3',
@@ -224,6 +228,9 @@ def test_openre():
             .layers_config[0]['connect'][0]['domain_layers'][0].id == 'V2'
     assert ore.domains[0].layers[1].address == 100
     assert ore.domains[0].layers[2].address == 200
+    assert not ore.domains[0].layers[0].metadata.flags[0] & IS_INHIBITORY
+    assert not ore.domains[0].layers[1].metadata.flags[0] & IS_INHIBITORY
+    assert ore.domains[0].layers[2].metadata.flags[0] & IS_INHIBITORY
     # neurons
     assert ore.domains[0].neurons.length == 300
     assert ore.domains[0].neurons.length == len(ore.domains[0].neurons)

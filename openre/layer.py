@@ -3,8 +3,9 @@
 Содержит в себе 2d массив однотипных нейронов.
 """
 import logging
-from openre.neurons import NeuronsMetadata
+from openre.neurons import NeuronsMetadata, IS_INHIBITORY
 from copy import deepcopy
+import random
 
 class Layer(object):
     """
@@ -36,6 +37,7 @@ class Layer(object):
         self.id = self.config['id']
         self.address = None
         self.threshold = self.config['threshold']
+        self.is_inhibitory = self.config.get('is_inhibitory', False)
         self.relaxation = self.config.get('relaxation', 0)
         self.total_spikes = 0
         self.shape = self.config.get(
@@ -72,6 +74,16 @@ class Layer(object):
         Преобразует координату в слое в адрес в векторе нейронов
         """
         return self.metadata.level.to_address(point_x, point_y)
+
+    def create_neuron(self, point_x, point_y):
+        """
+        Создается один нейрон с координатами point_x, point_y
+        """
+        self.metadata.level[point_x, point_y] \
+                = random.randint(0, self.threshold)
+        self.metadata.flags[point_x, point_y] = 0
+        if self.is_inhibitory:
+            self.metadata.flags[point_x, point_y] |= IS_INHIBITORY
 
 
 def test_layer():
