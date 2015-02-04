@@ -27,9 +27,9 @@ class Index(object):
         self.value.create()
         self.value.fill(null)
         for value_address, key_address in enumerate(data):
-            prev_value_address = self.key[key_address]
-            self.key[key_address] = value_address
-            self.value[value_address] = prev_value_address
+            prev_value_address = self.key.data[key_address]
+            self.key.data[key_address] = value_address
+            self.value.data[value_address] = prev_value_address
 
     def __getitem__(self, key):
         value_address = self.key[key]

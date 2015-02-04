@@ -90,9 +90,12 @@ class Domain(object):
             logging.warn('No sinapses in domain %s', self.id)
         self.sinapses_metadata = SinapsesMetadata(domain_total_sinapses)
         self.sinapses.add(self.sinapses_metadata)
+        logging.debug('Allocate sinapses vector')
         self.sinapses.create()
         # allocate neurons buffer in memory
+        logging.debug('Allocate neurons vector')
         self.neurons.create()
+        self.create_neurons()
         # Create sinapses (second pass)
         self.create_sinapses()
 
@@ -100,6 +103,7 @@ class Domain(object):
         """
         Подсчитываем количество синапсов, которое образуется в данном домене
         """
+        logging.debug('Counting sinapses')
         # Domains sinapses
         total_sinapses = self.connect_layers(virtual=True)
         for domain_id in total_sinapses:
@@ -205,14 +209,6 @@ class Domain(object):
                                             ),
                                             sinapse_address
                                         )
-                                        layer.create_neuron(
-                                            pre_x - layer.x,
-                                            pre_y - layer.y
-                                        )
-                                        post_layer.create_neuron(
-                                            post_x - post_layer.x,
-                                            post_y - post_layer.y
-                                        )
                                     else:
                                         # TODO: connect neurons with other
                                         #       domains
@@ -228,10 +224,19 @@ class Domain(object):
 
         return total_sinapses
 
+    def create_neurons(self):
+        """
+        Создаем физически нейроны в ранее созданном векторе
+        """
+        logging.debug('Create neurons')
+        for layer in self.layers:
+            layer.create_neurons()
+
     def create_sinapses(self):
         """
         Создаем физически синапсы в ранее созданном векторе
         """
+        logging.debug('Create sinapses')
         self.connect_layers(virtual=False)
 
     def connect_neurons(self, pre_address, post_address, sinapse_address):

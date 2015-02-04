@@ -85,6 +85,16 @@ class Layer(object):
         if self.is_inhibitory:
             self.metadata.flags[point_x, point_y] |= IS_INHIBITORY
 
+    def create_neurons(self):
+        """
+        Создание нейронов слоя в ранее выделенном для этого векторе
+        """
+        for i in xrange(self.length):
+            self.metadata.level[i] \
+                    = random.randint(0, self.threshold)
+            self.metadata.flags[i] = 0
+            if self.is_inhibitory:
+                self.metadata.flags[i] |= IS_INHIBITORY
 
 def test_layer():
     layer_config = {
