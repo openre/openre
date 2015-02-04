@@ -64,6 +64,12 @@ class Vector(object):
             raise IndexError
         self.data[key] = value
 
+    def fill(self, value):
+        """
+        Заполняет весь вектор значением value
+        """
+        return self.data.fill(value)
+
 
 def test_vector():
     from openre.metadata import Metadata
