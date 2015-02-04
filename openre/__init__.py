@@ -113,7 +113,7 @@ class OpenRE(object):
         for row in self._find[layer_id]:
             if 'shape' in row:
                 shape = row['shape']
-                # coordinate out of domains layer bounds
+                # coordinate is out of domains layer bounds
                 if x < shape[0] \
                    or x >= shape[0] + shape[2] \
                    or y < shape[1] \
