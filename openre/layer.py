@@ -67,6 +67,13 @@ class Layer(object):
     def __len__(self):
         return self.length
 
+    def to_address(self, point_x, point_y):
+        """
+        Преобразует координату в слое в адрес в векторе нейронов
+        """
+        return self.metadata.level.to_address(point_x, point_y)
+
+
 def test_layer():
     layer_config = {
         'id': 'V1',

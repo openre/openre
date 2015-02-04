@@ -45,7 +45,13 @@ class OpenRE(object):
         Создание домена.
         """
         layer_by_id = {}
+        if 'sinapse' not in self.config:
+            self.config['sinapse'] = {}
+        if 'max_level' not in self.config['sinapse']:
+            self.config['sinapse']['max_level'] = 30000
         for layer in self.config['layers']:
+            if 'threshold' not in layer:
+                layer['threshold'] = self.config['sinapse']['max_level']
             layer_by_id[layer['id']] = layer
 
         # TODO: - выдавать предупреждение если не весь слой моделируется
@@ -125,11 +131,15 @@ class OpenRE(object):
 
 
 def test_openre():
+    sinapse_max_level = 30000
     config = {
+        'sinapse': {
+            'max_level': sinapse_max_level
+        },
         'layers': [
             {
                 'id': 'V1',
-                'threshold': 30000,
+                'threshold': sinapse_max_level,
                 'relaxation': 1000,
                 'width': 20,
                 'height': 20,
@@ -143,7 +153,6 @@ def test_openre():
             },
             {
                 'id': 'V2',
-                'threshold': 30000,
                 'width': 10,
                 'height': 10,
                 'connect': [
@@ -156,13 +165,11 @@ def test_openre():
             },
             {
                 'id': 'V3',
-                'threshold': 30000,
                 'width': 5,
                 'height': 10,
             },
             {
                 'id': 'V4',
-                'threshold': 30000,
                 'width': 5,
                 'height': 10,
             },

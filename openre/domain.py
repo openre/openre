@@ -115,6 +115,7 @@ class Domain(object):
         self.random.seed(self.seed)
         layer_config_by_id = {}
         total_sinapses = {}
+        sinapse_address = -1
         for layer_config in self.ore.config['layers']:
             layer_config_by_id[layer_config['id']] = layer_config
         for layer_config in self.layers_config:
@@ -140,8 +141,8 @@ class Domain(object):
                         return shift[1]
 
                 post_layer_config = layer_config_by_id[connect['id']]
-                for pre_x in xrange(layer.x, layer.x + layer.width):
-                    for pre_y in xrange(layer.y, layer.y + layer.height):
+                for pre_y in xrange(layer.y, layer.y + layer.height):
+                    for pre_x in xrange(layer.x, layer.x + layer.width):
                         # Determine post x coordinate of neuron in post layer.
                         # Should be recalculated for every y because of possible
                         # random shift
@@ -156,27 +157,22 @@ class Domain(object):
                         )) + shift_y()
                         # for all neurons (in post layer) inside of the
                         # connect['radius'] with given central point
-                        for post_x in xrange(
-                            central_post_x - (radius - 1),
-                            central_post_x + (radius - 1) + 1
+                        for post_y in xrange(
+                            central_post_y - (radius - 1),
+                            central_post_y + (radius - 1) + 1
                         ):
-                            if post_x < 0:
+                            if post_y < 0:
                                 continue
-                            if post_x >= post_layer_config['width']:
+                            if post_y >= post_layer_config['height']:
                                 continue
-                            for post_y in xrange(
-                                central_post_y - (radius - 1),
-                                central_post_y + (radius - 1) + 1
+                            for post_x in xrange(
+                                central_post_x - (radius - 1),
+                                central_post_x + (radius - 1) + 1
                             ):
-                                if post_y < 0:
+                                if post_x < 0:
                                     continue
-                                if post_y >= post_layer_config['height']:
+                                if post_x >= post_layer_config['width']:
                                     continue
-                                # TODO:
-                                #  - get domain and layer by
-                                #    post_layer_config['id'] and post_x, post_y
-                                #  - if this is current domain - connect pre
-                                #    and post neurons
                                 post_info = self.ore.find(
                                     post_layer_config['id'], post_x, post_y)
                                 # not found
@@ -185,13 +181,26 @@ class Domain(object):
                                 if post_info['domain_id'] not in total_sinapses:
                                     total_sinapses[post_info['domain_id']] = 0
                                 total_sinapses[post_info['domain_id']] += 1
-                                if post_info['domain_id'] == self.id:
-                                    if not virtual:
-                                        # TODO: connect two neurons with sinapse
+                                if not virtual:
+                                    if post_info['domain_id'] == self.id:
+                                        post_layer = self.layers[
+                                            post_info['layer_index']
+                                        ]
+                                        sinapse_address += 1
+                                        self.connect_neurons(
+                                            layer.to_address(
+                                                pre_x - layer.x,
+                                                pre_y - layer.y
+                                            ),
+                                            post_layer.to_address(
+                                                post_x - post_layer.x,
+                                                post_y - post_layer.y
+                                            ),
+                                            sinapse_address
+                                        )
+                                    else:
+                                        # TODO: connect with other domain
                                         pass
-                                else:
-                                    # TODO: connect with other domain
-                                    pass
 
 #                                print '%s:%s -> %s:%s[%s]' % (
 #                                    self.id,
@@ -207,7 +216,16 @@ class Domain(object):
         """
         Создаем физически синапсы в ранее созданном векторе
         """
-        self.random.seed(self.seed)
+        self.connect_layers(virtual=False)
+
+    def connect_neurons(self, pre_address, post_address, sinapse_address):
+        """
+        Соединяем два нейрона с помощью синапса.
+        """
+        self.sinapses_metadata.level[sinapse_address] = \
+                random.randint(0, self.ore.config['sinapse']['max_level'])
+        self.sinapses_metadata.pre[sinapse_address] = pre_address
+        self.sinapses_metadata.post[sinapse_address] = post_address
 
     def send_spikes(self):
         """
