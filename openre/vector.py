@@ -150,3 +150,11 @@ def test_vector():
         index_meta0[0] = 20
     assert [_ for _ in index_meta0] == []
 
+    # addresses
+    with raises(IndexError):
+        index_meta1.to_address(2, 0)
+    assert index_meta1.to_address(0, 0) == 0
+    assert index_meta1.to_address(1, 0) == 1
+    assert index_meta1.to_address(0, 1) == 2
+    assert index_meta2.to_address(0, 0) == 6
+

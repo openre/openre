@@ -34,6 +34,16 @@ class Metadata(object):
         self.address = address
         self.vector = vector
 
+    def to_address(self, point_x, point_y):
+        """
+        Преобразует координату в метаданных в адрес в векторе
+        """
+        if point_x < 0 or point_x >= self.shape[0]:
+            raise IndexError
+        if point_y < 0 or point_y >= self.shape[1]:
+            raise IndexError
+        return self.address + point_x + point_y * self.shape[0]
+
     def __len__(self):
         return self.length
 
