@@ -64,6 +64,22 @@ class NeuronsVector(object):
         self.flags.create()
         self.spike_tick.create()
 
+    def to_device(self, device):
+        """
+        Загрузка на устройство
+        """
+        self.level.to_device(device)
+        self.flags.to_device(device)
+        self.spike_tick.to_device(device)
+
+    def from_device(self, device):
+        """
+        Выгрузка с устройства
+        """
+        self.level.from_device(device)
+        self.flags.from_device(device)
+        self.spike_tick.from_device(device)
+
 
 class NeuronsMetadata(object):
     """

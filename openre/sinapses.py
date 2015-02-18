@@ -47,6 +47,22 @@ class SinapsesVector(object):
         self.pre.create()
         self.post.create()
 
+    def to_device(self, device):
+        """
+        Загрузка на устройство
+        """
+        self.level.to_device(device)
+        self.pre.to_device(device)
+        self.post.to_device(device)
+
+    def from_device(self, device):
+        """
+        Выгрузка с устройства
+        """
+        self.level.from_device(device)
+        self.pre.from_device(device)
+        self.post.from_device(device)
+
 
 class SinapsesMetadata(object):
     """

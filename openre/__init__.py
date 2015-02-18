@@ -61,6 +61,10 @@ class OpenRE(object):
         #           частично или полностью моделируется дважды
         for domain in self.config['domains']:
             domain = deepcopy(domain)
+            if 'device' not in domain:
+                domain['device'] = {
+                    'type': 'OpenCL'
+                }
             for domain_layer in domain['layers']:
                 domain_layer.update(deepcopy(layer_by_id[domain_layer['id']]))
             self.domains.append(Domain(domain, self))
@@ -135,6 +139,7 @@ class OpenRE(object):
 def test_openre():
     from openre.neurons import IS_INHIBITORY
     from openre.data_types import null
+    from openre.device import OpenCL
     sinapse_max_level = 30000
     config = {
         'sinapse': {
@@ -182,7 +187,6 @@ def test_openre():
         'domains': [
             {
                 'id'        : 'D1',
-                'device'    : '0',
                 'layers'    : [
                     # 'shape': [x, y, width, height]
                     {'id': 'V1', 'shape': [0, 0, 10, 10]},
@@ -193,7 +197,6 @@ def test_openre():
             },
             {
                 'id'        : 'D2',
-                'device'    : '0',
                 'layers'    : [
                     {'id': 'V1', 'shape': [10, 10, 10, 10]},
                     {'id': 'V1', 'shape': [0, 10, 10, 10]},
@@ -202,7 +205,6 @@ def test_openre():
             },
             {
                 'id'        : 'D3',
-                'device'    : '0',
                 'layers'    : [
                     {'id': 'V4', 'shape': [4, 4, 20, 20]},
                     {'id': 'V4', 'shape': [5, 10, 20, 20]},
@@ -223,6 +225,7 @@ def test_openre():
         'layer_index': 1
     }
     # domain layers
+    assert isinstance(ore.domains[0].device, OpenCL)
     assert ore.domains[0].layers[0].id == 'V1'
     assert ore.domains[0].layers_config[0]['layer'].id == 'V1'
     assert ore.domains[0] \

@@ -15,6 +15,7 @@ class Vector(object):
         self.length = 0
         self.metadata = []
         self.data = None
+        self.device_data_pointer = None
         self.type = type
 
     def add(self, metadata):
@@ -44,15 +45,19 @@ class Vector(object):
         assert self.data is None
         self.data = np.zeros((self.length)).astype(self.type)
 
-    def to_device(self):
+    def to_device(self, device):
         """
         Копирует данные из self.data в устройство
         """
+        self.device_data_pointer = device.upload(self.data)
+        return self.device_data_pointer
 
-    def from_device(self):
+    def from_device(self, device):
         """
         Копирует данные из устройства в self.data
         """
+        device.download(self.data, self.device_data_pointer)
+        return self.data
 
     def __getitem__(self, key):
         if key < 0 or key >= self.length:

@@ -10,7 +10,8 @@ import uuid
 import random
 from copy import deepcopy
 import math
-from index import Index
+from openre.index import Index
+from openre import device
 
 
 class Domain(object):
@@ -59,6 +60,10 @@ class Domain(object):
         self.seed = uuid.uuid4().hex
         self.pre_sinapse_index = None
         self.post_sinapse_index = None
+        self.device = getattr(
+            device,
+            self.config['device'].get('type', 'OpenCL')
+        )(self.config['device'])
         self.deploy()
         logging.debug('Domain created')
 
@@ -101,10 +106,18 @@ class Domain(object):
         self.create_neurons()
         # Create sinapses (second pass)
         self.create_sinapses()
+        # create pre-neuron - sinapse index
         logging.debug('Create pre-neuron - sinapse index')
         self.pre_sinapse_index = Index(len(self.neurons), self.sinapses.pre)
+        # create post-neuron - sinapse index
         logging.debug('Create post-neuron - sinapse index')
         self.post_sinapse_index = Index(len(self.neurons), self.sinapses.post)
+        # upload data on device
+        self.neurons.to_device(self.device)
+        self.sinapses.to_device(self.device)
+        self.pre_sinapse_index.to_device(self.device)
+        self.post_sinapse_index.to_device(self.device)
+
 
     def count_sinapses(self):
         """

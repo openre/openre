@@ -42,6 +42,21 @@ class Index(object):
                 return ret
         return ret
 
+    def to_device(self, device):
+        """
+        Загрузка на устройство
+        """
+        self.key.to_device(device)
+        self.value.to_device(device)
+
+    def from_device(self, device):
+        """
+        Выгрузка с устройства
+        """
+        self.key.from_device(device)
+        self.value.from_device(device)
+
+
 def test_index():
     from pytest import raises
     data = [0, 0, 2, 2, 5, 5, 3, 0, 4, 4, 4, 4, 1]
