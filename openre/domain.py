@@ -2,7 +2,7 @@
 """
 Содержит в себе слои и синапсы.
 """
-from openre.layer import Layer
+from openre.layer import Layer, LayersVector, LayersMetadata
 from openre.neurons import NeuronsVector
 from openre.sinapses import SinapsesVector, SinapsesMetadata
 import logging
@@ -52,6 +52,7 @@ class Domain(object):
         self.forget_threshold = self.config.get('forget_threshold', 0)
         self.total_spikes = 0
         self.layers = []
+        self.layers_vector = LayersVector()
         self.layers_config = deepcopy(self.config['layers'])
         self.neurons = NeuronsVector()
         self.sinapses = SinapsesVector()
@@ -77,12 +78,15 @@ class Domain(object):
         config.device
         """
         # Create layers
-        for layer_config in self.layers_config:
+        for layer_index, layer_config in enumerate(self.layers_config):
             layer = Layer(layer_config)
             self.neurons.add(layer.metadata)
             layer.address = layer.metadata.address
             self.layers.append(layer)
             layer_config['layer'] = layer
+            layers_metadata = LayersMetadata(1)
+            self.layers_vector.add(layers_metadata)
+            layer.layer_address = layers_metadata.address
         for layer_config in self.layers_config:
             for connect in layer_config.get('connect', []):
                 connect['domain_layers'] = []
@@ -90,6 +94,13 @@ class Domain(object):
                 for connect in layer_config.get('connect', []):
                     if connect['id'] == layer.id:
                         connect['domain_layers'].append(layer)
+        logging.debug('Allocate layers vector')
+        self.layers_vector.create()
+        for layer_id, layer in enumerate(self.layers):
+            self.layers_vector.threshold[layer_id] = layer.threshold
+            self.layers_vector.relaxation[layer_id] = layer.relaxation
+            self.layers_vector.total_spikes[layer_id] = layer.total_spikes
+
         # Count sinapses (first pass - virtual sinapses connections)
         total_sinapses = self.count_sinapses()
         # allocate sinapses buffer in memory
@@ -113,6 +124,8 @@ class Domain(object):
         logging.debug('Create post-neuron - sinapse index')
         self.post_sinapse_index = Index(len(self.neurons), self.sinapses.post)
         # upload data on device
+        logging.debug('Upload data to device')
+        self.layers_vector.to_device(self.device)
         self.neurons.to_device(self.device)
         self.sinapses.to_device(self.device)
         self.pre_sinapse_index.to_device(self.device)

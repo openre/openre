@@ -148,7 +148,7 @@ def test_openre():
         'layers': [
             {
                 'id': 'V1',
-                'threshold': sinapse_max_level,
+                'threshold': 20000,
                 'relaxation': 1000,
                 'width': 20,
                 'height': 20,
@@ -162,6 +162,8 @@ def test_openre():
             },
             {
                 'id': 'V2',
+                'threshold': 10000,
+                'relaxation': 2000,
                 'width': 10,
                 'height': 10,
                 'is_inhibitory': True,
@@ -175,11 +177,15 @@ def test_openre():
             },
             {
                 'id': 'V3',
+                'threshold': 15000,
+                'relaxation': 3000,
                 'width': 5,
                 'height': 10,
             },
             {
                 'id': 'V4',
+                'threshold': 25000,
+                'relaxation': 4000,
                 'width': 5,
                 'height': 10,
             },
@@ -235,10 +241,27 @@ def test_openre():
     assert not ore.domains[0].layers[0].metadata.flags[0] & IS_INHIBITORY
     assert not ore.domains[0].layers[1].metadata.flags[0] & IS_INHIBITORY
     assert ore.domains[0].layers[2].metadata.flags[0] & IS_INHIBITORY
+    assert list(ore.domains[0].layers_vector.threshold.data) \
+            == [20000, 20000, 10000]
+    assert list(ore.domains[1].layers_vector.threshold.data) \
+            == [20000, 20000, 15000]
+    assert list(ore.domains[2].layers_vector.threshold.data) == [25000, 25000]
+    assert list(ore.domains[0].layers_vector.relaxation.data) \
+            == [1000, 1000, 2000]
+    assert list(ore.domains[1].layers_vector.relaxation.data) \
+            == [1000, 1000, 3000]
+    assert list(ore.domains[2].layers_vector.relaxation.data) == [4000, 4000]
+    assert list(ore.domains[0].layers_vector.total_spikes.data) == [0, 0, 0]
+    assert list(ore.domains[1].layers_vector.total_spikes.data) == [0, 0, 0]
+    assert list(ore.domains[2].layers_vector.total_spikes.data) == [0, 0]
     # neurons
     assert ore.domains[0].neurons.length == 300
     assert ore.domains[0].neurons.length == len(ore.domains[0].neurons)
     assert ore.domains[1].neurons.length == 250
+    neuron_layers_0 = [0]*100
+    neuron_layers_0.extend([1]*100)
+    neuron_layers_0.extend([2]*100)
+    assert list(ore.domains[0].neurons.layer.data) == neuron_layers_0
     # sinapses
     assert ore.domains[0].sinapses
     assert ore.domains[0].sinapses.length

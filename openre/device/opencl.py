@@ -86,4 +86,5 @@ def test_device():
     ore = OpenRE(config)
     assert isinstance(ore.domains[0].device, OpenCL)
     assert ore.domains[0].neurons.level.device_data_pointer
+    assert ore.domains[0].layers_vector.threshold.device_data_pointer
 

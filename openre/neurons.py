@@ -41,6 +41,7 @@ class NeuronsVector(object):
         self.level = Vector(types.neuron_level)
         self.flags = Vector(types.neuron_flags)
         self.spike_tick = Vector(types.tick)
+        self.layer = Vector(types.medium_address)
         self.length = 0
 
     def add(self, metadata):
@@ -50,6 +51,7 @@ class NeuronsVector(object):
         self.level.add(metadata.level)
         self.flags.add(metadata.flags)
         self.spike_tick.add(metadata.spike_tick)
+        self.layer.add(metadata.layer)
         metadata.address = metadata.level.address
         self.length = self.level.length
 
@@ -63,6 +65,7 @@ class NeuronsVector(object):
         self.level.create()
         self.flags.create()
         self.spike_tick.create()
+        self.layer.create()
 
     def to_device(self, device):
         """
@@ -71,6 +74,7 @@ class NeuronsVector(object):
         self.level.to_device(device)
         self.flags.to_device(device)
         self.spike_tick.to_device(device)
+        self.layer.to_device(device)
 
     def from_device(self, device):
         """
@@ -79,6 +83,7 @@ class NeuronsVector(object):
         self.level.from_device(device)
         self.flags.from_device(device)
         self.spike_tick.from_device(device)
+        self.layer.from_device(device)
 
 
 class NeuronsMetadata(object):
@@ -90,5 +95,6 @@ class NeuronsMetadata(object):
         self.level = Metadata((layer.width, layer.height), types.neuron_level)
         self.flags = Metadata((layer.width, layer.height), types.neuron_flags)
         self.spike_tick = Metadata((layer.width, layer.height), types.tick)
+        self.layer = Metadata((layer.width, layer.height), types.medium_address)
         self.address = None
 

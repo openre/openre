@@ -6,6 +6,10 @@ import logging
 from openre.neurons import NeuronsMetadata, IS_INHIBITORY
 from copy import deepcopy
 import random
+from openre.metadata import Metadata
+from openre.vector import Vector
+from openre.data_types import types
+
 
 class Layer(object):
     """
@@ -17,6 +21,7 @@ class Layer(object):
         """
         id: basestring, int или long - идентификатор слоя. Используется для
             возможности ссылаться на слои из доменов (в конфиге).
+        layer_address: types.medium_address - номер слоя в domain.layers.
         address: types.address - aдрес первого элемента в векторе нейронов.
         threshold: types.threshold - если neuron.level больше layer.threshold,
                    то происходит спайк. Не должен быть больше чем максимум у
@@ -35,6 +40,7 @@ class Layer(object):
         config = deepcopy(config)
         self.config = config
         self.id = self.config['id']
+        self.layer_address = None
         self.address = None
         self.threshold = self.config['threshold']
         self.is_inhibitory = self.config.get('is_inhibitory', False)
@@ -75,16 +81,6 @@ class Layer(object):
         """
         return self.metadata.level.to_address(point_x, point_y)
 
-    def create_neuron(self, point_x, point_y):
-        """
-        Создается один нейрон с координатами point_x, point_y
-        """
-        self.metadata.level[point_x, point_y] \
-                = random.randint(0, self.threshold)
-        self.metadata.flags[point_x, point_y] = 0
-        if self.is_inhibitory:
-            self.metadata.flags[point_x, point_y] |= IS_INHIBITORY
-
     def create_neurons(self):
         """
         Создание нейронов слоя в ранее выделенном для этого векторе
@@ -95,6 +91,68 @@ class Layer(object):
             self.metadata.flags[i] = 0
             if self.is_inhibitory:
                 self.metadata.flags[i] |= IS_INHIBITORY
+            self.metadata.layer[i] = self.layer_address
+
+class LayersVector(object):
+    """
+    Вектор слоев домена
+    """
+
+    def __init__(self):
+        self.threshold = Vector(types.threshold)
+        self.relaxation = Vector(types.threshold)
+        self.total_spikes = Vector(types.tick)
+        self.length = 0
+
+    def add(self, metadata):
+        """
+        Добавляем метаданные слоев в вектор
+        """
+        self.threshold.add(metadata.threshold)
+        self.relaxation.add(metadata.relaxation)
+        self.total_spikes.add(metadata.total_spikes)
+        metadata.address = metadata.threshold.address
+        self.length = self.threshold.length
+
+    def __len__(self):
+        return self.length
+
+    def create(self):
+        """
+        Выделяем в памяти буфер под данные
+        """
+        self.threshold.create()
+        self.relaxation.create()
+        self.total_spikes.create()
+
+    def to_device(self, device):
+        """
+        Загрузка на устройство
+        """
+        self.threshold.to_device(device)
+        self.relaxation.to_device(device)
+        self.total_spikes.to_device(device)
+
+    def from_device(self, device):
+        """
+        Выгрузка с устройства
+        """
+        self.threshold.from_device(device)
+        self.relaxation.from_device(device)
+        self.total_spikes.from_device(device)
+
+
+class LayersMetadata(object):
+    """
+    Метаданные для слоев
+    """
+
+    def __init__(self, length):
+        self.threshold = Metadata((length, 1), types.threshold)
+        self.relaxation = Metadata((length, 1), types.threshold)
+        self.total_spikes = Metadata((length, 1), types.tick)
+        self.address = None
+
 
 def test_layer():
     layer_config = {
