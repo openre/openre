@@ -28,6 +28,41 @@ class OpenCL(Device):
         # create an OpenCL context
         self.ctx = cl.Context([self.device], dev_type=None)
         self.queue = cl.CommandQueue(self.ctx)
+        code = """
+#pragma OPENCL EXTENSION cl_khr_global_int32_base_atomics : enable
+#pragma OPENCL EXTENSION cl_khr_local_int32_base_atomics : enable
+#pragma OPENCL EXTENSION cl_khr_global_int32_extended_atomics : enable
+#pragma OPENCL EXTENSION cl_khr_local_int32_extended_atomics : enable
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
+
+unsigned int constant IS_INHIBITORY = 1<<0;
+unsigned int constant IS_SPIKED = 1<<1;
+unsigned int constant IS_DEAD = 1<<2;
+unsigned int constant IS_TRANSMITTER = 1<<3;
+unsigned int constant IS_RECEIVER = 1<<4;
+
+__kernel void tick_neurons() {
+    int i = get_global_id(0);
+}
+__kernel void tick_sinapses() {
+    int i = get_global_id(0);
+}
+        """
+
+        # compile the kernel
+        self.program = cl.Program(self.ctx, code).build(
+            options="-cl-denorms-are-zero " \
+                    "-cl-no-signed-zeros " \
+                    "-cl-finite-math-only"
+        )
+
+
+    def tick_neurons(self, domain):
+        self.program.tick_neurons(self.queue, (domain.neurons.length,), None)
+
+    def tick_sinapses(self, domain):
+        self.program.tick_sinapses(self.queue, (domain.neurons.length,), None)
 
     def upload(self, data):
         # Do not upload empty buffers

@@ -373,8 +373,10 @@ class Domain(object):
         self.ticks += 1
         self.total_spikes = 0
         # step 1
+        self.device.tick_neurons(self)
         # step 2 & 3
         self.receive_spikes()
         # step 4 & 5
         self.send_spikes()
         # step 6
+        self.device.tick_sinapses(self)

@@ -10,13 +10,13 @@ class Device(object):
     def __init__(self, config):
         self.config = config
 
-    def tick_neurons(self):
+    def tick_neurons(self, domain):
         """
         Проверяем нейроны на спайки.
         """
         raise NotImplementedError
 
-    def tick_sinapses(self):
+    def tick_sinapses(self, domain):
         """
         Передаем сигналы от pre-нейронов, у которых наступил спайк к
         post-нейронам
