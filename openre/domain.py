@@ -54,7 +54,9 @@ class Domain(object):
         self.layers = []
         self.layers_vector = LayersVector()
         self.layers_config = deepcopy(self.config['layers'])
+        # neurons vector. Metadata stored in layer.neurons_metadata
         self.neurons = NeuronsVector()
+        # sinapses vector
         self.sinapses = SinapsesVector()
         self.sinapses_metadata = None
         self.random = random.Random()
@@ -78,15 +80,13 @@ class Domain(object):
         config.device
         """
         # Create layers
-        for layer_index, layer_config in enumerate(self.layers_config):
+        for layer_config in self.layers_config:
             layer = Layer(layer_config)
-            self.neurons.add(layer.metadata)
-            layer.address = layer.metadata.address
+            self.neurons.add(layer.neurons_metadata)
+            layer.address = layer.neurons_metadata.address
             self.layers.append(layer)
             layer_config['layer'] = layer
-            layers_metadata = LayersMetadata(1)
-            self.layers_vector.add(layers_metadata)
-            layer.layer_address = layers_metadata.address
+            self.layers_vector.add(layer.layer_metadata)
         for layer_config in self.layers_config:
             for connect in layer_config.get('connect', []):
                 connect['domain_layers'] = []

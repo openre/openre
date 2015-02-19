@@ -40,7 +40,8 @@ class Layer(object):
         config = deepcopy(config)
         self.config = config
         self.id = self.config['id']
-        self.layer_address = None
+        # metadata for current layer (threshold, relaxation, etc.)
+        self.layer_metadata = LayersMetadata(1)
         self.address = None
         self.threshold = self.config['threshold']
         self.is_inhibitory = self.config.get('is_inhibitory', False)
@@ -67,7 +68,8 @@ class Layer(object):
         if self.width == 0 or self.height == 0:
             logging.warn('Layer zero width or height, shape = %s', self.shape)
         self.length = self.width * self.height
-        self.metadata = NeuronsMetadata(self)
+        # metadata for current layer neurons
+        self.neurons_metadata = NeuronsMetadata(self)
 
     def __repr__(self):
         return 'Layer(%s)' % repr(self.config)
@@ -79,19 +81,19 @@ class Layer(object):
         """
         Преобразует координату в слое в адрес в векторе нейронов
         """
-        return self.metadata.level.to_address(point_x, point_y)
+        return self.neurons_metadata.level.to_address(point_x, point_y)
 
     def create_neurons(self):
         """
         Создание нейронов слоя в ранее выделенном для этого векторе
         """
         for i in xrange(self.length):
-            self.metadata.level[i] \
+            self.neurons_metadata.level[i] \
                     = random.randint(0, self.threshold)
-            self.metadata.flags[i] = 0
+            self.neurons_metadata.flags[i] = 0
             if self.is_inhibitory:
-                self.metadata.flags[i] |= IS_INHIBITORY
-            self.metadata.layer[i] = self.layer_address
+                self.neurons_metadata.flags[i] |= IS_INHIBITORY
+            self.neurons_metadata.layer[i] = self.layer_metadata.address
 
 class LayersVector(object):
     """

@@ -238,9 +238,11 @@ def test_openre():
             .layers_config[0]['connect'][0]['domain_layers'][0].id == 'V2'
     assert ore.domains[0].layers[1].address == 100
     assert ore.domains[0].layers[2].address == 200
-    assert not ore.domains[0].layers[0].metadata.flags[0] & IS_INHIBITORY
-    assert not ore.domains[0].layers[1].metadata.flags[0] & IS_INHIBITORY
-    assert ore.domains[0].layers[2].metadata.flags[0] & IS_INHIBITORY
+    assert not ore.domains[0].layers[0].neurons_metadata.flags[0] \
+            & IS_INHIBITORY
+    assert not ore.domains[0].layers[1].neurons_metadata.flags[0] \
+            & IS_INHIBITORY
+    assert ore.domains[0].layers[2].neurons_metadata.flags[0] & IS_INHIBITORY
     assert list(ore.domains[0].layers_vector.threshold.data) \
             == [20000, 20000, 10000]
     assert list(ore.domains[1].layers_vector.threshold.data) \
@@ -298,11 +300,11 @@ def test_openre():
         for j, layer_config in enumerate(domain.config['layers']):
             layer = domain.layers[j]
             assert layer.id == layer_config['id']
-            assert layer.address == layer.metadata.address
+            assert layer.address == layer.neurons_metadata.address
             assert layer.threshold == layer_config['threshold']
             assert layer.relaxation == \
                     layer_config.get('relaxation', 0)
-            assert layer.metadata
+            assert layer.neurons_metadata
         domain.tick()
         assert domain.ticks == 1
 
