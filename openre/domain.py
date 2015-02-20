@@ -109,10 +109,16 @@ class Domain(object):
             logging.warn('No sinapses in domain %s', self.id)
         self.sinapses_metadata = SinapsesMetadata(domain_total_sinapses)
         self.sinapses.add(self.sinapses_metadata)
-        logging.debug('Allocate sinapses vector')
+        logging.debug(
+            'Allocate sinapses vector (%s sinapses in domain)',
+            domain_total_sinapses
+        )
         self.sinapses.create(0, self.ore.config['sinapse']['max_level'])
         # allocate neurons buffer in memory
-        logging.debug('Allocate neurons vector')
+        logging.debug(
+            'Allocate neurons vector (%s neurons in domain)',
+            len(self.neurons)
+        )
         self.neurons.create()
         self.create_neurons()
         # Create sinapses (second pass)
