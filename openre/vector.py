@@ -5,6 +5,7 @@
 import numpy as np
 from openre.errors import OreError
 
+
 class Vector(object):
     """
     Хранит в себе одномерный массив, который можно копировать на устройство
@@ -74,6 +75,20 @@ class Vector(object):
         Заполняет весь вектор значением value
         """
         return self.data.fill(value)
+
+class RandomIntVector(Vector):
+    """
+    При создании указывается диапазон случайных значений, которыми будет
+    заполнен RandomIntVector, в отличии от заполнении нулями в исходном Vector.
+    """
+    def create(self, low, high=None):
+        """
+        Создает в памяти вектор заданного типа и помещает его в self.data
+        """
+        assert self.data is None
+        self.data = np.random.random_integers(
+            low, high=high, size=(self.length)).astype(self.type)
+
 
 
 def test_vector():

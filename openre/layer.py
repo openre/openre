@@ -77,19 +77,13 @@ class Layer(object):
     def __len__(self):
         return self.length
 
-    def to_address(self, point_x, point_y):
-        """
-        Преобразует координату в слое в адрес в векторе нейронов
-        """
-        return self.neurons_metadata.level.to_address(point_x, point_y)
-
     def create_neurons(self):
         """
         Создание нейронов слоя в ранее выделенном для этого векторе
         """
         for i in xrange(self.length):
             self.neurons_metadata.level[i] \
-                    = random.randint(0, self.threshold)
+                    = int(random.random() * (self.threshold + 1))
             self.neurons_metadata.flags[i] = 0
             if self.is_inhibitory:
                 self.neurons_metadata.flags[i] |= IS_INHIBITORY

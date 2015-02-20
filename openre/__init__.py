@@ -115,7 +115,11 @@ class OpenRE(object):
         if layer_id not in self._find:
             return None
         for row in self._find[layer_id]:
-            if 'shape' in row:
+            if 'shape' not in row:
+                if x < 0 or y < 0 \
+                   or x >= row['width'] or y >= row['height']:
+                    continue
+            else:
                 shape = row['shape']
                 # coordinate is out of domains layer bounds
                 if x < shape[0] \
@@ -123,10 +127,6 @@ class OpenRE(object):
                    or y < shape[1] \
                    or y >= shape[1] + shape[3] \
                    or x < 0 or y < 0 \
-                   or x >= row['width'] or y >= row['height']:
-                    continue
-            else:
-                if x < 0 or y < 0 \
                    or x >= row['width'] or y >= row['height']:
                     continue
             return {

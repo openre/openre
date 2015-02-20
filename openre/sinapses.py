@@ -3,7 +3,7 @@
 Массив данных для моделирования синапсов
 """
 from openre.metadata import Metadata
-from openre.vector import Vector
+from openre.vector import Vector, RandomIntVector
 from openre.data_types import types
 
 
@@ -21,7 +21,7 @@ class SinapsesVector(object):
     """
 
     def __init__(self):
-        self.level = Vector(types.sinapse_level)
+        self.level = RandomIntVector(types.sinapse_level)
         self.pre = Vector(types.address)
         self.post = Vector(types.address)
         self.length = 0
@@ -39,11 +39,11 @@ class SinapsesVector(object):
     def __len__(self):
         return self.length
 
-    def create(self):
+    def create(self, low, high=None):
         """
         Выделяем в памяти буфер под данные
         """
-        self.level.create()
+        self.level.create(low, high)
         self.pre.create()
         self.post.create()
 
