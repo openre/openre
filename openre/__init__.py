@@ -139,7 +139,7 @@ class OpenRE(object):
 def test_openre():
     from openre.neurons import IS_INHIBITORY
     from openre.data_types import null
-    from openre.device import OpenCL
+    from openre.device import Dummy
     sinapse_max_level = 30000
     config = {
         'sinapse': {
@@ -193,6 +193,7 @@ def test_openre():
         'domains': [
             {
                 'id'        : 'D1',
+                'device': {'type': 'Dummy'},
                 'layers'    : [
                     # 'shape': [x, y, width, height]
                     {'id': 'V1', 'shape': [0, 0, 10, 10]},
@@ -203,6 +204,7 @@ def test_openre():
             },
             {
                 'id'        : 'D2',
+                'device': {'type': 'Dummy'},
                 'layers'    : [
                     {'id': 'V1', 'shape': [10, 10, 10, 10]},
                     {'id': 'V1', 'shape': [0, 10, 10, 10]},
@@ -211,6 +213,7 @@ def test_openre():
             },
             {
                 'id'        : 'D3',
+                'device': {'type': 'Dummy'},
                 'layers'    : [
                     {'id': 'V4', 'shape': [4, 4, 20, 20]},
                     {'id': 'V4', 'shape': [5, 10, 20, 20]},
@@ -231,7 +234,7 @@ def test_openre():
         'layer_index': 1
     }
     # domain layers
-    assert isinstance(ore.domains[0].device, OpenCL)
+    assert isinstance(ore.domains[0].device, Dummy)
     assert ore.domains[0].layers[0].id == 'V1'
     assert ore.domains[0].layers_config[0]['layer'].id == 'V1'
     assert ore.domains[0] \
