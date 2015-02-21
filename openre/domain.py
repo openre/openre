@@ -298,8 +298,6 @@ class Domain(object):
                             ):
                                 inf = post_info_cache_y[post_x]
                                 post_info_domain_id = domain_index_to_id[inf[0]]
-                                # not found
-                                total_sinapses[post_info_domain_id] += 1
                                 # actually create connections
                                 if not virtual:
                                     if post_info_domain_id == self.id:
@@ -319,6 +317,8 @@ class Domain(object):
                                         # TODO: connect neurons with other
                                         #       domains
                                         pass
+                                else:
+                                    total_sinapses[post_info_domain_id] += 1
 
 
         return total_sinapses
