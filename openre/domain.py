@@ -12,6 +12,7 @@ from copy import deepcopy
 import math
 from openre.index import Index
 from openre import device
+import numpy as np
 
 
 class Domain(object):
@@ -67,6 +68,7 @@ class Domain(object):
             device,
             self.config['device'].get('type', 'OpenCL')
         )(self.config['device'])
+        self.cache = {}
         self.deploy()
         logging.debug('Domain created')
 
@@ -161,10 +163,55 @@ class Domain(object):
         layer_config_by_id = {}
         total_sinapses = {}
         sinapse_address = -1
-        ore_find = self.ore.find
+        # cache
         self_connect_neurons = self.connect_neurons
         for layer_config in self.ore.config['layers']:
             layer_config_by_id[layer_config['id']] = layer_config
+        domain_index_to_id = []
+        for domain_index, domain in enumerate(self.ore.config['domains']):
+            domain_index_to_id.append(domain['id'])
+            total_sinapses[domain['id']] = 0
+        domain_index_to_id.append(None)
+        # cache neurn -> domain and neuron -> layer in domain
+        if 'layer' not in self.cache:
+            self.cache['layer'] = {}
+            for layer_config in self.ore.config['layers']:
+                # heihgt x width x z,
+                # where z == 0 is domain index in ore and
+                #       z == 1 is layer index in domain
+                self.cache['layer'][layer_config['id']] = \
+                    np.zeros(
+                        (layer_config['height'], layer_config['width'], 2),
+                        dtype=np.int
+                    )
+                self.cache['layer'][layer_config['id']].fill(-1)
+            for domain_index, domain in enumerate(self.ore.config['domains']):
+                layer_index = -1
+                for layer in domain['layers']:
+                    layer_index += 1
+                    layer = deepcopy(layer)
+                    layer_config = layer_config_by_id[layer['id']]
+                    shape = layer.get(
+                        'shape',
+                        [0, 0, layer_config['width'], layer_config['height']]
+                    )
+                    if shape[0] < 0:
+                        shape[0] = 0
+                    if shape[1] < 0:
+                        shape[1] = 0
+                    if shape[0] + shape[2] > layer_config['width']:
+                        shape[2] = layer_config['width'] - shape[0]
+                    if shape[1] + shape[3] > layer_config['height']:
+                        shape[3] = layer_config['height'] - shape[1]
+                    layer_cache = \
+                            self.cache['layer'][layer_config['id']]
+                    for y in xrange(shape[1], shape[1] + shape[3]):
+                        layer_cache_y = layer_cache[y]
+                        for x in xrange(shape[0], shape[0] + shape[2]):
+                            layer_cache_y[x][0] = domain_index
+                            layer_cache_y[x][1] = layer_index
+
+        # start connecting
         for layer_config in self.layers_config:
             # no connections with other layers
             if not layer_config.get('connect'):
@@ -189,6 +236,7 @@ class Domain(object):
                         return shift[1]
 
                 post_layer_config = layer_config_by_id[connect['id']]
+                post_info_cache = self.cache['layer'][post_layer_config['id']]
                 radius = connect.get('radius', max(
                     int(1.0 * layer_config['width'] \
                         / post_layer_config['width'] / 2),
@@ -217,40 +265,51 @@ class Domain(object):
                         )) + shift_y()
                         # for all neurons (in post layer) inside of the
                         # connect['radius'] with given central point
+                        post_from_range_x = central_post_x - (radius - 1)
+                        post_to_range_x = central_post_x + (radius - 1) + 1
+                        if post_from_range_x < 0:
+                            post_from_range_x = 0
+                        if post_from_range_x >= post_layer_config['width']:
+                            continue
+                        if post_to_range_x < 0:
+                            continue
+                        if post_to_range_x > post_layer_config['width']:
+                            post_to_range_x = post_layer_config['width'] - 1
+
+                        post_from_range_y = central_post_y - (radius - 1)
+                        post_to_range_y = central_post_y + (radius - 1) + 1
+                        if post_from_range_y < 0:
+                            post_from_range_y = 0
+                        if post_from_range_y >= post_layer_config['height']:
+                            continue
+                        if post_to_range_y < 0:
+                            continue
+                        if post_to_range_y > post_layer_config['height']:
+                            post_to_range_y = post_layer_config['height'] - 1
+                        # for neurons in post layer
                         for post_y in xrange(
-                            central_post_y - (radius - 1),
-                            central_post_y + (radius - 1) + 1
+                            post_from_range_y,
+                            post_to_range_y
                         ):
-                            if post_y < 0:
-                                continue
-                            if post_y >= post_layer_config['height']:
-                                continue
+                            post_info_cache_y = post_info_cache[post_y]
                             for post_x in xrange(
-                                central_post_x - (radius - 1),
-                                central_post_x + (radius - 1) + 1
+                                post_from_range_x,
+                                post_to_range_x
                             ):
-                                if post_x < 0:
-                                    continue
-                                if post_x >= post_layer_config['width']:
-                                    continue
-                                post_info = ore_find(
-                                    post_layer_config['id'], post_x, post_y)
+                                inf = post_info_cache_y[post_x]
+                                post_info_domain_id = domain_index_to_id[inf[0]]
                                 # not found
-                                if not post_info:
-                                    continue
-                                if post_info['domain_id'] not in total_sinapses:
-                                    total_sinapses[post_info['domain_id']] = 0
-                                total_sinapses[post_info['domain_id']] += 1
+                                total_sinapses[post_info_domain_id] += 1
                                 # actually create connections
                                 if not virtual:
-                                    if post_info['domain_id'] == self.id:
-                                        post_layer = self.layers[
-                                            post_info['layer_index']
-                                        ]
+                                    if post_info_domain_id == self.id:
+                                        # inf[1] - post layer index in domain
+                                        post_layer = self.layers[inf[1]]
                                         sinapse_address += 1
                                         self_connect_neurons(
                                             layer_neuron_address,
-                                            post_layer.neurons_metadata.level.to_address(
+                                            post_layer.neurons_metadata.level \
+                                            .to_address(
                                                 post_x - post_layer.x,
                                                 post_y - post_layer.y
                                             ),
@@ -261,13 +320,6 @@ class Domain(object):
                                         #       domains
                                         pass
 
-#                                print '%s:%s -> %s:%s[%s]' % (
-#                                    self.id,
-#                                    layer.id,
-#                                    post_info['domain_id'],
-#                                    post_layer_config['id'],
-#                                    post_info['layer_index']
-#                                )
 
         return total_sinapses
 
