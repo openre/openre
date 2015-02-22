@@ -42,6 +42,13 @@ class Index(object):
                 return ret
         return ret
 
+    def create_device_data_pointer(self, device):
+        """
+        Создание указателей на данные на устройстве
+        """
+        self.key.create_device_data_pointer(device)
+        self.value.create_device_data_pointer(device)
+
     def to_device(self, device):
         """
         Загрузка на устройство

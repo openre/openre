@@ -133,12 +133,14 @@ class Domain(object):
         self.post_sinapse_index = Index(len(self.neurons), self.sinapses.post)
         # upload data on device
         logging.debug('Upload data to device')
-        self.layers_vector.to_device(self.device)
-        self.neurons.to_device(self.device)
-        self.sinapses.to_device(self.device)
-        self.pre_sinapse_index.to_device(self.device)
-        self.post_sinapse_index.to_device(self.device)
-
+        for vector in [
+            self.layers_vector,
+            self.neurons,
+            self.sinapses,
+            self.pre_sinapse_index,
+            self.post_sinapse_index,
+        ]:
+            vector.create_device_data_pointer(self.device)
 
     def count_sinapses(self):
         """

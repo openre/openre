@@ -12,13 +12,18 @@ class Dummy(Device):
     def tick_sinapses(self, domain):
         pass
 
-    def upload(self, data):
-        # Do not upload empty buffers
+    def create(self, data):
         if not len(data):
             return None
         return data
 
-    def download(self, data, device_data_pointer):
+    def upload(self, device_data_pointer, data, is_blocking=True):
+        # Do not upload empty buffers
+        if not len(data):
+            return
+        device_data_pointer[:] = data
+
+    def download(self, data, device_data_pointer, is_blocking=True):
         if device_data_pointer is None:
             return
         data[:] = device_data_pointer

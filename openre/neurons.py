@@ -67,6 +67,15 @@ class NeuronsVector(object):
         self.spike_tick.create()
         self.layer.create()
 
+    def create_device_data_pointer(self, device):
+        """
+        Создание указателей на данные на устройстве
+        """
+        self.level.create_device_data_pointer(device)
+        self.flags.create_device_data_pointer(device)
+        self.spike_tick.create_device_data_pointer(device)
+        self.layer.create_device_data_pointer(device)
+
     def to_device(self, device):
         """
         Загрузка на устройство

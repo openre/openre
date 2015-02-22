@@ -8,6 +8,8 @@ try:
 except ImportError:
     pass
 from openre.device.abstract import Device
+from openre.templates import env
+from openre.data_types import types
 
 class OpenCL(Device):
     """
@@ -28,27 +30,9 @@ class OpenCL(Device):
         # create an OpenCL context
         self.ctx = cl.Context([self.device], dev_type=None)
         self.queue = cl.CommandQueue(self.ctx)
-        code = """
-#pragma OPENCL EXTENSION cl_khr_global_int32_base_atomics : enable
-#pragma OPENCL EXTENSION cl_khr_local_int32_base_atomics : enable
-#pragma OPENCL EXTENSION cl_khr_global_int32_extended_atomics : enable
-#pragma OPENCL EXTENSION cl_khr_local_int32_extended_atomics : enable
-#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
-#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
-
-unsigned int constant IS_INHIBITORY = 1<<0;
-unsigned int constant IS_SPIKED = 1<<1;
-unsigned int constant IS_DEAD = 1<<2;
-unsigned int constant IS_TRANSMITTER = 1<<3;
-unsigned int constant IS_RECEIVER = 1<<4;
-
-__kernel void tick_neurons() {
-    int i = get_global_id(0);
-}
-__kernel void tick_sinapses() {
-    int i = get_global_id(0);
-}
-        """
+        code = env.get_template("device/opencl.c").render(
+            types=types
+        )
 
         # compile the kernel
         self.program = cl.Program(self.ctx, code).build(
@@ -59,13 +43,35 @@ __kernel void tick_sinapses() {
 
 
     def tick_neurons(self, domain):
-        self.program.tick_neurons(self.queue, (domain.neurons.length,), None)
+        self.program.tick_neurons(
+            self.queue, (domain.neurons.length,), None,
+            # domain
+            types.tick(domain.ticks),
+            # layers
+            domain.layers_vector.threshold.device_data_pointer,
+            domain.layers_vector.relaxation.device_data_pointer,
+            domain.layers_vector.total_spikes.device_data_pointer,
+            # neurons
+            domain.neurons.level.device_data_pointer,
+            domain.neurons.flags.device_data_pointer,
+            domain.neurons.spike_tick.device_data_pointer,
+            domain.neurons.layer.device_data_pointer
+        ).wait()
+        # download total_spikes from device and refresh layer.total_spikes
+        domain.total_spikes = 0
+        domain.layers_vector.total_spikes.from_device(self)
+        for layer_id, layer in enumerate(domain.layers):
+            layer.total_spikes = domain.layers_vector.total_spikes[layer_id]
+            domain.total_spikes += layer.total_spikes
+            # reset total_spikes in all layers and domain
+            domain.layers_vector.total_spikes[layer_id] = 0
+        # and upload it to device
+        domain.layers_vector.total_spikes.to_device(self)
 
     def tick_sinapses(self, domain):
-        self.program.tick_sinapses(self.queue, (domain.neurons.length,), None)
+        self.program.tick_sinapses(self.queue, (domain.neurons.length,), None).wait()
 
-    def upload(self, data):
-        # Do not upload empty buffers
+    def create(self, data):
         if not len(data):
             return None
         return cl.Buffer(
@@ -74,10 +80,18 @@ __kernel void tick_sinapses() {
             hostbuf=data
         )
 
-    def download(self, data, device_data_pointer):
+    def upload(self, device_data_pointer, data, is_blocking=True):
+        # Do not upload empty buffers
+        if not len(data) or device_data_pointer is None:
+            return
+        cl.enqueue_copy(
+            self.queue, device_data_pointer, data, is_blocking=is_blocking)
+
+    def download(self, data, device_data_pointer, is_blocking=True):
         if device_data_pointer is None:
             return
-        cl.enqueue_copy(self.queue, data, device_data_pointer)
+        cl.enqueue_copy(
+            self.queue, data, device_data_pointer, is_blocking=is_blocking)
 
 def test_device():
     if cl is None:
@@ -85,6 +99,8 @@ def test_device():
         return
     from openre import OpenRE
     from pytest import raises
+    import numpy as np
+    from openre import neurons
     sinapse_max_level = 30000
     config = {
         'sinapse': {
@@ -122,4 +138,34 @@ def test_device():
     assert isinstance(ore.domains[0].device, OpenCL)
     assert ore.domains[0].neurons.level.device_data_pointer
     assert ore.domains[0].layers_vector.threshold.device_data_pointer
+    for domain in ore.domains:
+        domain.tick()
 
+    # test kernel
+    device = ore.domains[0].device
+    test_length = 10
+    test_kernel = np.zeros((test_length,)).astype(np.int32)
+    test_kernel_buf = cl.Buffer(
+            device.ctx,
+            cl.mem_flags.READ_WRITE | cl.mem_flags.COPY_HOST_PTR,
+            hostbuf=test_kernel
+        )
+
+    device.program.test_kernel(
+        device.queue, (test_length,), None,
+        test_kernel_buf,
+        np.int32(test_length)
+    )
+    cl.enqueue_copy(device.queue, test_kernel, test_kernel_buf)
+    assert list(test_kernel) == [
+        neurons.IS_INHIBITORY,
+        neurons.IS_SPIKED,
+        neurons.IS_DEAD,
+        neurons.IS_TRANSMITTER,
+        neurons.IS_RECEIVER,
+        test_length,
+        1, # 3 & IS_INHIBITORY
+        2, # 3 & IS_SPIKED
+        0, # 3 & IS_DEAD
+        test_length
+    ]

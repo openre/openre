@@ -46,18 +46,26 @@ class Vector(object):
         assert self.data is None
         self.data = np.zeros((self.length)).astype(self.type)
 
-    def to_device(self, device):
+    def create_device_data_pointer(self, device):
+        """
+        Создает self.device_data_pointer для устройства device
+        """
+        self.device_data_pointer = device.create(self.data)
+
+    def to_device(self, device, is_blocking=True):
         """
         Копирует данные из self.data в устройство
         """
-        self.device_data_pointer = device.upload(self.data)
+        device.upload(
+            self.device_data_pointer, self.data, is_blocking=is_blocking)
         return self.device_data_pointer
 
-    def from_device(self, device):
+    def from_device(self, device, is_blocking=True):
         """
         Копирует данные из устройства в self.data
         """
-        device.download(self.data, self.device_data_pointer)
+        device.download(
+            self.data, self.device_data_pointer, is_blocking=is_blocking)
         return self.data
 
     def __getitem__(self, key):

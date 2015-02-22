@@ -121,6 +121,14 @@ class LayersVector(object):
         self.relaxation.create()
         self.total_spikes.create()
 
+    def create_device_data_pointer(self, device):
+        """
+        Создание указателей на данные на устройстве
+        """
+        self.threshold.create_device_data_pointer(device)
+        self.relaxation.create_device_data_pointer(device)
+        self.total_spikes.create_device_data_pointer(device)
+
     def to_device(self, device):
         """
         Загрузка на устройство

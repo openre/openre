@@ -23,14 +23,20 @@ class Device(object):
         """
         raise NotImplementedError
 
-    def upload(self, data):
+    def create(self, data):
+        """
+        Создает указатель на данные на устройстве для data
+        """
+        raise NotImplementedError
+
+    def upload(self, device_data_pointer, data, is_blocking=True):
         """
         Данные из data копируются на устройство и возвращается указатель
         на данные на устройсте
         """
         raise NotImplementedError
 
-    def download(self, data, device_data_pointer):
+    def download(self, data, device_data_pointer, is_blocking=True):
         """
         Данные с устройства (указатель dev_data) копируются в data
         """
