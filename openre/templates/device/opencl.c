@@ -64,11 +64,11 @@ __kernel void tick_neurons(
         n_spike_tick[neuron_address] = d_ticks;
     }
     // just relax
-    else if(n_level[neuron_address] > 0){
+    else if(n_level[neuron_address] >= 0){
         n_level[neuron_address] -= l_relaxation[layer_address];
-        if(n_level[neuron_address] < 0){
-            n_level[neuron_address] = 0;
-        }
+    }
+    if(n_level[neuron_address] < 0){
+        n_level[neuron_address] = 0;
     }
 }
 __kernel void tick_sinapses() {

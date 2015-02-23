@@ -138,11 +138,58 @@ def test_device():
     assert isinstance(ore.domains[0].device, OpenCL)
     assert ore.domains[0].neurons.level.device_data_pointer
     assert ore.domains[0].layers_vector.threshold.device_data_pointer
-    for domain in ore.domains:
-        domain.tick()
+    domain = ore.domains[0]
+    layer = domain.layers[0]
+    device = ore.domains[0].device
+    # prepare neurons
+    layer.neurons_metadata.level[0, 0] = sinapse_max_level
+    assert not layer.neurons_metadata.flags[0, 0] & neurons.IS_SPIKED
+
+    layer.neurons_metadata.level[0, 1] = layer.relaxation + 1
+    layer.neurons_metadata.flags[0, 1] |= neurons.IS_SPIKED
+    assert layer.neurons_metadata.flags[0, 1] | neurons.IS_SPIKED
+
+    layer.neurons_metadata.level[0, 2] = sinapse_max_level
+    layer.neurons_metadata.flags[0, 2] |= neurons.IS_DEAD
+    layer.neurons_metadata.flags[0, 2] |= neurons.IS_SPIKED
+
+    layer.neurons_metadata.level[0, 3] = sinapse_max_level
+    layer.neurons_metadata.flags[0, 3] |= neurons.IS_RECEIVER
+    layer.neurons_metadata.flags[0, 3] |= neurons.IS_SPIKED
+
+    layer.neurons_metadata.level[0, 4] = -1
+
+    layer.neurons_metadata.level[0, 5] = -1
+
+    domain.neurons.to_device(device)
+    domain.tick()
+    domain.neurons.from_device(device)
+
+    # check neurons
+    assert layer.neurons_metadata.level[0, 0] == 0
+    assert layer.neurons_metadata.flags[0, 0] & neurons.IS_SPIKED
+    assert layer.neurons_metadata.spike_tick[0, 0] == 1
+
+    assert layer.neurons_metadata.level[0, 1] == 1
+    assert not layer.neurons_metadata.flags[0, 1] & neurons.IS_SPIKED
+    assert layer.neurons_metadata.spike_tick[0, 1] == 0
+
+    assert layer.neurons_metadata.level[0, 2] == sinapse_max_level
+    assert layer.neurons_metadata.flags[0, 2] & neurons.IS_DEAD
+    assert layer.neurons_metadata.flags[0, 2] & neurons.IS_SPIKED
+
+    assert layer.neurons_metadata.level[0, 3] == sinapse_max_level
+    assert layer.neurons_metadata.flags[0, 3] & neurons.IS_RECEIVER
+    assert not layer.neurons_metadata.flags[0, 3] & neurons.IS_SPIKED
+
+    assert layer.neurons_metadata.level[0, 4] == 0
+
+    assert layer.neurons_metadata.level[0, 5] == 0
+
+    assert layer.total_spikes == 1
+    assert domain.total_spikes == 1
 
     # test kernel
-    device = ore.domains[0].device
     test_length = 10
     test_kernel = np.zeros((test_length,)).astype(np.int32)
     test_kernel_buf = cl.Buffer(
