@@ -12,6 +12,7 @@ IS_SPIKED = 1<<1
 IS_DEAD = 1<<2
 IS_TRANSMITTER = 1<<3
 IS_RECEIVER = 1<<4
+IS_INFINITE_ERROR = 1<<5
 
 class NeuronsVector(object):
     """
@@ -34,6 +35,9 @@ class NeuronsVector(object):
                                  как pre-нейрон в синапсе. Не может быть
                                  post-нейроном в синапсе, при попытке создать
                                  такую связь должно гененрироваться исключение.
+        IS_INFINITE_ERROR = 1<<5 - если бит установлен, значит при последнем
+                                 обсчете device.tick_sinapses для этого нейрона
+                                 был бесконечный цикл.
     spike_tick: types.tick - номер тика, при котором произошел спайк
     """
 

@@ -9,7 +9,7 @@ except ImportError:
     pass
 from openre.device.abstract import Device
 from openre.templates import env
-from openre.data_types import types
+from openre.data_types import types, null
 
 class OpenCL(Device):
     """
@@ -31,7 +31,8 @@ class OpenCL(Device):
         self.ctx = cl.Context([self.device], dev_type=None)
         self.queue = cl.CommandQueue(self.ctx)
         code = env.get_template("device/opencl.c").render(
-            types=types
+            types=types,
+            null=null
         )
 
         # compile the kernel
@@ -69,7 +70,26 @@ class OpenCL(Device):
         domain.layers_vector.total_spikes.to_device(self)
 
     def tick_sinapses(self, domain):
-        self.program.tick_sinapses(self.queue, (domain.neurons.length,), None).wait()
+        self.program.tick_sinapses(
+            self.queue, (domain.neurons.length,), None,
+            # domain
+            types.threshold(domain.learn_threshold),
+            types.threshold(domain.forget_threshold),
+            # neurons
+            domain.neurons.level.device_data_pointer,
+            domain.neurons.flags.device_data_pointer,
+            domain.neurons.spike_tick.device_data_pointer,
+            # sinapses
+            domain.sinapses.level.device_data_pointer,
+            domain.sinapses.pre.device_data_pointer,
+            domain.sinapses.post.device_data_pointer,
+            # pre-neuron - sinapse index
+            domain.pre_sinapse_index.key.device_data_pointer,
+            domain.pre_sinapse_index.value.device_data_pointer,
+            # post-neuron - sinapse index
+            domain.post_sinapse_index.key.device_data_pointer,
+            domain.post_sinapse_index.value.device_data_pointer
+        ).wait()
 
     def create(self, data):
         if not len(data):
@@ -113,13 +133,21 @@ def test_device():
                 'relaxation': 1000,
                 'width': 20,
                 'height': 20,
+                'is_inhibitory': True,
                 'connect': [
                     {
-                        'id': 'V1',
+                        'id': 'V2',
                         'radius': 1,
                         'shift': [0, 0],
                     },
                 ],
+            },
+            {
+                'id': 'V2',
+                'threshold': sinapse_max_level,
+                'relaxation': 1000,
+                'width': 20,
+                'height': 20,
             },
         ],
         'domains': [
@@ -130,6 +158,7 @@ def test_device():
                 },
                 'layers'    : [
                     {'id': 'V1'},
+                    {'id': 'V2'},
                 ],
             },
         ],
@@ -140,6 +169,7 @@ def test_device():
     assert ore.domains[0].layers_vector.threshold.device_data_pointer
     domain = ore.domains[0]
     layer = domain.layers[0]
+    layer2 = domain.layers[1]
     device = ore.domains[0].device
     # prepare neurons
     layer.neurons_metadata.level[0, 0] = sinapse_max_level
@@ -161,11 +191,24 @@ def test_device():
 
     layer.neurons_metadata.level[0, 5] = -1
 
+    # sinapses
+    before = layer2.neurons_metadata.level[0, 0]
+    sinapse_address = domain.pre_sinapse_index.key[0]
+    sinapse_level = domain.sinapses.level[sinapse_address]
+    layer.neurons_metadata.level[1, 0] = sinapse_max_level
+    layer2.neurons_metadata.flags[1, 0] |= neurons.IS_DEAD
+    layer2.neurons_metadata.level[1, 1] = sinapse_max_level
+    layer.neurons_metadata.flags[1, 2] |= neurons.IS_DEAD
+    layer2.neurons_metadata.level[1, 2] = sinapse_max_level
+
+
     domain.neurons.to_device(device)
+    domain.sinapses.to_device(device)
     domain.tick()
     domain.neurons.from_device(device)
+    domain.sinapses.from_device(device)
 
-    # check neurons
+    # check neurons (layer.neurons_metadata.level[x, y])
     assert layer.neurons_metadata.level[0, 0] == 0
     assert layer.neurons_metadata.flags[0, 0] & neurons.IS_SPIKED
     assert layer.neurons_metadata.spike_tick[0, 0] == 1
@@ -186,12 +229,30 @@ def test_device():
 
     assert layer.neurons_metadata.level[0, 5] == 0
 
-    assert layer.total_spikes == 1
-    assert domain.total_spikes == 1
+    assert layer.total_spikes == 2
+    assert layer2.total_spikes == 2
+    assert domain.total_spikes == 4
+
+    # check sinapses
+    before = before - 1000
+    if before < 0:
+        before = 0
+    # layer 1 is inhibitory
+    assert layer2.neurons_metadata.level[0, 0] == before - sinapse_level
+    # dead post-neuron so sinapse level should be 0
+    assert domain.sinapses.level[domain.pre_sinapse_index.key[
+        layer.neurons_metadata.level.to_address(1, 0)
+    ]] == 0
+    assert layer2.neurons_metadata.flags[1, 1] & neurons.IS_SPIKED
+    # dead pre-neuron so sinapse level should be 0
+    assert domain.sinapses.level[domain.post_sinapse_index.key[
+        layer2.neurons_metadata.level.to_address(1, 2)
+    ]] == 0
+
 
     # test kernel
-    test_length = 10
-    test_kernel = np.zeros((test_length,)).astype(np.int32)
+    test_length = 12
+    test_kernel = np.zeros((test_length,)).astype(np.uint32)
     test_kernel_buf = cl.Buffer(
             device.ctx,
             cl.mem_flags.READ_WRITE | cl.mem_flags.COPY_HOST_PTR,
@@ -214,5 +275,7 @@ def test_device():
         1, # 3 & IS_INHIBITORY
         2, # 3 & IS_SPIKED
         0, # 3 & IS_DEAD
-        test_length
+        test_length,
+        null,
+        neurons.IS_INFINITE_ERROR,
     ]
