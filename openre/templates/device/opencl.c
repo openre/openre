@@ -119,7 +119,7 @@ __kernel void tick_sinapses(
     // for each post-sinapses
     not_infinite = 1000000;
     while(post_sinapse_address != NULL_ADDRESS && not_infinite){
-        not_infinite--; /* TODO: detect infinite loops in host*/
+        not_infinite--; /* TODO: send error to host if infinite loop */
         post_neuron_address = s_post[post_sinapse_address];
         // sinapse is dead
         if(s_level[post_sinapse_address] == 0){
@@ -131,7 +131,7 @@ __kernel void tick_sinapses(
             continue;
         }
         // is spiked - change post neuron level
-        n_level[post_neuron_address] += 
+        n_level[post_neuron_address] +=
             n_flags[neuron_address] & IS_INHIBITORY
             ? -s_level[post_sinapse_address] : s_level[post_sinapse_address];
         // post-sinapse learning
@@ -141,7 +141,7 @@ __kernel void tick_sinapses(
     // for each pre-sinapses
     not_infinite = 1000000;
     while(pre_sinapse_address != NULL_ADDRESS && not_infinite){
-        not_infinite--; /* TODO: detect infinite loops in host*/
+        not_infinite--; /* TODO: send error to host if infinite loop */
         pre_neuron_address = s_pre[pre_sinapse_address];
         // sinapse is dead
         if(s_level[pre_sinapse_address] == 0){

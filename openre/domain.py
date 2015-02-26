@@ -407,17 +407,16 @@ class Domain(object):
             - если не neuron.flags & IS_SPIKED, то заканчиваем обсчет
             - по всем записям в pre_sinapse_index.value, относящимся к
               pre_sinapse_index.key[i]:
-                - если sinapse.level == 0 - считаем что синапс мертв, удаляем
-                  его из индекса pre_sinapse_index и не обсчитываем дальше
+                - если sinapse.level == 0 - считаем что синапс мертв и не
+                  обсчитываем дальше внутренний цикл
                 - если post.flags & IS_DEAD - удаляем синапс (sinapse.level = 0)
-                  и удаляем его из индекса pre_sinapse_index и не обсчитываем
-                  дальше
+                  и не обсчитываем дальше внутренний цикл
                 - если дошли до этого места, то neuron.flags & IS_SPIKED и
                   делаем:
                     - post.level += (neuron.flags & IS_INHIBITORY ?
                       -sinapse.level : sinapse.level)
                     # Обучение синапсов к post нейронам
-                    - если neuron.tick - post.tick <= domain.learn_threshold,
+                    - если neuron.tick - post.tick < domain.learn_threshold,
                       то увеличиваем вес синапса. Вес можно увеличивать,
                       например, как f(neuron.tick - post.tick), либо на
                       фиксированное значение
@@ -427,6 +426,10 @@ class Domain(object):
                       значение
             - по всем записям в post_sinapse_index.value, относящимся к
               post_sinapse_index.key[i]:
+                - если sinapse.level == 0 - считаем что синапс мертв и не
+                  обсчитываем дальше внутренний цикл
+                - если pre.flags & IS_DEAD - удаляем синапс (sinapse.level = 0)
+                  и не обсчитываем дальше внутренний цикл
                 # Обучение синапсов от pre нейронов
                 - если neuron.tick - pre.tick <= domain.learn_threshold, то
                   увеличиваем вес синапса. Вес можно увеличивать, например, как
