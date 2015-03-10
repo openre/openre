@@ -2,12 +2,12 @@
 """
 Массив данных для моделирования синапсов
 """
-from openre.metadata import Metadata
-from openre.vector import Vector, RandomIntVector
+from openre.metadata import MultiFieldMetadata
+from openre.vector import Vector, RandomIntVector, MultiFieldVector
 from openre.data_types import types
 
 
-class SinapsesVector(object):
+class SinapsesVector(MultiFieldVector):
     """
     Синапс (sinapse) - Содержит информацию о связи между двумя нейронами -
     pre- и post-нейроном с определенной силой (level). Если у pre-нейрона
@@ -19,67 +19,32 @@ class SinapsesVector(object):
     pre: types.address - адрес pre-нейрона внутри одного домена
     post: types.address - адрес post-нейрона внутри одного домена
     """
-
+    fields = [
+        ('level', types.sinapse_level),
+        ('pre', types.address),
+        ('post', types.address),
+    ]
     def __init__(self):
-        self.level = RandomIntVector(types.sinapse_level)
-        self.pre = Vector(types.address)
-        self.post = Vector(types.address)
+        assert self.__class__.fields
+        for field, field_type in self.__class__.fields:
+            if field == 'level':
+                setattr(self, field, RandomIntVector(field_type))
+            else:
+                setattr(self, field, Vector(field_type))
         self.length = 0
-
-    def add(self, metadata):
-        """
-        Добавляем метаданные синапсов в вектор
-        """
-        self.level.add(metadata.level)
-        self.pre.add(metadata.pre)
-        self.post.add(metadata.post)
-        metadata.address = metadata.level.address
-        self.length = self.level.length
-
-    def __len__(self):
-        return self.length
 
     def create(self, low, high=None):
         """
         Выделяем в памяти буфер под данные
         """
-        self.level.create(low, high)
-        self.pre.create()
-        self.post.create()
+        for field, _ in self.__class__.fields:
+            if field == 'level':
+                getattr(self, field).create(low, high)
+            else:
+                getattr(self, field).create()
 
-    def create_device_data_pointer(self, device):
-        """
-        Создание указателей на данные на устройстве
-        """
-        self.level.create_device_data_pointer(device)
-        self.pre.create_device_data_pointer(device)
-        self.post.create_device_data_pointer(device)
-
-    def to_device(self, device):
-        """
-        Загрузка на устройство
-        """
-        self.level.to_device(device)
-        self.pre.to_device(device)
-        self.post.to_device(device)
-
-    def from_device(self, device):
-        """
-        Выгрузка с устройства
-        """
-        self.level.from_device(device)
-        self.pre.from_device(device)
-        self.post.from_device(device)
-
-
-class SinapsesMetadata(object):
+class SinapsesMetadata(MultiFieldMetadata):
     """
     Метаданные для нейронов
     """
-
-    def __init__(self, length):
-        self.level = Metadata((length, 1), types.sinapse_level)
-        self.pre = Metadata((length, 1), types.address)
-        self.post = Metadata((length, 1), types.address)
-        self.address = None
-
+    fields = list(SinapsesVector.fields)

@@ -3,8 +3,8 @@
 Массив данных для моделирования нейронов (представляет из себя объект, который
 содержит по одному вектору на каждый из параметров нейрона)
 """
-from openre.metadata import Metadata
-from openre.vector import Vector
+from openre.metadata import MultiFieldMetadata
+from openre.vector import MultiFieldVector
 from openre.data_types import types
 
 IS_INHIBITORY = 1<<0
@@ -14,7 +14,7 @@ IS_TRANSMITTER = 1<<3
 IS_RECEIVER = 1<<4
 IS_INFINITE_ERROR = 1<<5
 
-class NeuronsVector(object):
+class NeuronsVector(MultiFieldVector):
     """
     Нейрон (neuron) - упрощенная модель биологического нейрона. На данный
     момент, это простой сумматор.
@@ -41,73 +41,16 @@ class NeuronsVector(object):
     spike_tick: types.tick - номер тика, при котором произошел спайк
     """
 
-    def __init__(self):
-        self.level = Vector(types.neuron_level)
-        self.flags = Vector(types.neuron_flags)
-        self.spike_tick = Vector(types.tick)
-        self.layer = Vector(types.medium_address)
-        self.length = 0
+    fields = [
+        ('level', types.neuron_level),
+        ('flags', types.neuron_flags),
+        ('spike_tick', types.tick),
+        ('layer', types.medium_address),
+    ]
 
-    def add(self, metadata):
-        """
-        Добавляем метаданные нейронов в слое в вектор
-        """
-        self.level.add(metadata.level)
-        self.flags.add(metadata.flags)
-        self.spike_tick.add(metadata.spike_tick)
-        self.layer.add(metadata.layer)
-        metadata.address = metadata.level.address
-        self.length = self.level.length
-
-    def __len__(self):
-        return self.length
-
-    def create(self):
-        """
-        Выделяем в памяти буфер под данные
-        """
-        self.level.create()
-        self.flags.create()
-        self.spike_tick.create()
-        self.layer.create()
-
-    def create_device_data_pointer(self, device):
-        """
-        Создание указателей на данные на устройстве
-        """
-        self.level.create_device_data_pointer(device)
-        self.flags.create_device_data_pointer(device)
-        self.spike_tick.create_device_data_pointer(device)
-        self.layer.create_device_data_pointer(device)
-
-    def to_device(self, device):
-        """
-        Загрузка на устройство
-        """
-        self.level.to_device(device)
-        self.flags.to_device(device)
-        self.spike_tick.to_device(device)
-        self.layer.to_device(device)
-
-    def from_device(self, device):
-        """
-        Выгрузка с устройства
-        """
-        self.level.from_device(device)
-        self.flags.from_device(device)
-        self.spike_tick.from_device(device)
-        self.layer.from_device(device)
-
-
-class NeuronsMetadata(object):
+class NeuronsMetadata(MultiFieldMetadata):
     """
     Метаданные для одного слоя нейронов
     """
-
-    def __init__(self, layer):
-        self.level = Metadata((layer.width, layer.height), types.neuron_level)
-        self.flags = Metadata((layer.width, layer.height), types.neuron_flags)
-        self.spike_tick = Metadata((layer.width, layer.height), types.tick)
-        self.layer = Metadata((layer.width, layer.height), types.medium_address)
-        self.address = None
+    fields = list(NeuronsVector.fields)
 

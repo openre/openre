@@ -71,3 +71,16 @@ class Metadata(object):
             key = (key, 0)
         self.vector[self.address + key[0] + key[1]*self.shape[0]] = value
 
+class MultiFieldMetadata(object):
+    """
+    Метаданные с несколькими полями одинаковой длины.
+    """
+    fields = []
+    def __init__(self, shape):
+        assert self.__class__.fields
+        if not isinstance(shape, tuple):
+            shape = (shape, 1)
+        for field, field_type in self.__class__.fields:
+            setattr(self, field, Metadata(shape, field_type))
+        self.address = None
+

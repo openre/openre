@@ -97,6 +97,58 @@ class RandomIntVector(Vector):
         self.data = np.random.random_integers(
             low, high=high, size=(self.length)).astype(self.type)
 
+class MultiFieldVector(object):
+    """
+    Вектор с несколькими полями одинаковой длины. Для каждого поля можно
+    задавать свой тип.
+    """
+    fields = []
+    def __init__(self):
+        assert self.__class__.fields
+        for field, field_type in self.__class__.fields:
+            setattr(self, field, Vector(field_type))
+        self.length = 0
+
+    def add(self, metadata):
+        """
+        Добавляем метаданные нейронов в слое в вектор
+        """
+        for field, _ in self.__class__.fields:
+            getattr(self, field).add(getattr(metadata, field))
+        field, _ = self.__class__.fields[0]
+        metadata.address = getattr(metadata, field).address
+        self.length = getattr(self, field).length
+
+    def __len__(self):
+        return self.length
+
+    def create(self):
+        """
+        Выделяем в памяти буфер под данные
+        """
+        for field, _ in self.__class__.fields:
+            getattr(self, field).create()
+
+    def create_device_data_pointer(self, device):
+        """
+        Создание указателей на данные на устройстве
+        """
+        for field, _ in self.__class__.fields:
+            getattr(self, field).create_device_data_pointer(device)
+
+    def to_device(self, device):
+        """
+        Загрузка на устройство
+        """
+        for field, _ in self.__class__.fields:
+            getattr(self, field).to_device(device)
+
+    def from_device(self, device):
+        """
+        Выгрузка с устройства
+        """
+        for field, _ in self.__class__.fields:
+            getattr(self, field).from_device(device)
 
 
 def test_vector():

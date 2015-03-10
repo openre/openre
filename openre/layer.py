@@ -6,8 +6,8 @@ import logging
 from openre.neurons import NeuronsMetadata, IS_INHIBITORY
 from copy import deepcopy
 import random
-from openre.metadata import Metadata
-from openre.vector import Vector
+from openre.metadata import MultiFieldMetadata
+from openre.vector import MultiFieldVector
 from openre.data_types import types
 
 
@@ -69,7 +69,7 @@ class Layer(object):
             logging.warn('Layer zero width or height, shape = %s', self.shape)
         self.length = self.width * self.height
         # metadata for current layer neurons
-        self.neurons_metadata = NeuronsMetadata(self)
+        self.neurons_metadata = NeuronsMetadata((self.width, self.height))
 
     def __repr__(self):
         return 'Layer(%s)' % repr(self.config)
@@ -89,73 +89,23 @@ class Layer(object):
                 self.neurons_metadata.flags[i] |= IS_INHIBITORY
             self.neurons_metadata.layer[i] = self.layer_metadata.address
 
-class LayersVector(object):
+
+class LayersVector(MultiFieldVector):
     """
     Вектор слоев домена
     """
-
-    def __init__(self):
-        self.threshold = Vector(types.threshold)
-        self.relaxation = Vector(types.threshold)
-        self.total_spikes = Vector(types.tick)
-        self.length = 0
-
-    def add(self, metadata):
-        """
-        Добавляем метаданные слоев в вектор
-        """
-        self.threshold.add(metadata.threshold)
-        self.relaxation.add(metadata.relaxation)
-        self.total_spikes.add(metadata.total_spikes)
-        metadata.address = metadata.threshold.address
-        self.length = self.threshold.length
-
-    def __len__(self):
-        return self.length
-
-    def create(self):
-        """
-        Выделяем в памяти буфер под данные
-        """
-        self.threshold.create()
-        self.relaxation.create()
-        self.total_spikes.create()
-
-    def create_device_data_pointer(self, device):
-        """
-        Создание указателей на данные на устройстве
-        """
-        self.threshold.create_device_data_pointer(device)
-        self.relaxation.create_device_data_pointer(device)
-        self.total_spikes.create_device_data_pointer(device)
-
-    def to_device(self, device):
-        """
-        Загрузка на устройство
-        """
-        self.threshold.to_device(device)
-        self.relaxation.to_device(device)
-        self.total_spikes.to_device(device)
-
-    def from_device(self, device):
-        """
-        Выгрузка с устройства
-        """
-        self.threshold.from_device(device)
-        self.relaxation.from_device(device)
-        self.total_spikes.from_device(device)
+    fields = [
+        ('threshold', types.threshold),
+        ('relaxation', types.threshold),
+        ('total_spikes', types.tick),
+    ]
 
 
-class LayersMetadata(object):
+class LayersMetadata(MultiFieldMetadata):
     """
     Метаданные для слоев
     """
-
-    def __init__(self, length):
-        self.threshold = Metadata((length, 1), types.threshold)
-        self.relaxation = Metadata((length, 1), types.threshold)
-        self.total_spikes = Metadata((length, 1), types.tick)
-        self.address = None
+    fields = list(LayersVector.fields)
 
 
 def test_layer():
