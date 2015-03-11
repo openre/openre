@@ -15,12 +15,15 @@ class DataTypes(object):
         self.medium_address = np.uint16
         self.address = np.uint32
         self.tick = np.uint32
+        self.vitality = np.uint32
 
+    def max(self, type):
+        return np.iinfo(type).max
 
 types = DataTypes()
 
 # Константы (могут быть разными в разных доменах):
-null = np.iinfo(types.address).max
+null = types.max(types.address)
 
 def test_data_types():
     assert null == np.iinfo(types.address).max

@@ -35,6 +35,9 @@ class Layer(object):
         shape: types.shape - координаты и размер области (в исходном слое)
                которая будет моделироваться в данном слое. Задается в виде
                (y, x, height, width)
+        spike_cost: types.vitality - цена за спайк нейрона. При спайке
+                    neuron.vitality уменьшается на layer.spike_cost, если спайка
+                    небыло, то neuron.vitality увеличивается на еденицу.
         """
         logging.debug('Create layer (id: %s)', config['id'])
         config = deepcopy(config)
@@ -70,6 +73,8 @@ class Layer(object):
         self.length = self.width * self.height
         # metadata for current layer neurons
         self.neurons_metadata = NeuronsMetadata((self.width, self.height))
+        self.spike_cost = self.config['spike_cost']
+        self.max_vitality = self.config['max_vitality']
 
     def __repr__(self):
         return 'Layer(%s)' % repr(self.config)
@@ -88,6 +93,7 @@ class Layer(object):
             if self.is_inhibitory:
                 self.neurons_metadata.flags[i] |= IS_INHIBITORY
             self.neurons_metadata.layer[i] = self.layer_metadata.address
+            self.neurons_metadata.vitality[i] = self.max_vitality
 
 
 class LayersVector(MultiFieldVector):
@@ -98,6 +104,8 @@ class LayersVector(MultiFieldVector):
         ('threshold', types.threshold),
         ('relaxation', types.threshold),
         ('total_spikes', types.tick),
+        ('spike_cost', types.vitality),
+        ('max_vitality', types.vitality),
     ]
 
 
@@ -115,6 +123,8 @@ def test_layer():
         'relaxation': 1000,
         'width': 20,
         'height': 20,
+        'spike_cost': 11,
+        'max_vitality': 21,
     }
     config = {
         'id': 'V1',
@@ -132,6 +142,8 @@ def test_layer():
     assert layer.height == 10
     assert layer.length == 200
     assert len(layer) == 200
+    assert layer.spike_cost == 11
+    assert layer.max_vitality == 21
 
     repr_layer = eval(repr(layer))
     assert repr_layer.id == layer.id

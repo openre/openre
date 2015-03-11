@@ -39,11 +39,14 @@ __kernel void tick_neurons(
     __global {{ types.threshold | to_c_type }}      * l_threshold,
     __global {{ types.threshold | to_c_type }}      * l_relaxation,
     __global {{ types.tick | to_c_type }}           * l_total_spikes,
+    __global {{ types.vitality | to_c_type }}       * l_spike_cost,
+    __global {{ types.vitality | to_c_type }}       * l_max_vitality,
     /* neurons */
     __global {{ types.neuron_level | to_c_type }}   * n_level,
     __global {{ types.neuron_flags | to_c_type }}   * n_flags,
     __global {{ types.tick | to_c_type }}           * n_spike_tick,
-    __global {{ types.medium_address | to_c_type }} * n_layer
+    __global {{ types.medium_address | to_c_type }} * n_layer,
+    __global {{ types.vitality | to_c_type }}       * n_vitality
 ) {
     {{ types.address | to_c_type }} neuron_address = get_global_id(0);
     // get layer
@@ -60,14 +63,23 @@ __kernel void tick_neurons(
     }
     // is spiked
     if(n_level[neuron_address] >= l_threshold[layer_address]){
-        // set neuron spiked flag
-        n_flags[neuron_address] |= IS_SPIKED;
-        atomic_add(&l_total_spikes[layer_address], 1);
-        // reset neuron.level (or decrease it by layer.threshold, I don't know
-        // which one is better)
-        n_level[neuron_address] = 0;
-        // store neurons last tick for better training
-        n_spike_tick[neuron_address] = d_ticks;
+        if(n_vitality[neuron_address] > l_spike_cost[layer_address]){
+            n_vitality[neuron_address] -= l_spike_cost[layer_address];
+            // set neuron spiked flag
+            n_flags[neuron_address] |= IS_SPIKED;
+            atomic_add(&l_total_spikes[layer_address], 1);
+            // reset neuron.level (or decrease it by layer.threshold, I don't know
+            // which one is better)
+            n_level[neuron_address] = 0;
+            // store neurons last tick for better training
+            n_spike_tick[neuron_address] = d_ticks;
+        }
+        else{
+            // neurons vitality is exhausted so it dies
+            n_flags[neuron_address] |= IS_DEAD;
+            n_vitality[neuron_address] = l_max_vitality[layer_address];
+            n_level[neuron_address] = 0;
+        }
     }
     // just relax
     else if(n_level[neuron_address] >= 0){
@@ -75,6 +87,9 @@ __kernel void tick_neurons(
     }
     if(n_level[neuron_address] < 0){
         n_level[neuron_address] = 0;
+    }
+    if(n_vitality[neuron_address] < l_max_vitality[layer_address]){
+        n_vitality[neuron_address] += 1;
     }
 }
 __kernel void tick_sinapses(

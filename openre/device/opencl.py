@@ -52,11 +52,14 @@ class OpenCL(Device):
             domain.layers_vector.threshold.device_data_pointer,
             domain.layers_vector.relaxation.device_data_pointer,
             domain.layers_vector.total_spikes.device_data_pointer,
+            domain.layers_vector.spike_cost.device_data_pointer,
+            domain.layers_vector.max_vitality.device_data_pointer,
             # neurons
             domain.neurons.level.device_data_pointer,
             domain.neurons.flags.device_data_pointer,
             domain.neurons.spike_tick.device_data_pointer,
-            domain.neurons.layer.device_data_pointer
+            domain.neurons.layer.device_data_pointer,
+            domain.neurons.vitality.device_data_pointer
         ).wait()
         # download total_spikes from device and refresh layer.total_spikes
         domain.total_spikes = 0
@@ -171,6 +174,7 @@ def test_device():
     layer = domain.layers[0]
     layer2 = domain.layers[1]
     device = ore.domains[0].device
+    max_vitality = types.max(types.vitality)
     # prepare neurons
     layer.neurons_metadata.level[0, 0] = sinapse_max_level
     assert not layer.neurons_metadata.flags[0, 0] & neurons.IS_SPIKED
@@ -190,6 +194,9 @@ def test_device():
     layer.neurons_metadata.level[0, 4] = -1
 
     layer.neurons_metadata.level[0, 5] = -1
+
+    layer.neurons_metadata.level[0, 6] = sinapse_max_level
+    layer.neurons_metadata.vitality[0, 6] = layer.spike_cost
 
     # sinapses
     before = layer2.neurons_metadata.level[0, 0]
@@ -212,10 +219,14 @@ def test_device():
     assert layer.neurons_metadata.level[0, 0] == 0
     assert layer.neurons_metadata.flags[0, 0] & neurons.IS_SPIKED
     assert layer.neurons_metadata.spike_tick[0, 0] == 1
+    assert layer.neurons_metadata.vitality[0, 0] \
+            == max_vitality - layer.spike_cost + 1
 
     assert layer.neurons_metadata.level[0, 1] == 1
     assert not layer.neurons_metadata.flags[0, 1] & neurons.IS_SPIKED
     assert layer.neurons_metadata.spike_tick[0, 1] == 0
+    assert layer.neurons_metadata.vitality[0, 1] \
+            == max_vitality
 
     assert layer.neurons_metadata.level[0, 2] == sinapse_max_level
     assert layer.neurons_metadata.flags[0, 2] & neurons.IS_DEAD
@@ -228,6 +239,12 @@ def test_device():
     assert layer.neurons_metadata.level[0, 4] == 0
 
     assert layer.neurons_metadata.level[0, 5] == 0
+
+    # spike and dies (low neuron.vitality)
+    assert not layer.neurons_metadata.flags[0, 6] & neurons.IS_SPIKED
+    assert layer.neurons_metadata.flags[0, 6] & neurons.IS_DEAD
+    assert layer.neurons_metadata.vitality[0, 6] \
+            == max_vitality
 
     assert layer.total_spikes == 2
     assert layer2.total_spikes == 2

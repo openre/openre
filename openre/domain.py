@@ -54,6 +54,7 @@ class Domain(object):
         self.total_spikes = 0
         self.layers = []
         self.layers_vector = LayersVector()
+        # domain layers config
         self.layers_config = deepcopy(self.config['layers'])
         # neurons vector. Metadata stored in layer.neurons_metadata
         self.neurons = NeuronsVector()
@@ -102,6 +103,8 @@ class Domain(object):
             self.layers_vector.threshold[layer_id] = layer.threshold
             self.layers_vector.relaxation[layer_id] = layer.relaxation
             self.layers_vector.total_spikes[layer_id] = layer.total_spikes
+            self.layers_vector.spike_cost[layer_id] = layer.spike_cost
+            self.layers_vector.max_vitality[layer_id] = layer.max_vitality
 
         # Count sinapses (first pass - virtual sinapses connections)
         total_sinapses = self.count_sinapses()

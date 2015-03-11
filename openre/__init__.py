@@ -3,6 +3,7 @@ from openre.domain import Domain
 from copy import deepcopy
 from time import time
 import logging
+from openre.data_types import types
 
 __version__ = '0.0.1'
 
@@ -54,6 +55,11 @@ class OpenRE(object):
                 layer['threshold'] = self.config['sinapse']['max_level']
             if 'is_inhibitory' not in layer:
                 layer['is_inhibitory'] = False
+            if 'spike_cost' not in layer:
+                # target is one spike per 10 ticks
+                layer['spike_cost'] = 10
+            if 'max_vitality' not in layer:
+                layer['max_vitality'] = types.max(types.vitality)
             layer_by_id[layer['id']] = layer
 
         # TODO: - выдавать предупреждение если не весь слой моделируется
@@ -152,6 +158,8 @@ def test_openre():
                 'relaxation': 1000,
                 'width': 20,
                 'height': 20,
+                'spike_cost': 11,
+                'max_vitality': types.max(types.vitality) - 1,
                 'connect': [
                     {
                         'id': 'V2',
@@ -259,9 +267,16 @@ def test_openre():
     assert list(ore.domains[0].layers_vector.total_spikes.data) == [0, 0, 0]
     assert list(ore.domains[1].layers_vector.total_spikes.data) == [0, 0, 0]
     assert list(ore.domains[2].layers_vector.total_spikes.data) == [0, 0]
+    assert list(ore.domains[0].layers_vector.spike_cost.data) == [11, 11, 10]
+    max_vitality = types.max(types.vitality)
+    assert list(ore.domains[0].layers_vector.max_vitality.data) \
+            == [max_vitality - 1, max_vitality - 1, max_vitality]
     # neurons
     assert ore.domains[0].neurons.length == 300
     assert ore.domains[0].neurons.length == len(ore.domains[0].neurons)
+    assert ore.domains[0].neurons.vitality[0] == max_vitality - 1
+    assert ore.domains[0].neurons.vitality[100] == max_vitality - 1
+    assert ore.domains[0].neurons.vitality[200] == max_vitality
     assert ore.domains[1].neurons.length == 250
     neuron_layers_0 = [0]*100
     neuron_layers_0.extend([1]*100)
