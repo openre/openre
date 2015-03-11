@@ -50,6 +50,14 @@ class OpenRE(object):
             self.config['sinapse'] = {}
         if 'max_level' not in self.config['sinapse']:
             self.config['sinapse']['max_level'] = 30000
+        if 'learn_rate' not in self.config['sinapse']:
+            self.config['sinapse']['learn_rate'] = 10
+        if 'learn_threshold' not in self.config['sinapse']:
+            self.config['sinapse']['learn_threshold'] = 9000
+        if 'spike_learn_threshold' not in self.config['sinapse']:
+            self.config['sinapse']['spike_learn_threshold'] = 0
+        if 'spike_forget_threshold' not in self.config['sinapse']:
+            self.config['sinapse']['spike_forget_threshold'] = 0
         for layer in self.config['layers']:
             if 'threshold' not in layer:
                 layer['threshold'] = self.config['sinapse']['max_level']
@@ -149,7 +157,11 @@ def test_openre():
     sinapse_max_level = 30000
     config = {
         'sinapse': {
-            'max_level': sinapse_max_level
+            'max_level': sinapse_max_level,
+            'learn_rate': 10,
+            'learn_threshold': 9000,
+            'spike_learn_threshold': 0,
+            'spike_forget_threshold': 0,
         },
         'layers': [
             {
@@ -310,10 +322,14 @@ def test_openre():
     for i, domain_config in enumerate(config['domains']):
         domain = ore.domains[i]
         assert domain.id == domain_config['id']
+        assert domain.spike_learn_threshold == \
+                ore.config['sinapse']['spike_learn_threshold']
+        assert domain.spike_forget_threshold == \
+                ore.config['sinapse']['spike_forget_threshold']
+        assert domain.learn_rate == \
+                ore.config['sinapse']['learn_rate']
         assert domain.learn_threshold == \
-                domain_config.get('learn_threshold', 0)
-        assert domain.forget_threshold == \
-                domain_config.get('forget_threshold', 0)
+                ore.config['sinapse']['learn_threshold']
         assert domain.ticks == 0
         for j, layer_config in enumerate(domain.config['layers']):
             layer = domain.layers[j]

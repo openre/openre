@@ -27,20 +27,29 @@ class Domain(object):
     self.ticks: types.tick - номер тика с момента запуска. При 32 битах и 1000
                              тиков в секунду переполнение произойдет через 49
                              дней. При 64 битах через 584 млн. лет.
-    self.learn_threshold: types.tick - как близко друг к другу по времени
-                                       должен сработать pre и post нейрон,
-                                       что бы поменялся вес синапса в большую
-                                       сторону.
-                                       0 - по умолчанию (сеть не обучается).
-    self.forget_threshold: types.tick - насколько сильной должна быть разница
-                                        между pre.tick и post.tick что бы
-                                        уменьшился вес синапса.
-                                        0 - по умолчанию (сеть не забывает).
+    self.spike_learn_threshold: types.tick - как близко друг к другу по времени
+                                должен сработать pre и post нейрон, что бы
+                                поменялся вес синапса в большую сторону.
+                                0 - по умолчанию (сеть не обучается).
+    self.spike_forget_threshold: types.tick - насколько сильной должна быть
+                                 разница между pre.tick и post.tick что бы
+                                 уменьшился вес синапса.
+                                 0 - по умолчанию (сеть не забывает).
     self.total_spikes: types.address - количество спайков в домене за последний
                                        тик
     self.layers - список слоев (class Layer) домена
+    self.learn_rate: types.sinapse_level - с какой скоростью увеличивается
+                     sinapse.learn если у нейронов синапса расстояние между
+                     спайками меньше чем self.spike_learn_threshold
+    self.learn_threshold: types.sinapse_level - какой максимальный уровень может
+                          быть у sinapse.learn. При спайке sinapse.learn
+                          суммируется с sinapse.level (кратковременная память)
+                          и суммарный сигнал передается post-нейрону.
+                          Минимальный уровень у sinapse.learn == 0. При первом
+                          достижении максимального уровня синапс должен
+                          одноразово усиливаться (долговременная память).
     Жеательно что бы выполнялось условие:
-        0 <= learn_threshold <= forget_threshold <= types.tick.max
+        0 <= spike_learn_threshold <= spike_forget_threshold <= types.tick.max
     """
     def __init__(self, config, ore):
         logging.debug('Create domain (id: %s)', config['id'])
@@ -49,8 +58,14 @@ class Domain(object):
         self.ore = ore
         self.id = self.config['id']
         self.ticks = 0
-        self.learn_threshold = self.config.get('learn_threshold', 0)
-        self.forget_threshold = self.config.get('forget_threshold', 0)
+        self.spike_learn_threshold \
+                = self.ore.config['sinapse'].get('spike_learn_threshold', 0)
+        self.spike_forget_threshold \
+                = self.ore.config['sinapse'].get('spike_forget_threshold', 0)
+        self.learn_rate \
+                = self.ore.config['sinapse'].get('learn_rate', 0)
+        self.learn_threshold \
+                = self.ore.config['sinapse'].get('learn_threshold', 0)
         self.total_spikes = 0
         self.layers = []
         self.layers_vector = LayersVector()
@@ -419,11 +434,13 @@ class Domain(object):
                     - post.level += (neuron.flags & IS_INHIBITORY ?
                       -sinapse.level : sinapse.level)
                     # Обучение синапсов к post нейронам
-                    - если neuron.tick - post.tick < domain.learn_threshold,
+                    - если neuron.tick - post.tick
+                        < domain.spike_learn_threshold,
                       то увеличиваем вес синапса. Вес можно увеличивать,
                       например, как f(neuron.tick - post.tick), либо на
                       фиксированное значение
-                    - если neuron.tick - post.tick >= domain.forget_threshold,
+                    - если neuron.tick - post.tick
+                        >= domain.spike_forget_threshold,
                       то уменьшаем вес синапса. Вес можно уменьшать, например,
                       как f(neuron.tick - post.tick), либо на фиксированное
                       значение
@@ -434,11 +451,11 @@ class Domain(object):
                 - если pre.flags & IS_DEAD - удаляем синапс (sinapse.level = 0)
                   и не обсчитываем дальше внутренний цикл
                 # Обучение синапсов от pre нейронов
-                - если neuron.tick - pre.tick <= domain.learn_threshold, то
-                  увеличиваем вес синапса. Вес можно увеличивать, например, как
-                  f(neuron.tick - pre.tick), либо на фиксированное значение
-                - если neuron.tick - pre.tick >= domain.forget_threshold, то
-                  уменьшаем вес синапса. Вес можно уменьшать, например, как
+                - если neuron.tick - pre.tick <= domain.spike_learn_threshold,
+                  то увеличиваем вес синапса. Вес можно увеличивать, например,
+                  как f(neuron.tick - pre.tick), либо на фиксированное значение
+                - если neuron.tick - pre.tick >= domain.spike_forget_threshold,
+                  то уменьшаем вес синапса. Вес можно уменьшать, например, как
                   f(neuron.tick - pre.tick), либо на фиксированное значение
 
         """

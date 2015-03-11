@@ -23,6 +23,7 @@ class SinapsesVector(MultiFieldVector):
         ('level', types.sinapse_level),
         ('pre', types.address),
         ('post', types.address),
+        ('learn', types.sinapse_level),
     ]
     def __init__(self):
         assert self.__class__.fields

@@ -17,6 +17,7 @@
 
 __kernel void test_kernel(__global unsigned int * res, __const unsigned int num) {
     int i = get_global_id(0);
+    unsigned int ui = 2;
     if(i == 0){res[i] = IS_INHIBITORY;}
     if(i == 1){res[i] = IS_SPIKED;}
     if(i == 2){res[i] = IS_DEAD;}
@@ -29,6 +30,7 @@ __kernel void test_kernel(__global unsigned int * res, __const unsigned int num)
     if(i == 9){res[i] = num;}
     if(i == 10){res[i] = NULL_ADDRESS;}
     if(i == 11){res[i] = IS_INFINITE_ERROR;}
+    if(i == 12){res[i] = -ui + 5;}
 }
 
 // for each neuron
@@ -94,8 +96,10 @@ __kernel void tick_neurons(
 }
 __kernel void tick_sinapses(
     /* domain */
-    __const {{ types.threshold | to_c_type }}       d_learn_threshold,
-    __const {{ types.threshold | to_c_type }}       d_forget_threshold,
+    __const {{ types.sinapse_level | to_c_type }}   d_learn_rate,
+    __const {{ types.sinapse_level | to_c_type }}   d_learn_threshold,
+    __const {{ types.tick | to_c_type }}            d_spike_learn_threshold,
+    __const {{ types.tick | to_c_type }}            d_spike_forget_threshold,
     /* neurons */
     __global {{ types.neuron_level | to_c_type }}   * n_level,
     __global {{ types.neuron_flags | to_c_type }}   * n_flags,
@@ -104,6 +108,7 @@ __kernel void tick_sinapses(
     __global {{ types.sinapse_level | to_c_type }}  * s_level,
     __global {{ types.address | to_c_type }}        * s_pre,
     __global {{ types.address | to_c_type }}        * s_post,
+    __global {{ types.sinapse_level | to_c_type }}  * s_learn,
     /* pre-neuron - sinapse index */
     __global {{ types.address | to_c_type }}        * pre_key,
     __global {{ types.address | to_c_type }}        * pre_value,
@@ -148,8 +153,21 @@ __kernel void tick_sinapses(
         // is spiked - change post neuron level
         n_level[post_neuron_address] +=
             n_flags[neuron_address] & IS_INHIBITORY
-            ? -s_level[post_sinapse_address] : s_level[post_sinapse_address];
+            ? -(s_level[post_sinapse_address] + s_learn[post_sinapse_address])
+            : (s_level[post_sinapse_address] + s_learn[post_sinapse_address]);
         // post-sinapse learning
+        if(n_spike_tick[neuron_address] - n_spike_tick[post_neuron_address]
+                < d_spike_learn_threshold){
+            s_learn[post_sinapse_address] += d_learn_rate;
+            if(s_learn[post_sinapse_address] > d_learn_threshold){
+                // set learned flag
+                // once increase sinapse level
+                s_learn[post_sinapse_address] = d_learn_threshold;
+            }
+        }
+        if (s_learn[post_sinapse_address]){
+            s_learn[post_sinapse_address] -= 1;
+        }
         // next sinapse
         post_sinapse_address = pre_value[post_sinapse_address];
     }
@@ -168,6 +186,18 @@ __kernel void tick_sinapses(
             continue;
         }
         // pre-sinapse learning
+        if(n_spike_tick[neuron_address] - n_spike_tick[pre_neuron_address]
+                < d_spike_learn_threshold){
+            s_learn[pre_sinapse_address] += d_learn_rate;
+            if(s_learn[pre_sinapse_address] > d_learn_threshold){
+                // set learned flag
+                // once increase sinapse level
+                s_learn[pre_sinapse_address] = d_learn_threshold;
+            }
+        }
+        if (s_learn[pre_sinapse_address]){
+            s_learn[pre_sinapse_address] -= 1;
+        }
         // next pre-sinapse
         pre_sinapse_address = post_value[pre_sinapse_address];
     }
