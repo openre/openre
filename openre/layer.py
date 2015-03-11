@@ -38,6 +38,9 @@ class Layer(object):
         spike_cost: types.vitality - цена за спайк нейрона. При спайке
                     neuron.vitality уменьшается на layer.spike_cost, если спайка
                     небыло, то neuron.vitality увеличивается на еденицу.
+        max_vitality: types.vitality - максимальный запас питательных веществ
+                      нейрона (neuron.vitality). Больше этого уровня не
+                      увеличивается.
         """
         logging.debug('Create layer (id: %s)', config['id'])
         config = deepcopy(config)
