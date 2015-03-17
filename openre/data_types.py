@@ -7,6 +7,7 @@ import numpy as np
 
 class DataTypes(object):
     def __init__(self):
+        self.stat = np.int64
         self.threshold = np.int32
         self.neuron_level = np.int32
         self.neuron_flags = np.uint8

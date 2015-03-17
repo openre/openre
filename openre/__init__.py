@@ -79,6 +79,9 @@ class OpenRE(object):
                 domain['device'] = {
                     'type': 'OpenCL'
                 }
+            if 'stat_size' not in domain:
+                # how many ticks collect stats before get it from device
+                domain['stat_size'] = 1000
             for domain_layer in domain['layers']:
                 domain_layer.update(deepcopy(layer_by_id[domain_layer['id']]))
             self.domains.append(Domain(domain, self))
@@ -255,6 +258,9 @@ def test_openre():
     }
     # domain layers
     assert isinstance(ore.domains[0].device, Dummy)
+    assert ore.domains[0].config['stat_size'] == 1000
+    assert len(ore.domains[0].stat.data) \
+            == ore.domains[0].config['stat_size'] * ore.domains[0].stat_fields
     assert ore.domains[0].layers[0].id == 'V1'
     assert ore.domains[0].layers_config[0]['layer'].id == 'V1'
     assert ore.domains[0] \
@@ -276,9 +282,6 @@ def test_openre():
     assert list(ore.domains[1].layers_vector.relaxation.data) \
             == [1000, 1000, 3000]
     assert list(ore.domains[2].layers_vector.relaxation.data) == [4000, 4000]
-    assert list(ore.domains[0].layers_vector.total_spikes.data) == [0, 0, 0]
-    assert list(ore.domains[1].layers_vector.total_spikes.data) == [0, 0, 0]
-    assert list(ore.domains[2].layers_vector.total_spikes.data) == [0, 0]
     assert list(ore.domains[0].layers_vector.spike_cost.data) == [11, 11, 10]
     max_vitality = types.max(types.vitality)
     assert list(ore.domains[0].layers_vector.max_vitality.data) \

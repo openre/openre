@@ -2,6 +2,9 @@
 """
 Содержит в себе слои и синапсы.
 """
+from openre.vector import Vector
+from openre.metadata import Metadata
+from openre.data_types import types
 from openre.layer import Layer, LayersVector
 from openre.neurons import NeuronsVector
 from openre.sinapses import SinapsesVector, SinapsesMetadata
@@ -35,8 +38,6 @@ class Domain(object):
                                  разница между pre.tick и post.tick что бы
                                  уменьшился вес синапса.
                                  0 - по умолчанию (сеть не забывает).
-    self.total_spikes: types.address - количество спайков в домене за последний
-                                       тик
     self.layers - список слоев (class Layer) домена
     self.learn_rate: types.sinapse_level - с какой скоростью увеличивается
                      sinapse.learn если у нейронов синапса расстояние между
@@ -66,7 +67,6 @@ class Domain(object):
                 = self.ore.config['sinapse'].get('learn_rate', 0)
         self.learn_threshold \
                 = self.ore.config['sinapse'].get('learn_threshold', 0)
-        self.total_spikes = 0
         self.layers = []
         self.layers_vector = LayersVector()
         # domain layers config
@@ -85,6 +85,22 @@ class Domain(object):
             self.config['device'].get('type', 'OpenCL')
         )(self.config['device'])
         self.cache = {}
+        # stats for domain (number of spikes, neurons vitality, etc.)
+        self.stat = Vector()
+        # fields:
+        # 0 - total spikes
+        # 1 - sum of all neurons tiredness
+        # 2 - sum of all neurons level
+        self.stat_fields = 3
+        stat_metadata = Metadata(
+            (self.config['stat_size'], self.stat_fields),
+            types.stat
+        )
+        self.stat.add(stat_metadata)
+        self.stat.create()
+        # stats for vectors
+        self.layers_stat = Vector()
+
         self.deploy()
         logging.debug('Domain created')
 
@@ -105,6 +121,11 @@ class Domain(object):
             self.layers.append(layer)
             layer_config['layer'] = layer
             self.layers_vector.add(layer.layer_metadata)
+            layer_stat_metadata = Metadata(
+                (self.config['stat_size'], self.stat_fields),
+                types.stat
+            )
+            self.layers_stat.add(layer_stat_metadata)
         for layer_config in self.layers_config:
             for connect in layer_config.get('connect', []):
                 connect['domain_layers'] = []
@@ -114,10 +135,10 @@ class Domain(object):
                         connect['domain_layers'].append(layer)
         logging.debug('Allocate layers vector')
         self.layers_vector.create()
+        self.layers_stat.create()
         for layer_id, layer in enumerate(self.layers):
             self.layers_vector.threshold[layer_id] = layer.threshold
             self.layers_vector.relaxation[layer_id] = layer.relaxation
-            self.layers_vector.total_spikes[layer_id] = layer.total_spikes
             self.layers_vector.spike_cost[layer_id] = layer.spike_cost
             self.layers_vector.max_vitality[layer_id] = layer.max_vitality
 
@@ -157,6 +178,7 @@ class Domain(object):
             self.sinapses,
             self.pre_sinapse_index,
             self.post_sinapse_index,
+            self.layers_stat,
         ]:
             vector.create_device_data_pointer(self.device)
 
@@ -382,9 +404,11 @@ class Domain(object):
         Один tick домена.
         0.
             - self.ticks++
-            - self.total_spikes = 0
+            - self.total_spikes = 0 (эта информация накапливается в domain.stat
+                для поля 0)
         1. по всем слоям layer:
-            - layer.total_spikes = 0
+            - layer.total_spikes = 0 (эта информация накапливается в
+                domain.layers_stat для поля 0)
             и по всем нейронам neuron в слое layer (device):
             - если neuron.flags & IS_DEAD - не обсчитываем нейрон
             - если флаг IS_SPIKED уже установлен - снимаем
@@ -461,7 +485,6 @@ class Domain(object):
         """
         # step 0
         self.ticks += 1
-        self.total_spikes = 0
         # step 1
         self.device.tick_neurons(self)
         # step 2 & 3

@@ -37,12 +37,15 @@ __kernel void test_kernel(__global unsigned int * res, __const unsigned int num)
 __kernel void tick_neurons(
     /* domain */
     __const {{ types.tick | to_c_type }}            d_ticks,
+    __const {{ types.address | to_c_type }}         d_stat_shift,
+    __const {{ types.address | to_c_type }}         d_stat_size,
+    __const {{ types.address | to_c_type }}         d_stat_fields,
     /* layers */
     __global {{ types.threshold | to_c_type }}      * l_threshold,
     __global {{ types.threshold | to_c_type }}      * l_relaxation,
-    __global {{ types.tick | to_c_type }}           * l_total_spikes,
     __global {{ types.vitality | to_c_type }}       * l_spike_cost,
     __global {{ types.vitality | to_c_type }}       * l_max_vitality,
+    __global {{ types.stat | to_c_type }}           * l_stat,
     /* neurons */
     __global {{ types.neuron_level | to_c_type }}   * n_level,
     __global {{ types.neuron_flags | to_c_type }}   * n_flags,
@@ -53,6 +56,9 @@ __kernel void tick_neurons(
     {{ types.address | to_c_type }} neuron_address = get_global_id(0);
     // get layer
     {{ types.address | to_c_type }} layer_address = n_layer[neuron_address];
+    // start of the stat block for the layer with layer_address
+    {{ types.address | to_c_type }} layer_stat_start
+        = d_stat_size * d_stat_fields * layer_address;
     // stop if neuron is dead
     if(n_flags[neuron_address] & IS_DEAD){
         return;
@@ -69,7 +75,17 @@ __kernel void tick_neurons(
             n_vitality[neuron_address] -= l_spike_cost[layer_address];
             // set neuron spiked flag
             n_flags[neuron_address] |= IS_SPIKED;
-            atomic_add(&l_total_spikes[layer_address], 1);
+            // layer stat field 0: total spikes
+            atom_add(
+                &l_stat[
+                    /* start of the stat of the layer with layer_address */
+                    layer_stat_start
+                    /* start of the field == 0 for the first field */
+                    /* tick shift in the field */
+                    + d_stat_shift
+                ],
+                1
+            );
             // reset neuron.level (or decrease it by layer.threshold, I don't know
             // which one is better)
             n_level[neuron_address] = 0;
@@ -93,6 +109,30 @@ __kernel void tick_neurons(
     if(n_vitality[neuron_address] < l_max_vitality[layer_address]){
         n_vitality[neuron_address] += 1;
     }
+    // layer stat field 1 - tiredness
+    atom_add(
+        &l_stat[
+            /* start of the stat of the layer with layer_address */
+            layer_stat_start
+            /* start of the field */
+            + 1 * d_stat_size
+            /* tick shift in the field */
+            + d_stat_shift
+        ],
+        l_max_vitality[layer_address] - n_vitality[neuron_address]
+    );
+    // layer stat field 2 - neurons level
+    atom_add(
+        &l_stat[
+            /* start of the stat of the layer with layer_address */
+            layer_stat_start
+            /* start of the field */
+            + 2 * d_stat_size
+            /* tick shift in the field */
+            + d_stat_shift
+        ],
+        n_level[neuron_address]
+    );
 }
 __kernel void tick_sinapses(
     /* domain */
@@ -203,3 +243,10 @@ __kernel void tick_sinapses(
     }
 }
 
+// fill layers stat buffer with zeros
+__kernel void init_layers_stat(
+    __global {{ types.stat | to_c_type }}           * l_stat
+) {
+    {{ types.address | to_c_type }} address = get_global_id(0);
+    l_stat[address] = 0;
+}

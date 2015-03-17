@@ -48,12 +48,15 @@ class OpenCL(Device):
             self.queue, (domain.neurons.length,), None,
             # domain
             types.tick(domain.ticks),
+            types.address((domain.ticks - 1) % domain.config['stat_size']),
+            types.address(domain.config['stat_size']),
+            types.address(domain.stat_fields),
             # layers
             domain.layers_vector.threshold.device_data_pointer,
             domain.layers_vector.relaxation.device_data_pointer,
-            domain.layers_vector.total_spikes.device_data_pointer,
             domain.layers_vector.spike_cost.device_data_pointer,
             domain.layers_vector.max_vitality.device_data_pointer,
+            domain.layers_stat.device_data_pointer,
             # neurons
             domain.neurons.level.device_data_pointer,
             domain.neurons.flags.device_data_pointer,
@@ -61,16 +64,6 @@ class OpenCL(Device):
             domain.neurons.layer.device_data_pointer,
             domain.neurons.vitality.device_data_pointer
         ).wait()
-        # download total_spikes from device and refresh layer.total_spikes
-        domain.total_spikes = 0
-        domain.layers_vector.total_spikes.from_device(self)
-        for layer_id, layer in enumerate(domain.layers):
-            layer.total_spikes = domain.layers_vector.total_spikes[layer_id]
-            domain.total_spikes += layer.total_spikes
-            # reset total_spikes in all layers and domain
-            domain.layers_vector.total_spikes[layer_id] = 0
-        # and upload it to device
-        domain.layers_vector.total_spikes.to_device(self)
 
     def tick_sinapses(self, domain):
         self.program.tick_sinapses(
@@ -96,6 +89,24 @@ class OpenCL(Device):
             domain.post_sinapse_index.key.device_data_pointer,
             domain.post_sinapse_index.value.device_data_pointer
         ).wait()
+        # download layers stats from device once
+        # per domain.config['stat_size'] ticks
+        if domain.ticks % domain.config['stat_size'] == 0:
+            domain.stat.data.fill(0)
+            domain.layers_stat.from_device(self)
+            stat_length = len(domain.stat)
+            for layer_address in range(len(domain.layers)):
+                layer_stat_start = \
+                        domain.config['stat_size'] \
+                        * domain.stat_fields \
+                        * layer_address
+                domain.stat.data += domain.layers_stat.data[
+                    layer_stat_start : layer_stat_start + stat_length
+                ]
+            self.program.init_layers_stat(
+                self.queue, (len(domain.layers_stat),), None,
+                domain.layers_stat.device_data_pointer
+            ).wait()
 
     def create(self, data):
         if not len(data):
@@ -163,6 +174,7 @@ def test_device():
                 'device'    : {
                     'type': 'OpenCL',
                 },
+                'stat_size': 1,
                 'layers'    : [
                     {'id': 'V1'},
                     {'id': 'V2'},
@@ -261,10 +273,6 @@ def test_device():
     assert layer.neurons_metadata.vitality[0, 6] \
             == max_vitality
 
-    assert layer.total_spikes >= 2
-    assert layer2.total_spikes >= 2
-    assert domain.total_spikes >= 4
-
     # check sinapses
     before = before - 1000
     if before < 0:
@@ -284,6 +292,20 @@ def test_device():
         layer.neurons_metadata.level.to_address(0, 0)
     ]] == domain.learn_rate - 1
 
+    # check stats
+    # field 0 - total spikes
+    assert domain.stat[0] >= 4
+    # field 1 - domain tiredness
+    assert domain.stat[1]
+    assert domain.layers_stat[0] >= 2
+    assert domain.layers_stat[0 + len(domain.stat)] >= 2
+    assert domain.stat[0] \
+            == domain.layers_stat[0] + domain.layers_stat[0 + len(domain.stat)]
+    for field_num in range(1, domain.stat_fields):
+        assert domain.stat[0 + field_num * domain.config['stat_size']] \
+            == domain.layers_stat[0 + field_num * domain.config['stat_size']] \
+            + domain.layers_stat[ \
+                0 + field_num * domain.config['stat_size'] + len(domain.stat)]
 
     # test kernel
     test_length = 13

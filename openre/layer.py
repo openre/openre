@@ -28,8 +28,6 @@ class Layer(object):
                    синапса.
         relaxation: types.sinapse_level - на сколько снижается neuron.level
                     с каждым тиком (tick). По умолчанию - 0.
-        total_spikes: types.address - количество спайков в слое за последний
-                      тик.
         width: types.address - количество колонок в массиве нейронов
         height: types.address - количество рядов в массиве нейронов
         shape: types.shape - координаты и размер области (в исходном слое)
@@ -52,7 +50,6 @@ class Layer(object):
         self.threshold = self.config['threshold']
         self.is_inhibitory = self.config.get('is_inhibitory', False)
         self.relaxation = self.config.get('relaxation', 0)
-        self.total_spikes = 0
         self.shape = self.config.get(
             'shape', [0, 0, self.config['width'], self.config['height']])
         if self.shape[0] >= self.config['width']:
@@ -106,7 +103,6 @@ class LayersVector(MultiFieldVector):
     fields = [
         ('threshold', types.threshold),
         ('relaxation', types.threshold),
-        ('total_spikes', types.tick),
         ('spike_cost', types.vitality),
         ('max_vitality', types.vitality),
     ]
@@ -139,7 +135,6 @@ def test_layer():
     assert layer.address == None
     assert layer.threshold == config['threshold']
     assert layer.relaxation == config['relaxation']
-    assert layer.total_spikes == 0
     assert layer.shape == [0, 0, 20, 10]
     assert layer.width == 20
     assert layer.height == 10
