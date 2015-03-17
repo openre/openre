@@ -5,6 +5,7 @@ tags
 # Test scripts
 run.sh
 run.py
+long_test.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
