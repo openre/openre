@@ -191,10 +191,12 @@ __kernel void tick_sinapses(
             continue;
         }
         // is spiked - change post neuron level
-        n_level[post_neuron_address] +=
+        atomic_add(
+            &n_level[post_neuron_address],
             n_flags[neuron_address] & IS_INHIBITORY
             ? -(s_level[post_sinapse_address] + s_learn[post_sinapse_address])
-            : (s_level[post_sinapse_address] + s_learn[post_sinapse_address]);
+            : (s_level[post_sinapse_address] + s_learn[post_sinapse_address])
+        );
         // post-sinapse learning
         if(n_spike_tick[neuron_address] - n_spike_tick[post_neuron_address]
                 < d_spike_learn_threshold){
