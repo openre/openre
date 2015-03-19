@@ -89,11 +89,9 @@ class Domain(object):
         self.stat = Vector()
         # fields:
         # 0 - total spikes
-        # 1 - sum of all neurons tiredness
-        # 2 - sum of all neurons level
-        self.stat_fields = 3
+        self.stat_fields = 1
         stat_metadata = Metadata(
-            (self.config['stat_size'], self.stat_fields),
+            (1, self.stat_fields),
             types.stat
         )
         self.stat.add(stat_metadata)
@@ -122,7 +120,7 @@ class Domain(object):
             layer_config['layer'] = layer
             self.layers_vector.add(layer.layer_metadata)
             layer_stat_metadata = Metadata(
-                (self.config['stat_size'], self.stat_fields),
+                (1, self.stat_fields),
                 types.stat
             )
             self.layers_stat.add(layer_stat_metadata)

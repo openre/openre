@@ -48,15 +48,11 @@ class OpenCL(Device):
             self.queue, (domain.neurons.length,), None,
             # domain
             types.tick(domain.ticks),
-            types.address((domain.ticks - 1) % domain.config['stat_size']),
-            types.address(domain.config['stat_size']),
-            types.address(domain.stat_fields),
             # layers
             domain.layers_vector.threshold.device_data_pointer,
             domain.layers_vector.relaxation.device_data_pointer,
             domain.layers_vector.spike_cost.device_data_pointer,
             domain.layers_vector.max_vitality.device_data_pointer,
-            domain.layers_stat.device_data_pointer,
             # neurons
             domain.neurons.level.device_data_pointer,
             domain.neurons.flags.device_data_pointer,
@@ -93,12 +89,23 @@ class OpenCL(Device):
         # per domain.config['stat_size'] ticks
         if domain.ticks % domain.config['stat_size'] == 0:
             domain.stat.data.fill(0)
+            self.program.update_layers_stat(
+                self.queue, (domain.neurons.length,), None,
+                # domain
+                types.tick(domain.ticks),
+                types.address(domain.config['stat_size']),
+                types.address(domain.stat_fields),
+                # layers
+                domain.layers_stat.device_data_pointer,
+                # neurons
+                domain.neurons.spike_tick.device_data_pointer,
+                domain.neurons.layer.device_data_pointer
+            ).wait()
             domain.layers_stat.from_device(self)
             stat_length = len(domain.stat)
             for layer_address in range(len(domain.layers)):
                 layer_stat_start = \
-                        domain.config['stat_size'] \
-                        * domain.stat_fields \
+                        domain.stat_fields \
                         * layer_address
                 domain.stat.data += domain.layers_stat.data[
                     layer_stat_start : layer_stat_start + stat_length
@@ -295,17 +302,15 @@ def test_device():
     # check stats
     # field 0 - total spikes
     assert domain.stat[0] >= 4
-    # field 1 - domain tiredness
-    assert domain.stat[1]
     assert domain.layers_stat[0] >= 2
     assert domain.layers_stat[0 + len(domain.stat)] >= 2
     assert domain.stat[0] \
             == domain.layers_stat[0] + domain.layers_stat[0 + len(domain.stat)]
     for field_num in range(1, domain.stat_fields):
-        assert domain.stat[0 + field_num * domain.config['stat_size']] \
-            == domain.layers_stat[0 + field_num * domain.config['stat_size']] \
+        assert domain.stat[0 + field_num] \
+            == domain.layers_stat[0 + field_num] \
             + domain.layers_stat[ \
-                0 + field_num * domain.config['stat_size'] + len(domain.stat)]
+                0 + field_num + len(domain.stat)]
 
     # test kernel
     test_length = 13

@@ -260,7 +260,7 @@ def test_openre():
     assert isinstance(ore.domains[0].device, Dummy)
     assert ore.domains[0].config['stat_size'] == 1000
     assert len(ore.domains[0].stat.data) \
-            == ore.domains[0].config['stat_size'] * ore.domains[0].stat_fields
+            == ore.domains[0].stat_fields
     assert ore.domains[0].layers[0].id == 'V1'
     assert ore.domains[0].layers_config[0]['layer'].id == 'V1'
     assert ore.domains[0] \
