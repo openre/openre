@@ -85,10 +85,10 @@ class Domain(object):
             self.config['device'].get('type', 'OpenCL')
         )(self.config['device'])
         self.cache = {}
-        # stats for domain (number of spikes, neurons vitality, etc.)
+        # stats for domain (number of spikes)
         self.stat = Vector()
         # fields:
-        # 0 - total spikes
+        # 0 - total spikes (one per neuron) per self.config['stat_size'] ticks
         self.stat_fields = 1
         stat_metadata = Metadata(
             (1, self.stat_fields),
