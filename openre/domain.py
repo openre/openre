@@ -89,7 +89,8 @@ class Domain(object):
         self.stat = Vector()
         # fields:
         # 0 - total spikes (one per neuron) per self.config['stat_size'] ticks
-        self.stat_fields = 1
+        # 1 - number of the dead neurons
+        self.stat_fields = 2
         stat_metadata = Metadata(
             (1, self.stat_fields),
             types.stat

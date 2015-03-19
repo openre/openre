@@ -217,6 +217,7 @@ __kernel void update_layers_stat(
     __const {{ types.address | to_c_type }}         d_stat_size,
     __const {{ types.address | to_c_type }}         d_stat_fields,
     __global {{ types.stat | to_c_type }}           * l_stat,
+    __global {{ types.neuron_flags | to_c_type }}   * n_flags,
     __global {{ types.tick | to_c_type }}           * n_spike_tick,
     __global {{ types.medium_address | to_c_type }} * n_layer
 ) {
@@ -226,7 +227,7 @@ __kernel void update_layers_stat(
     // start of the stat block for the layer with layer_address
     {{ types.address | to_c_type }} layer_stat_start
         = d_stat_fields * layer_address;
-    // count spikes between [d_ticks - d_stat_size + 1, d_ticks]
+    // field 0 - count spikes between [d_ticks - d_stat_size + 1, d_ticks]
     if(
         (n_spike_tick[neuron_address] > d_ticks - d_stat_size
         && n_spike_tick[neuron_address] <= d_ticks)
@@ -237,6 +238,21 @@ __kernel void update_layers_stat(
                 layer_stat_start
                 /* start of the field */
                 /* + 0 * d_stat_size */
+            ],
+            1
+        );
+    }
+    // field 1 - get number of the dead neurons
+    if(
+        n_flags[neuron_address] & IS_DEAD
+        && !(n_flags[neuron_address] & IS_RECEIVER)
+    ){
+        atom_add(
+            &l_stat[
+                /* start of the stat of the layer with layer_address */
+                layer_stat_start
+                /* start of the field */
+                + 1 * d_stat_size
             ],
             1
         );

@@ -98,6 +98,7 @@ class OpenCL(Device):
                 # layers
                 domain.layers_stat.device_data_pointer,
                 # neurons
+                domain.neurons.flags.device_data_pointer,
                 domain.neurons.spike_tick.device_data_pointer,
                 domain.neurons.layer.device_data_pointer
             ).wait()
@@ -300,17 +301,19 @@ def test_device():
     ]] == domain.learn_rate - 1
 
     # check stats
-    # field 0 - total spikes
-    assert domain.stat[0] >= 4
-    assert domain.layers_stat[0] >= 2
-    assert domain.layers_stat[0 + len(domain.stat)] >= 2
-    assert domain.stat[0] \
-            == domain.layers_stat[0] + domain.layers_stat[0 + len(domain.stat)]
-    for field_num in range(1, domain.stat_fields):
+    for field_num in range(0, domain.stat_fields):
         assert domain.stat[0 + field_num] \
             == domain.layers_stat[0 + field_num] \
             + domain.layers_stat[ \
                 0 + field_num + len(domain.stat)]
+
+    # field 0 - total spikes
+    assert domain.stat[0] >= 4
+    assert domain.layers_stat[0] >= 2
+    assert domain.layers_stat[0 + len(domain.stat)] >= 2
+    # field 1 - number of the dead neurons
+    assert domain.layers_stat[1] == 3
+    assert domain.layers_stat[1 + len(domain.stat)] == 1
 
     # test kernel
     test_length = 13
