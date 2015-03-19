@@ -78,6 +78,7 @@ class OpenCL(Device):
             domain.sinapses.pre.device_data_pointer,
             domain.sinapses.post.device_data_pointer,
             domain.sinapses.learn.device_data_pointer,
+            domain.sinapses.flags.device_data_pointer,
             # pre-neuron - sinapse index
             domain.pre_sinapse_index.key.device_data_pointer,
             domain.pre_sinapse_index.value.device_data_pointer,
@@ -146,6 +147,7 @@ def test_device():
     from pytest import raises
     import numpy as np
     from openre import neurons
+    from openre import sinapses
     sinapse_max_level = 30000
     config = {
         'sinapse': {
@@ -222,6 +224,9 @@ def test_device():
     layer.neurons_metadata.level[0, 6] = sinapse_max_level
     layer.neurons_metadata.vitality[0, 6] = layer.spike_cost
 
+    layer.neurons_metadata.level[0, 7] = sinapse_max_level
+    layer2.neurons_metadata.level[0, 7] = sinapse_max_level
+
     # sinapses
     before = layer2.neurons_metadata.level[0, 0]
     sinapse_address = domain.pre_sinapse_index.key[0]
@@ -232,7 +237,15 @@ def test_device():
     layer.neurons_metadata.flags[1, 2] |= neurons.IS_DEAD
     layer2.neurons_metadata.level[1, 2] = sinapse_max_level
 
-    l2_n_level_before = layer2.neurons_metadata.level[0,0]
+    l2_n_level_before = layer2.neurons_metadata.level[0, 0]
+
+    layer2.neurons_metadata.level[0, 6] = sinapse_max_level
+    s_level_before_7 = domain.sinapses.level[domain.post_sinapse_index.key[
+        layer2.neurons_metadata.level.to_address(0, 7)
+    ]]
+    domain.sinapses.learn[domain.post_sinapse_index.key[
+        layer2.neurons_metadata.level.to_address(0, 7)
+    ]] = domain.learn_threshold
 
     domain.neurons.to_device(device)
     domain.sinapses.to_device(device)
@@ -282,6 +295,21 @@ def test_device():
             == max_vitality
 
     # check sinapses
+    s_level_after_7 = domain.sinapses.level[domain.post_sinapse_index.key[
+        layer2.neurons_metadata.level.to_address(0, 7)
+    ]]
+    s_learn_after_7 = domain.sinapses.learn[domain.post_sinapse_index.key[
+        layer2.neurons_metadata.level.to_address(0, 7)
+    ]]
+    assert s_level_before_7 + domain.learn_threshold == s_level_after_7
+    assert s_learn_after_7 <= domain.learn_rate
+    assert domain.sinapses.flags[domain.post_sinapse_index.key[
+        layer2.neurons_metadata.level.to_address(0, 7)
+    ]] & sinapses.IS_STRENGTHENED
+    assert not domain.sinapses.flags[domain.post_sinapse_index.key[
+        layer2.neurons_metadata.level.to_address(0, 0)
+    ]] & sinapses.IS_STRENGTHENED
+
     before = before - 1000
     if before < 0:
         before = 0
@@ -299,7 +327,6 @@ def test_device():
     assert domain.sinapses.learn[domain.pre_sinapse_index.key[
         layer.neurons_metadata.level.to_address(0, 0)
     ]] == domain.learn_rate - 1
-
     # check stats
     for field_num in range(0, domain.stat_fields):
         assert domain.stat[0 + field_num] \
@@ -342,6 +369,6 @@ def test_device():
         0, # 3 & IS_DEAD
         test_length,
         null,
-        neurons.IS_INFINITE_ERROR,
+        sinapses.IS_STRENGTHENED,
         3
     ]

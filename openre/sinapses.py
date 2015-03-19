@@ -6,6 +6,7 @@ from openre.metadata import MultiFieldMetadata
 from openre.vector import Vector, RandomIntVector, MultiFieldVector
 from openre.data_types import types
 
+IS_STRENGTHENED = 1<<0
 
 class SinapsesVector(MultiFieldVector):
     """
@@ -24,6 +25,7 @@ class SinapsesVector(MultiFieldVector):
         ('pre', types.address),
         ('post', types.address),
         ('learn', types.sinapse_level),
+        ('flags', types.sinapse_flags),
     ]
     def __init__(self):
         assert self.__class__.fields

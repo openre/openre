@@ -5,13 +5,14 @@
 #pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
 #pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
 
-/* openre.data_types.types */
+/* neuron.flags */
 {{ types.neuron_flags | to_c_type }} constant IS_INHIBITORY = 1<<0;
 {{ types.neuron_flags | to_c_type }} constant IS_SPIKED = 1<<1;
 {{ types.neuron_flags | to_c_type }} constant IS_DEAD = 1<<2;
 {{ types.neuron_flags | to_c_type }} constant IS_TRANSMITTER = 1<<3;
 {{ types.neuron_flags | to_c_type }} constant IS_RECEIVER = 1<<4;
-{{ types.neuron_flags | to_c_type }} constant IS_INFINITE_ERROR = 1<<5;
+/* sinapse.flags */
+{{ types.sinapse_flags | to_c_type }} constant IS_STRENGTHENED = 1<<0;
 /* openre.data_types.null */
 {{ types.address | to_c_type }} constant NULL_ADDRESS = {{ null }};
 
@@ -29,7 +30,7 @@ __kernel void test_kernel(__global unsigned int * res, __const unsigned int num)
     if(i == 8){res[i] = 3 & IS_DEAD;}
     if(i == 9){res[i] = num;}
     if(i == 10){res[i] = NULL_ADDRESS;}
-    if(i == 11){res[i] = IS_INFINITE_ERROR;}
+    if(i == 11){res[i] = IS_STRENGTHENED;}
     if(i == 12){res[i] = -ui + 5;}
 }
 
@@ -107,6 +108,7 @@ __kernel void tick_sinapses(
     __global {{ types.address | to_c_type }}        * s_pre,
     __global {{ types.address | to_c_type }}        * s_post,
     __global {{ types.sinapse_level | to_c_type }}  * s_learn,
+    __global {{ types.sinapse_flags | to_c_type }}  * s_flags,
     /* pre-neuron - sinapse index */
     __global {{ types.address | to_c_type }}        * pre_key,
     __global {{ types.address | to_c_type }}        * pre_value,
@@ -160,9 +162,16 @@ __kernel void tick_sinapses(
                 < d_spike_learn_threshold){
             s_learn[post_sinapse_address] += d_learn_rate;
             if(s_learn[post_sinapse_address] > d_learn_threshold){
-                // set learned flag
-                // once increase sinapse level
-                s_learn[post_sinapse_address] = d_learn_threshold;
+                if((s_flags[post_sinapse_address] & IS_STRENGTHENED) == 0){
+                    // set learned flag
+                    s_flags[post_sinapse_address] |= IS_STRENGTHENED;
+                    // once increase sinapse level
+                    s_level[post_sinapse_address] += d_learn_threshold;
+                    s_learn[post_sinapse_address] = 0;
+                }
+                else{
+                    s_learn[post_sinapse_address] = d_learn_threshold;
+                }
             }
         }
         if (s_learn[post_sinapse_address]){
@@ -190,9 +199,16 @@ __kernel void tick_sinapses(
                 < d_spike_learn_threshold){
             s_learn[pre_sinapse_address] += d_learn_rate;
             if(s_learn[pre_sinapse_address] > d_learn_threshold){
-                // set learned flag
-                // once increase sinapse level
-                s_learn[pre_sinapse_address] = d_learn_threshold;
+                if((s_flags[pre_sinapse_address] & IS_STRENGTHENED) == 0){
+                    // set learned flag
+                    s_flags[pre_sinapse_address] |= IS_STRENGTHENED;
+                    // once increase sinapse level
+                    s_level[pre_sinapse_address] += d_learn_threshold;
+                    s_learn[pre_sinapse_address] = 0;
+                }
+                else{
+                    s_learn[pre_sinapse_address] = d_learn_threshold;
+                }
             }
         }
         if (s_learn[pre_sinapse_address]){
