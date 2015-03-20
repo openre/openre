@@ -90,7 +90,8 @@ class Domain(object):
         # fields:
         # 0 - total spikes (one per neuron) per self.config['stat_size'] ticks
         # 1 - number of the dead neurons
-        self.stat_fields = 2
+        # 2 - number of sinapses with flag IS_STRENGTHENED
+        self.stat_fields = 3
         stat_metadata = Metadata(
             (1, self.stat_fields),
             types.stat
@@ -177,6 +178,7 @@ class Domain(object):
             self.sinapses,
             self.pre_sinapse_index,
             self.post_sinapse_index,
+            self.stat,
             self.layers_stat,
         ]:
             vector.create_device_data_pointer(self.device)

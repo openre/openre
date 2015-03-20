@@ -274,3 +274,17 @@ __kernel void update_layers_stat(
         );
     }
 }
+
+// calc sinapses stats
+__kernel void update_sinapses_stat(
+    __global {{ types.stat | to_c_type }}           * d_stat,
+    __global {{ types.sinapse_flags | to_c_type }}  * s_flags
+) {
+    {{ types.address | to_c_type }} sinapse_address = get_global_id(0);
+    // field 2 - count of the sinapses with IS_STRENGTHENED flag
+    if(
+        s_flags[sinapse_address] & IS_STRENGTHENED
+    ){
+        atom_add(&d_stat[2], 1);
+    }
+}

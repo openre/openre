@@ -10,6 +10,8 @@ except ImportError:
 from openre.device.abstract import Device
 from openre.templates import env
 from openre.data_types import types, null
+import numpy as np
+from openre import sinapses
 
 class OpenCL(Device):
     """
@@ -116,6 +118,15 @@ class OpenCL(Device):
                 self.queue, (len(domain.layers_stat),), None,
                 domain.layers_stat.device_data_pointer
             ).wait()
+            # count sinapses with flag IS_STRENGTHENED
+            domain.stat.to_device(self)
+            self.program.update_sinapses_stat(
+                self.queue, (len(domain.sinapses),), None,
+                domain.stat.device_data_pointer,
+                # sinapses
+                domain.sinapses.flags.device_data_pointer
+            ).wait()
+            domain.stat.from_device(self)
 
     def create(self, data):
         if not len(data):
@@ -147,7 +158,6 @@ def test_device():
     from pytest import raises
     import numpy as np
     from openre import neurons
-    from openre import sinapses
     sinapse_max_level = 30000
     config = {
         'sinapse': {
@@ -329,10 +339,11 @@ def test_device():
     ]] == domain.learn_rate - 1
     # check stats
     for field_num in range(0, domain.stat_fields):
-        assert domain.stat[0 + field_num] \
-            == domain.layers_stat[0 + field_num] \
-            + domain.layers_stat[ \
-                0 + field_num + len(domain.stat)]
+        if field_num != 2:
+            assert domain.stat[0 + field_num] \
+                == domain.layers_stat[0 + field_num] \
+                + domain.layers_stat[ \
+                    0 + field_num + len(domain.stat)]
 
     # field 0 - total spikes
     assert domain.stat[0] >= 4
@@ -341,6 +352,8 @@ def test_device():
     # field 1 - number of the dead neurons
     assert domain.layers_stat[1] == 3
     assert domain.layers_stat[1 + len(domain.stat)] == 1
+    # field 2 - number of sinapses with IS_STRENGTHENED flag
+    assert domain.stat[2] == 1
 
     # test kernel
     test_length = 13
