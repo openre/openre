@@ -100,10 +100,12 @@ class OpenCL(Device):
                 types.address(domain.stat_fields),
                 # layers
                 domain.layers_stat.device_data_pointer,
+                domain.layers_vector.max_vitality.device_data_pointer,
                 # neurons
                 domain.neurons.flags.device_data_pointer,
                 domain.neurons.spike_tick.device_data_pointer,
-                domain.neurons.layer.device_data_pointer
+                domain.neurons.layer.device_data_pointer,
+                domain.neurons.vitality.device_data_pointer
             ).wait()
             domain.layers_stat.from_device(self)
             stat_length = len(domain.stat)
@@ -354,6 +356,12 @@ def test_device():
     assert domain.layers_stat[1 + len(domain.stat)] == 1
     # field 2 - number of sinapses with IS_STRENGTHENED flag
     assert domain.stat[2] == 1
+    # field 3 - tiredness
+    assert domain.layers_stat[3] \
+            == (layer.spike_cost - 1) * domain.layers_stat[0]
+    assert domain.layers_stat[3 + len(domain.stat)] \
+            == (layer2.spike_cost - 1) \
+                * domain.layers_stat[0 + len(domain.stat)]
 
     # test kernel
     test_length = 13

@@ -232,10 +232,14 @@ __kernel void update_layers_stat(
     __const {{ types.tick | to_c_type }}            d_ticks,
     __const {{ types.address | to_c_type }}         d_stat_size,
     __const {{ types.address | to_c_type }}         d_stat_fields,
+    /* layers */
     __global {{ types.stat | to_c_type }}           * l_stat,
+    __global {{ types.vitality | to_c_type }}       * l_max_vitality,
+    /* neurons */
     __global {{ types.neuron_flags | to_c_type }}   * n_flags,
     __global {{ types.tick | to_c_type }}           * n_spike_tick,
-    __global {{ types.medium_address | to_c_type }} * n_layer
+    __global {{ types.medium_address | to_c_type }} * n_layer,
+    __global {{ types.vitality | to_c_type }}       * n_vitality
 ) {
     {{ types.address | to_c_type }} neuron_address = get_global_id(0);
     // get layer
@@ -271,6 +275,21 @@ __kernel void update_layers_stat(
                 + 1 * d_stat_size
             ],
             1
+        );
+    }
+    // field 3 - get neurons tiredness
+    // = sum(layer.max_vitality - neuron.vitality)
+    if(
+        l_max_vitality[layer_address] - n_vitality[neuron_address] > 0
+    ){
+        atom_add(
+            &l_stat[
+                /* start of the stat of the layer with layer_address */
+                layer_stat_start
+                /* start of the field */
+                + 3 * d_stat_size
+            ],
+            l_max_vitality[layer_address] - n_vitality[neuron_address]
         );
     }
 }

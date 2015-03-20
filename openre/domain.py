@@ -91,7 +91,8 @@ class Domain(object):
         # 0 - total spikes (one per neuron) per self.config['stat_size'] ticks
         # 1 - number of the dead neurons
         # 2 - number of sinapses with flag IS_STRENGTHENED
-        self.stat_fields = 3
+        # 3 - neurons tiredness = sum(layer.max_vitality - neuron.vitality)
+        self.stat_fields = 4
         stat_metadata = Metadata(
             (1, self.stat_fields),
             types.stat
