@@ -120,12 +120,13 @@ class OpenCL(Device):
                 self.queue, (len(domain.layers_stat),), None,
                 domain.layers_stat.device_data_pointer
             ).wait()
-            # count sinapses with flag IS_STRENGTHENED
+            # count sinapses stats
             domain.stat.to_device(self)
             self.program.update_sinapses_stat(
                 self.queue, (len(domain.sinapses),), None,
                 domain.stat.device_data_pointer,
                 # sinapses
+                domain.sinapses.learn.device_data_pointer,
                 domain.sinapses.flags.device_data_pointer
             ).wait()
             domain.stat.from_device(self)
@@ -341,7 +342,7 @@ def test_device():
     ]] == domain.learn_rate - 1
     # check stats
     for field_num in range(0, domain.stat_fields):
-        if field_num != 2:
+        if field_num not in [2, 4]:
             assert domain.stat[0 + field_num] \
                 == domain.layers_stat[0 + field_num] \
                 + domain.layers_stat[ \
@@ -362,6 +363,8 @@ def test_device():
     assert domain.layers_stat[3 + len(domain.stat)] \
             == (layer2.spike_cost - 1) \
                 * domain.layers_stat[0 + len(domain.stat)]
+    # field 4 - sum(sinapse.learn)
+    assert domain.stat[4] >= (domain.learn_rate - 1) * 3
 
     # test kernel
     test_length = 13

@@ -92,7 +92,8 @@ class Domain(object):
         # 1 - number of the dead neurons
         # 2 - number of sinapses with flag IS_STRENGTHENED
         # 3 - neurons tiredness = sum(layer.max_vitality - neuron.vitality)
-        self.stat_fields = 4
+        # 4 - sinapse learn level
+        self.stat_fields = 5
         stat_metadata = Metadata(
             (1, self.stat_fields),
             types.stat
