@@ -5,6 +5,8 @@ tags
 # Test scripts
 run.sh
 run.py
+agent.sh
+agent.py
 long_test.sh
 
 # Byte-compiled / optimized / DLL files
