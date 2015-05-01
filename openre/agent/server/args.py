@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Работа с коммандной строкой
+Параметры сервера
 """
 import argparse
 
-parser = argparse.ArgumentParser(description='Domain manager')
+parser = argparse.ArgumentParser(description='OpenRE.Agent server')
+parser.add_argument(
+    'type',
+    help='server'
+)
 parser.add_argument(
     'action',
     help='start/stop/restart'
@@ -12,6 +16,6 @@ parser.add_argument(
 parser.add_argument(
     '--pid',
     dest='pid_file',
-    default='./ore-agent.pid',
+    default=None,
     help='path to pid file (default: ./ore-agent.pid)'
 )
