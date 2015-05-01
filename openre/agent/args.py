@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument(
     'type',
-    metavar='server|client',
+    metavar='server|client|proxy',
     help='type of the agent'
 )
 
