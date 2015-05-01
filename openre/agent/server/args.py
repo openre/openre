@@ -8,7 +8,7 @@ from openre.agent.helpers import mixin_log_level
 parser = argparse.ArgumentParser(description='OpenRE.Agent server')
 parser.add_argument(
     'type',
-    help='server'
+    help=argparse.SUPPRESS
 )
 parser.add_argument(
     'action',
