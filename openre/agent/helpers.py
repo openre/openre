@@ -4,6 +4,7 @@ import signal
 from lockfile.pidlockfile import PIDLockFile
 import os
 import time
+import argparse
 
 def daemon_stop(pid_file=None):
     """
@@ -39,5 +40,38 @@ def daemon_stop(pid_file=None):
         logging.debug('Pid file not found')
     except OSError:
         logging.debug('Process not running')
+
+def mixin_log_level(parser):
+    """
+    Add --log-level argument in parser
+    """
+    def check_log_level(value):
+        """
+        Validate --log-level argument
+        """
+        if value not in ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG',
+                         'NOTSET']:
+            raise argparse.ArgumentTypeError(
+                "%s is an invalid log level value" % value)
+        return value
+
+    parser.add_argument(
+        '--log-level',
+        metavar='',
+        type=check_log_level,
+        dest='log_level',
+        default=None,
+        help='logging level, one of the: CRITICAL, ERROR, WARNING, INFO,' \
+             ' DEBUG, NOTSET (default: none)'
+    )
+
+def parse_args(parser, *args, **kwargs):
+    args = parser.parse_args(*args, **kwargs)
+    if hasattr(args, 'log_level') and args.log_level:
+        logging.basicConfig(
+            format='%(levelname)s: %(message)s',
+            level=getattr(logging, args.log_level)
+        )
+    return args
 
 

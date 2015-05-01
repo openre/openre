@@ -3,6 +3,7 @@
 Параметры сервера
 """
 import argparse
+from openre.agent.helpers import mixin_log_level
 
 parser = argparse.ArgumentParser(description='OpenRE.Agent server')
 parser.add_argument(
@@ -17,5 +18,21 @@ parser.add_argument(
     '--pid',
     dest='pid_file',
     default=None,
-    help='path to pid file (default: ./ore-agent.pid)'
+    help='path to pid file (default: none)'
 )
+
+parser.add_argument(
+    '--host',
+    dest='host',
+    default='*',
+    help='host to listen for clients requests (default: *)'
+)
+
+parser.add_argument(
+    '--port',
+    dest='port',
+    default='8932',
+    help='port to listen for clients requests (default: 8932)'
+)
+
+mixin_log_level(parser)

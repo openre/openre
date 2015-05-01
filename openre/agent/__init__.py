@@ -10,6 +10,8 @@ def run():
     mod = None
     if args.type == 'server':
         from openre.agent import server as mod
+    elif args.type == 'client':
+        from openre.agent import client as mod
     if mod:
         mod.run()
     else:
