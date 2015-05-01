@@ -4,8 +4,10 @@ from copy import deepcopy
 from time import time
 import logging
 from openre.data_types import types
+import os.path
 
 __version__ = '0.0.1'
+BASE_PATH = os.path.dirname(os.path.realpath(__file__))
 
 class OpenRE(object):
     """
