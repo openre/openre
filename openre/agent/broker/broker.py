@@ -43,7 +43,7 @@ class Agent(AgentBase):
                 message[2] = req_identity
                 self.backend.send_multipart(message)
                 logging.debug('And send to backend: %s', message)
-            elif socks.get(self.backend) == zmq.POLLIN:
+            if socks.get(self.backend) == zmq.POLLIN:
                 message = self.backend.recv_multipart()
                 logging.debug('Backend receive message: %s', message)
                 if len(message) < 3:

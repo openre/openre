@@ -6,6 +6,7 @@ from lockfile import AlreadyLocked, LockTimeout
 import os
 import logging
 import signal
+from openre.agent.helpers import add_action
 
 def daemonize(pid_file=None, signal_map=None, clean=None):
     """
@@ -57,6 +58,17 @@ def daemonize(pid_file=None, signal_map=None, clean=None):
                 f(*args, **kwargs)
                 if clean:
                     clean()
+        return wrapped
+    return wrapper
+
+
+def action(name=None, priority=50):
+    def wrapper(f):
+        add_action(name or f.__name__, f, priority)
+        print 'add action %s' % name
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            f(*args, **kwargs)
         return wrapped
     return wrapper
 

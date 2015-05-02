@@ -9,6 +9,7 @@ import uuid
 import json
 import datetime
 import re
+from types import FunctionType
 
 def daemon_stop(pid_file=None):
     """
@@ -127,6 +128,65 @@ def date_to_str(date):
             ret += 'Z'
     return ret
 
+def priority_func(row):
+    if type(row['priority']) == FunctionType:
+        return row['priority']()
+    return row['priority']
+
+class Hooks(object):
+    _callbacks = None
+    _was = None
+
+    @classmethod
+    def add_action(cls, action, callback, priority):
+        if action not in cls._was:
+            cls._was[action] = []
+        if action not in cls._callbacks:
+            cls._callbacks[action] = []
+        if callback not in cls._was[action]:
+            row = {
+                'callback': callback,
+                'priority': priority,
+            }
+            cls._callbacks[action].append(row)
+            cls._was[action].append(row)
+
+    @classmethod
+    def do_action(cls, action, *args, **kwargs):
+        rows = cls._callbacks.get(action, [])
+        rows = sorted(rows, key = priority_func)
+        for row in rows:
+            row['callback'](*args, **kwargs)
+
+class ActionHooks(Hooks):
+    _callbacks = {}
+    _was = {}
+
+class FilterHooks(Hooks):
+    _callbacks = {}
+    _was = {}
+
+    @classmethod
+    def do_action(cls, action, value):
+        rows = cls._callbacks.get(action, [])
+        rows = sorted(rows, key = priority_func)
+        for row in rows:
+            value = row['callback'](value)
+        return value
+
+def add_action(action, callback, priority=50):
+    ActionHooks.add_action(action, callback, priority)
+
+def do_action(action, *args, **kwargs):
+    ActionHooks.do_action(action, *args, **kwargs)
+
+def add_filter(action, callback, priority=50):
+    FilterHooks.add_action(action, callback, priority)
+
+def do_filter(action, value):
+    return FilterHooks.do_action(action, value)
+
+
 class AgentBase(object):
     """
     Абстрактный класс агента.
@@ -145,16 +205,16 @@ class AgentBase(object):
         self.__clean_user = self.clean
         self.clean = self.__clean
         self.context = zmq.Context()
+        self.server = None
         if self.__class__.server_connect:
             self.connect_server(
                 self.config.server_host,
                 self.config.server_port
             )
         if self.__class__.server_connect:
-            self.send_server({
-                'action': 'state',
-                'id': self.id,
-                'state': 'init',
+            self.send_server('state', {
+                'status': 'init',
+                'pid': os.getpid()
             })
         self.init()
 
@@ -180,10 +240,8 @@ class AgentBase(object):
 
     def __run(self):
         if self.__class__.server_connect:
-            self.send_server({
-                'action': 'state',
-                'id': self.id,
-                'state': 'run',
+            self.send_server('state', {
+                'status': 'run'
             })
         try:
             self.__run_user()
@@ -195,14 +253,13 @@ class AgentBase(object):
     def __clean(self):
         logging.debug('Agent cleaning')
         if self.__class__.server_connect:
-            self.send_server({
-                'action': 'state',
-                'id': self.id,
-                'state': 'exit',
+            self.send_server('state', {
+                'status': 'exit'
             })
         self.__clean_user()
-        if self.__class__.server_connect:
+        if self.server:
             self.server.close()
+            self.server = None
         self.context.term()
 
     def socket(self, *args, **kwargs):
@@ -217,19 +274,26 @@ class AgentBase(object):
             port
         ))
 
-    def send_server(self, data):
-        message = self.to_json(data)
+    def send_server(self, action, data=None):
+        message = {
+            'action': action,
+            'id': self.id,
+            'data': data
+        }
+        message = self.to_json(message)
         logging.debug('Agent->Server: %s', message)
         self.server.send(message)
         ret = self.server.recv()
+        ret = self.from_json(ret)
         logging.debug('Server->Agent: %s', ret)
-        return self.from_json(ret)
+        return ret
 
     def to_json(self, data):
         try:
             data = to_json(data)
         except ValueError:
             logging.warn('Cant convert to json: %s', data)
+            raise
         return data
 
     def from_json(self, json):

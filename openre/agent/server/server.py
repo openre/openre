@@ -5,6 +5,9 @@
 import logging
 import zmq
 from openre.agent.helpers import AgentBase
+import os
+import importlib
+from openre.agent.helpers import do_action
 
 class Agent(AgentBase):
     def init(self):
@@ -21,10 +24,12 @@ class Agent(AgentBase):
             raise
         self.poller = zmq.Poller()
         self.poller.register(self.responder, zmq.POLLIN)
+        self.init_actions()
 
     def run(self):
+        poll_timeout = -1
         while True:
-            socks = dict(self.poller.poll())
+            socks = dict(self.poller.poll(poll_timeout))
             if socks.get(self.responder) == zmq.POLLIN:
                 message = self.responder.recv_multipart()
                 if len(message) < 3:
@@ -34,6 +39,7 @@ class Agent(AgentBase):
                 data = self.from_json(message[2])
                 logging.debug('Received message: %s', data)
 
+                do_action(data['action'])
                 # TODO: event driven message processing
                 # add address and data to event pool
                 # when event is done - send result to the client
@@ -43,13 +49,27 @@ class Agent(AgentBase):
                 ret = {'success': True}
                 self.reply(address, ret)
 
-
     def reply(self, address, data):
         message = [address, '', self.to_json(data)]
         self.responder.send_multipart(message)
         logging.debug('Reply with message: %s', message)
 
-
     def clean(self):
         self.responder.close()
+
+    def init_actions(self):
+        # find module by type
+        base_dir = os.path.dirname(__file__)
+        base_dir = os.path.join(base_dir, 'action')
+        for action_file in sorted(
+            [file_name for file_name in os.listdir(base_dir) \
+             if os.path.isfile('%s/%s' % (base_dir, file_name))
+                and file_name not in ['__init__.py']]
+        ):
+            action_module_name = action_file.split('.')
+            del action_module_name[-1]
+            action_module_name = '.'.join(action_module_name)
+            importlib.import_module(
+                'openre.agent.server.action.%s' % action_module_name
+            )
 
