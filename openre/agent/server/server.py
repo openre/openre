@@ -27,10 +27,28 @@ class Agent(AgentBase):
             socks = dict(self.poller.poll())
             if socks.get(self.responder) == zmq.POLLIN:
                 message = self.responder.recv_multipart()
-                logging.debug('Received message: %s', message)
-                message = [message[0], '', b"World"]
-                self.responder.send_multipart(message)
-                logging.debug('Reply with message: %s', message)
+                if len(message) < 3:
+                    logging.warn('Broken message: %s', message)
+                    continue
+                address = message[0]
+                data = self.from_json(message[2])
+                logging.debug('Received message: %s', data)
+
+                # TODO: event driven message processing
+                # add address and data to event pool
+                # when event is done - send result to the client
+                # pereodically check events untill all done
+                # then wait for a new messages
+
+                ret = {'success': True}
+                self.reply(address, ret)
+
+
+    def reply(self, address, data):
+        message = [address, '', self.to_json(data)]
+        self.responder.send_multipart(message)
+        logging.debug('Reply with message: %s', message)
+
 
     def clean(self):
         self.responder.close()

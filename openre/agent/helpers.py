@@ -4,8 +4,11 @@ import signal
 from lockfile.pidlockfile import PIDLockFile
 import os
 import time
-import argparse
 import zmq
+import uuid
+import json
+import datetime
+import re
 
 def daemon_stop(pid_file=None):
     """
@@ -42,55 +45,118 @@ def daemon_stop(pid_file=None):
     except OSError:
         logging.debug('Process not running')
 
-def mixin_log_level(parser):
-    """
-    Add --log-level argument in parser
-    """
-    def check_log_level(value):
-        """
-        Validate --log-level argument
-        """
-        if value not in ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG',
-                         'NOTSET']:
-            raise argparse.ArgumentTypeError(
-                "%s is an invalid log level value" % value)
-        return value
+class OREEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, (datetime.datetime, datetime.date)):
+            return 'ISODate("%s")' % date_to_str(obj)
+        elif isinstance(obj, datetime.time):
+            return obj.isoformat()
+        elif isinstance(obj, uuid.UUID):
+            return 'UUID("%s")' % str(obj)
+        return json.JSONEncoder.default(self, obj)
 
-    parser.add_argument(
-        '--log-level',
-        metavar='',
-        type=check_log_level,
-        dest='log_level',
-        default=None,
-        help='logging level, one of the: CRITICAL, ERROR, WARNING, INFO,' \
-             ' DEBUG, NOTSET (default: none)'
+
+class OREDecoder(json.JSONDecoder):
+    datetime_regex = re.compile(
+        r'ISODate\(\"(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})' \
+        r'(?:\.(\d+))?Z\"\)'
+    )
+    uuid_regex = re.compile(
+        r'UUID\(\"([a-f0-9]{8}\-[a-f0-9]{4}\-[a-f0-9]{4}' \
+        r'\-[a-f0-9]{4}\-[a-f0-9]{12})\"\)'
     )
 
-def parse_args(parser, *args, **kwargs):
-    args = parser.parse_args(*args, **kwargs)
-    if hasattr(args, 'log_level') and args.log_level:
-        logging.basicConfig(
-            format='%(levelname)s: %(message)s',
-            level=getattr(logging, args.log_level)
-        )
-    return args
+    def decode(self, obj):
+        ret = super(OREDecoder, self).decode(obj)
+        ret = self.parse_result(ret)
+        return ret
+
+    def parse_result(self, obj):
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                obj[k] = self.parse_result(v)
+        elif isinstance(obj, list):
+            for k, v in enumerate(obj):
+                obj[k] = self.parse_result(v)
+        elif isinstance(obj, basestring):
+            obj = self._hook(obj)
+        return obj
+
+    def _hook(self, obj):
+        dt_result = OREDecoder.datetime_regex.match(obj)
+        if dt_result:
+            year, month, day, hour, minute, second, milliseconds \
+                    = map(lambda x: int(x or 0), dt_result.groups())
+            return datetime.datetime(year, month, day, hour, minute, second,
+                                     milliseconds)
+
+        uuid_result = OREDecoder.uuid_regex.match(obj)
+        if uuid_result:
+            return uuid.UUID(uuid_result.group(1))
+        return obj
+
+
+def to_json(data, sort_keys=False):
+    return json.dumps(data, sort_keys=sort_keys, cls=OREEncoder)
+
+def from_json(data):
+    return json.loads(data, cls=OREDecoder)
+
+def date_to_str(date):
+    """ Converts a datetime value to the corresponding RFC-1123 string."""
+    if date and date.year == 1 and date.month == 1 and date.day == 1:
+        date = None
+    if not date:
+        return None
+    ret = None
+    try:
+        ret = datetime.datetime.strftime(date, '%Y-%m-%dT%H:%M:%S.%fZ')
+    except ValueError:
+        ret = date.isoformat()
+        try:
+            ret.index('T')
+        except ValueError:
+            ret += 'T00:00:00.000000Z'
+        try:
+            ret.index('.')
+        except ValueError:
+            ret += '.000000Z'
+        try:
+            ret.index('Z')
+        except ValueError:
+            ret += 'Z'
+    return ret
 
 class AgentBase(object):
     """
     Абстрактный класс агента.
     """
-    # if set to True - than register on server while init.
-    register = False
+    # if set to True - than init socket that connects to server.
+    # should be set self.config.server_host and self.config.server_port
+    server_connect = False
     # connect to broker as a worker (so this agent is local and can reply to
     # requests)
-    worker = False
+    broker_connect = False
     def __init__(self, config):
         self.config = config
+        self.id = config.id or uuid.uuid4()
         self.__run_user = self.run
         self.run = self.__run
         self.__clean_user = self.clean
         self.clean = self.__clean
         self.context = zmq.Context()
+        if self.__class__.server_connect:
+            self.connect_server(
+                self.config.server_host == '*' \
+                    and '127.0.0.1' or self.config.server_host,
+                self.config.server_port
+            )
+        if self.__class__.server_connect:
+            self.send_server({
+                'action': 'state',
+                'id': self.id,
+                'state': 'init',
+            })
         self.init()
 
     def init(self):
@@ -114,6 +180,12 @@ class AgentBase(object):
         """
 
     def __run(self):
+        if self.__class__.server_connect:
+            self.send_server({
+                'action': 'state',
+                'id': self.id,
+                'state': 'run',
+            })
         try:
             self.__run_user()
         except Exception:
@@ -123,11 +195,49 @@ class AgentBase(object):
 
     def __clean(self):
         logging.debug('Agent cleaning')
+        if self.__class__.server_connect:
+            self.send_server({
+                'action': 'state',
+                'id': self.id,
+                'state': 'exit',
+            })
         self.__clean_user()
+        if self.__class__.server_connect:
+            self.server.close()
         self.context.term()
 
     def socket(self, *args, **kwargs):
         socket = self.context.socket(*args, **kwargs)
         socket.setsockopt(zmq.LINGER, 0)
         return socket
+
+    def connect_server(self, host, port):
+        self.server = self.socket(zmq.REQ)
+        self.server.connect('tcp://%s:%s' % (
+            self.config.server_host == '*' \
+                and '127.0.0.1' or self.config.server_host,
+            self.config.server_port
+        ))
+
+    def send_server(self, data):
+        message = self.to_json(data)
+        logging.debug('Agent->Server: %s', message)
+        self.server.send(message)
+        ret = self.server.recv()
+        logging.debug('Server->Agent: %s', ret)
+        return self.from_json(ret)
+
+    def to_json(self, data):
+        try:
+            data = to_json(data)
+        except ValueError:
+            logging.warn('Cant convert to json: %s', data)
+        return data
+
+    def from_json(self, json):
+        try:
+            json = from_json(json)
+        except ValueError:
+            logging.warn('Message is not valid json: %s', json)
+        return json
 

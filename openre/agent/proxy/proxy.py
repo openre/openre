@@ -9,6 +9,7 @@ import os
 from openre.agent.helpers import AgentBase
 
 class Agent(AgentBase):
+    server_connect = True
     def init(self):
         # Socket facing clients
         self.frontend = self.socket(zmq.SUB)

@@ -4,9 +4,10 @@
 получения команд из клиентской части.
 """
 from openre.agent.decorators import daemonize
-from openre.agent.helpers import daemon_stop, parse_args
+from openre.agent.helpers import daemon_stop
 import logging
 import signal
+from openre.agent.args import parse_args
 from openre.agent.proxy.args import parser
 from openre.agent.proxy.proxy import Agent
 

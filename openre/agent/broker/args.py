@@ -3,14 +3,11 @@
 Параметры сервера
 """
 import argparse
-from openre.agent.helpers import mixin_log_level
+from openre.agent.args import mixin_log_level, mixin_default
 
 parser = argparse.ArgumentParser(description='OpenRE.Agent proxy')
 
-parser.add_argument(
-    'type',
-    help=argparse.SUPPRESS
-)
+mixin_default(parser)
 
 parser.add_argument(
     'action',
