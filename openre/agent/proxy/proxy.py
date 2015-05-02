@@ -10,9 +10,8 @@ from openre.agent.helpers import AgentBase
 
 class Agent(AgentBase):
     def init(self):
-        self.context = zmq.Context()
         # Socket facing clients
-        self.frontend = self.context.socket(zmq.SUB)
+        self.frontend = self.socket(zmq.SUB)
         try:
             self.frontend.bind(
                 "tcp://%s:%s" % (self.config.host, self.config.port)
@@ -29,7 +28,7 @@ class Agent(AgentBase):
 
         # Socket facing services
         ipc_file = os.path.join(tempfile.gettempdir(), 'openre-proxy')
-        self.backend = self.context.socket(zmq.PUB)
+        self.backend = self.socket(zmq.PUB)
         self.backend.bind("ipc://%s" % ipc_file)
 
 
@@ -39,5 +38,4 @@ class Agent(AgentBase):
     def clean(self):
         self.frontend.close()
         self.backend.close()
-        self.context.term()
 

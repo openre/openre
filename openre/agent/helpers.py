@@ -5,6 +5,7 @@ from lockfile.pidlockfile import PIDLockFile
 import os
 import time
 import argparse
+import zmq
 
 def daemon_stop(pid_file=None):
     """
@@ -78,12 +79,18 @@ class AgentBase(object):
     """
     Абстрактный класс агента.
     """
+    # if set to True - than register on server while init.
+    register = False
+    # connect to broker as a worker (so this agent is local and can reply to
+    # requests)
+    worker = False
     def __init__(self, config):
         self.config = config
         self.__run_user = self.run
         self.run = self.__run
         self.__clean_user = self.clean
         self.clean = self.__clean
+        self.context = zmq.Context()
         self.init()
 
     def init(self):
@@ -95,6 +102,17 @@ class AgentBase(object):
         """
         pass
 
+    def run(self):
+        """
+        Код запуска агента. Этот метод необходимо переопределить.
+        """
+        raise NotImplementedError
+
+    def clean(self):
+        """
+        Очистка при завершении работы агента. Этот метод можно переопределить.
+        """
+
     def __run(self):
         try:
             self.__run_user()
@@ -103,17 +121,13 @@ class AgentBase(object):
         finally:
             self.clean()
 
-    def run(self):
-        """
-        Код запуска агента
-        """
-        raise NotImplementedError
-
     def __clean(self):
         logging.debug('Agent cleaning')
         self.__clean_user()
+        self.context.term()
 
-    def clean(self):
-        """
-        Очистка при завершении работы агента
-        """
+    def socket(self, *args, **kwargs):
+        socket = self.context.socket(*args, **kwargs)
+        socket.setsockopt(zmq.LINGER, 0)
+        return socket
+

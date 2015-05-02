@@ -8,8 +8,7 @@ from openre.agent.helpers import AgentBase
 
 class Agent(AgentBase):
     def init(self):
-        self.context = zmq.Context()
-        self.responder = self.context.socket(zmq.ROUTER)
+        self.responder = self.socket(zmq.ROUTER)
         try:
             self.responder.bind(
                 "tcp://%s:%s" % (self.config.host, self.config.port))
@@ -35,5 +34,4 @@ class Agent(AgentBase):
 
     def clean(self):
         self.responder.close()
-        self.context.term()
 
