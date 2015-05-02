@@ -29,7 +29,9 @@ class Agent(AgentBase):
             if socks.get(self.responder) == zmq.POLLIN:
                 message = self.responder.recv_multipart()
                 logging.debug('Received message: %s', message)
-                self.responder.send_multipart([message[0], '', b"World"])
+                message = [message[0], '', b"World"]
+                self.responder.send_multipart(message)
+                logging.debug('Reply with message: %s', message)
 
     def clean(self):
         self.responder.close()
