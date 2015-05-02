@@ -80,10 +80,10 @@ class AgentBase(object):
     """
     def __init__(self, config):
         self.config = config
-        self.run_user = self.run
-        self.run = self._run
-        self.clean_user = self.clean
-        self.clean = self._clean
+        self.__run_user = self.run
+        self.run = self.__run
+        self.__clean_user = self.clean
+        self.clean = self.__clean
         self.init()
 
     def init(self):
@@ -95,9 +95,9 @@ class AgentBase(object):
         """
         pass
 
-    def _run(self):
+    def __run(self):
         try:
-            self.run_user()
+            self.__run_user()
         except Exception:
             raise
         finally:
@@ -109,9 +109,9 @@ class AgentBase(object):
         """
         raise NotImplementedError
 
-    def _clean(self):
+    def __clean(self):
         logging.debug('Agent cleaning')
-        self.clean_user()
+        self.__clean_user()
 
     def clean(self):
         """
