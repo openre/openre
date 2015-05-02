@@ -35,4 +35,18 @@ parser.add_argument(
     help='port to listen for clients requests (default: 8932)'
 )
 
+parser.add_argument(
+    '--proxy-host',
+    dest='proxy_host',
+    default='*',
+    help='host to listen for domains data pub proxy (default: *)'
+)
+
+parser.add_argument(
+    '--proxy-port',
+    dest='proxy_port',
+    default='8934',
+    help='port to listen for domains data pub proxy (default: 8934)'
+)
+
 mixin_log_level(parser)

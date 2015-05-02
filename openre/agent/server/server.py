@@ -20,12 +20,20 @@ def run(args):
     poller = zmq.Poller()
     poller.register(socket, zmq.POLLIN)
 
-    while True:
-        socks = dict(poller.poll())
-        if socks.get(socket) == zmq.POLLIN:
-            message = socket.recv_multipart()
-            logging.debug('Received message: %s', message)
-            socket.send_multipart([message[0], '', b"World"])
+    try:
+        while True:
+            socks = dict(poller.poll())
+            if socks.get(socket) == zmq.POLLIN:
+                message = socket.recv_multipart()
+                logging.debug('Received message: %s', message)
+                socket.send_multipart([message[0], '', b"World"])
+    except Exception:
+        raise
+    finally:
+        poller.close()
+        socket.close()
+        context.term()
+        clean()
 
 def clean():
     logging.debug('Cleaning')
