@@ -74,4 +74,46 @@ def parse_args(parser, *args, **kwargs):
         )
     return args
 
+class AgentBase(object):
+    """
+    Абстрактный класс агента.
+    """
+    def __init__(self, config):
+        self.config = config
+        self.run_user = self.run
+        self.run = self._run
+        self.clean_user = self.clean
+        self.clean = self._clean
+        self.init()
 
+    def init(self):
+        """
+        Весь код инициализации здесь. Если очень нужно переопределить __init__,
+        то обязательно использовать
+        super(Agent, self).__init__(*args, **kwargs)
+        в начале переопределенного метода
+        """
+        pass
+
+    def _run(self):
+        try:
+            self.run_user()
+        except Exception:
+            raise
+        finally:
+            self.clean()
+
+    def run(self):
+        """
+        Код запуска агента
+        """
+        raise NotImplementedError
+
+    def _clean(self):
+        logging.debug('Agent cleaning')
+        self.clean_user()
+
+    def clean(self):
+        """
+        Очистка при завершении работы агента
+        """

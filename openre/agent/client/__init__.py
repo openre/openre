@@ -5,11 +5,10 @@
 """
 from openre.agent.helpers import parse_args
 from openre.agent.client.args import parser
-from openre.agent.client import client
+from openre.agent.client.client import Agent
 
 def run():
     args = parse_args(parser)
-
-    if args.action == 'hello':
-        client.hello(args)
+    agent =Agent(args)
+    agent.run()
 

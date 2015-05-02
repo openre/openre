@@ -8,24 +8,35 @@ from openre.agent.helpers import daemon_stop, parse_args
 import logging
 import signal
 from openre.agent.server.args import parser
-from openre.agent.server.server import run as _run, clean
+from openre.agent.server.server import Agent
 
 def run():
     args = parse_args(parser)
+    agent = Agent(args)
+    def sigterm(signum, frame):
+        signum_to_str = dict(
+            (k, v) for v, k in reversed(sorted(signal.__dict__.items()))
+            if v.startswith('SIG') and not v.startswith('SIG_')
+        )
+        logging.debug(
+            'Got signal.%s. Clean and exit.',
+            signum_to_str.get(signum, signum)
+        )
+        exit(0)
+
     @daemonize(
         args.pid_file,
         signal_map={
             signal.SIGTERM: sigterm,
             signal.SIGINT: sigterm,
         },
-        clean=clean
     )
     def start():
         """
         Запуск серера
         """
         logging.info('Sart OpenRE.Agent server')
-        _run(args)
+        agent.run()
 
     def stop():
         """
@@ -42,15 +53,4 @@ def run():
         stop()
         start()
 
-def sigterm(signum, frame):
-    signum_to_str = dict(
-        (k, v) for v, k in reversed(sorted(signal.__dict__.items()))
-        if v.startswith('SIG') and not v.startswith('SIG_')
-    )
-    logging.debug(
-        'Got signal.%s. Clean and exit.',
-        signum_to_str.get(signum, signum)
-    )
-    clean()
-    exit(0)
 
