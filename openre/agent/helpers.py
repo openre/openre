@@ -147,8 +147,7 @@ class AgentBase(object):
         self.context = zmq.Context()
         if self.__class__.server_connect:
             self.connect_server(
-                self.config.server_host == '*' \
-                    and '127.0.0.1' or self.config.server_host,
+                self.config.server_host,
                 self.config.server_port
             )
         if self.__class__.server_connect:
@@ -214,9 +213,8 @@ class AgentBase(object):
     def connect_server(self, host, port):
         self.server = self.socket(zmq.REQ)
         self.server.connect('tcp://%s:%s' % (
-            self.config.server_host == '*' \
-                and '127.0.0.1' or self.config.server_host,
-            self.config.server_port
+            host == '*' and '127.0.0.1' or host,
+            port
         ))
 
     def send_server(self, data):
