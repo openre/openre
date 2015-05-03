@@ -8,6 +8,7 @@ from openre.agent.helpers import AgentBase
 import os
 import importlib
 from openre.agent.helpers import do_action
+from openre.agent.event import EventPool, Event
 
 class Agent(AgentBase):
     def init(self):
@@ -28,6 +29,22 @@ class Agent(AgentBase):
 
     def run(self):
         poll_timeout = -1
+        def event_done(event):
+            if event.is_success:
+                ret = {
+                    'success': event.is_success,
+                    'data': event.result
+                }
+            else:
+                ret = {
+                    'success': event.is_success,
+                    'data': event.result,
+                    'error': event.error,
+                    'traceback': event.traceback
+                }
+
+            self.reply(event.address, ret)
+        event_pool = EventPool(event_done)
         while True:
             socks = dict(self.poller.poll(poll_timeout))
             if socks.get(self.responder) == zmq.POLLIN:
@@ -39,15 +56,13 @@ class Agent(AgentBase):
                 data = self.from_json(message[2])
                 logging.debug('Received message: %s', data)
 
-                do_action(data['action'])
-                # TODO: event driven message processing
-                # add address and data to event pool
-                # when event is done - send result to the client
-                # pereodically check events untill all done
-                # then wait for a new messages
-
-                ret = {'success': True}
-                self.reply(address, ret)
+                event = Event(data, address)
+                event_pool.register(event)
+            event_pool.tick()
+            # if no events - than wait for new events without timeout
+            poll_timeout = event_pool.poll_timeout()
+            if poll_timeout >= 0 and poll_timeout < 100:
+                poll_timeout = 100
 
     def reply(self, address, data):
         message = [address, '', self.to_json(data)]

@@ -3,6 +3,6 @@
 from openre.agent.decorators import action
 
 @action()
-def state():
+def state(event):
     print 'state called'
 

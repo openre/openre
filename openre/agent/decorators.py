@@ -65,7 +65,6 @@ def daemonize(pid_file=None, signal_map=None, clean=None):
 def action(name=None, priority=50):
     def wrapper(f):
         add_action(name or f.__name__, f, priority)
-        print 'add action %s' % name
         @wraps(f)
         def wrapped(*args, **kwargs):
             f(*args, **kwargs)

@@ -9,9 +9,11 @@ class Agent(AgentBase):
         self.connect_server(self.config.host, self.config.port)
 
     def run(self):
-        if self.config.action == 'hello':
-            pass
-        self.send_server(self.config.action)
+        result = self.send_server(self.config.action)
+        if result['success']:
+            print result['data']
+        else:
+            print result['traceback']
 
     def clean(self):
         pass

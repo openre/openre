@@ -152,11 +152,17 @@ class Hooks(object):
             cls._was[action].append(row)
 
     @classmethod
+    def registered_action(cls, action):
+        return action in cls._callbacks
+
+    @classmethod
     def do_action(cls, action, *args, **kwargs):
         rows = cls._callbacks.get(action, [])
-        rows = sorted(rows, key = priority_func)
+        rows = sorted(rows, key=priority_func)
+        ret = None
         for row in rows:
-            row['callback'](*args, **kwargs)
+            ret = row['callback'](*args, **kwargs)
+        return ret
 
 class ActionHooks(Hooks):
     _callbacks = {}
@@ -178,14 +184,18 @@ def add_action(action, callback, priority=50):
     ActionHooks.add_action(action, callback, priority)
 
 def do_action(action, *args, **kwargs):
-    ActionHooks.do_action(action, *args, **kwargs)
+    return ActionHooks.do_action(action, *args, **kwargs)
+
+def do_strict_action(action, *args, **kwargs):
+    if not ActionHooks.registered_action(action):
+        raise ValueError('Action "%s" in not registered' % action)
+    return ActionHooks.do_action(action, *args, **kwargs)
 
 def add_filter(action, callback, priority=50):
     FilterHooks.add_action(action, callback, priority)
 
 def do_filter(action, value):
     return FilterHooks.do_action(action, value)
-
 
 class AgentBase(object):
     """

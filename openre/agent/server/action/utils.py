@@ -3,10 +3,10 @@
 from openre.agent.decorators import action
 
 @action()
-def ping():
+def ping(event):
     return 'pong'
 
 @action()
-def exception():
+def exception(event):
     raise Exception('Test exception')
 
