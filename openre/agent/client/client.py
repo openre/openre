@@ -3,6 +3,7 @@
 Основной код сервера
 """
 from openre.agent.helpers import AgentBase
+import pprint
 
 class Agent(AgentBase):
     def init(self):
@@ -11,9 +12,13 @@ class Agent(AgentBase):
     def run(self):
         result = self.send_server(self.config.action)
         if result['success']:
-            print result['data']
+            if self.config.pretty:
+                pp = pprint.PrettyPrinter(indent=4)
+                pp.pprint(result['data'])
+            else:
+                print result['data']
         else:
-            print result['traceback']
+            print 'Error: %s' % result['traceback']
 
     def clean(self):
         pass

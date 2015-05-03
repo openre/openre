@@ -27,5 +27,12 @@ parser.add_argument(
     help='port of the server (default: 8932)'
 )
 
+parser.add_argument(
+    '--pretty',
+    dest='pretty',
+    action='store_true',
+    help='pretty print the result'
+)
+
 mixin_log_level(parser)
 

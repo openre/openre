@@ -39,7 +39,7 @@ def daemonize(pid_file=None, signal_map=None, clean=None):
                 try:
                     os.kill(pidfile.read_pid(), 0)
                     logging.warn('Process already running!')
-                    exit(1)
+                    exit(2)
                 except OSError:  #No process with locked PID
                     pidfile.break_lock()
 

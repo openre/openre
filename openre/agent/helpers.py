@@ -10,6 +10,7 @@ import json
 import datetime
 import re
 from types import FunctionType
+import traceback
 
 def daemon_stop(pid_file=None):
     """
@@ -224,9 +225,17 @@ class AgentBase(object):
         if self.__class__.server_connect:
             self.send_server('state', {
                 'status': 'init',
-                'pid': os.getpid()
+                'pid': os.getpid(),
             })
-        self.init()
+        try:
+            self.init()
+        except Exception:
+            if self.__class__.server_connect:
+                self.send_server('state', {
+                    'status': 'error',
+                    'message': traceback.format_exc()
+                })
+            raise
 
     def init(self):
         """
@@ -249,11 +258,12 @@ class AgentBase(object):
         """
 
     def __run(self):
-        if self.__class__.server_connect:
-            self.send_server('state', {
-                'status': 'run'
-            })
         try:
+            if self.__class__.server_connect:
+                self.send_server('state', {
+                    'status': 'run'
+                })
+
             self.__run_user()
         except Exception:
             raise
@@ -264,9 +274,13 @@ class AgentBase(object):
         logging.debug('Agent cleaning')
         if self.__class__.server_connect:
             self.send_server('state', {
-                'status': 'exit'
+                'status': 'clean'
             })
         self.__clean_user()
+        if self.__class__.server_connect:
+            self.send_server('state', {
+                'status': 'exit'
+            })
         if self.server:
             self.server.close()
             self.server = None
@@ -284,7 +298,7 @@ class AgentBase(object):
             port
         ))
 
-    def send_server(self, action, data=None):
+    def send_server(self, action, data=None, skip_recv=False):
         message = {
             'action': action,
             'id': self.id,
@@ -293,9 +307,11 @@ class AgentBase(object):
         message = self.to_json(message)
         logging.debug('Agent->Server: %s', message)
         self.server.send(message)
-        ret = self.server.recv()
-        ret = self.from_json(ret)
-        logging.debug('Server->Agent: %s', ret)
+        ret = None
+        if not skip_recv:
+            ret = self.server.recv()
+            ret = self.from_json(ret)
+            logging.debug('Server->Agent: %s', ret)
         return ret
 
     def to_json(self, data):

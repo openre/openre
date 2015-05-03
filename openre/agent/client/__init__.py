@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Серверная часть агента. Запускается на сервере, открывает соединение для
-получения команд из клиентской части.
+Клиентская часть агента.
 """
 from openre.agent.client.args import parser
 from openre.agent.client.client import Agent

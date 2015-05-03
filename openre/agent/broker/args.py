@@ -4,6 +4,7 @@
 """
 import argparse
 from openre.agent.args import mixin_log_level, mixin_default
+from openre.agent.args import mixin_server_endpoint
 
 parser = argparse.ArgumentParser(description='OpenRE.Agent proxy')
 
@@ -15,17 +16,11 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '--host',
-    dest='host',
-    default='*',
-    help='host to listen for domains pub proxy (default: *)'
-)
-
-parser.add_argument(
-    '--port',
-    dest='port',
-    default='8934',
-    help='port to listen for domains pub proxy (default: 8934)'
+    '--pid',
+    dest='pid_file',
+    default=None,
+    help='path to pid file (default: none)'
 )
 
 mixin_log_level(parser)
+mixin_server_endpoint(parser)

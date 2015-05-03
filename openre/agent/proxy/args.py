@@ -16,6 +16,13 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    '--pid',
+    dest='pid_file',
+    default=None,
+    help='path to pid file (default: none)'
+)
+
+parser.add_argument(
     '--host',
     dest='host',
     default='*',

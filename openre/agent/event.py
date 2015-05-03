@@ -6,6 +6,7 @@
 from openre.agent.helpers import do_strict_action
 import time
 import traceback as _traceback
+import logging
 
 
 class EventPool(object):
@@ -13,6 +14,8 @@ class EventPool(object):
         self.event_list = []
 
     def register(self, event):
+        if event.is_done:
+            return
         self.event_list.append(event)
         event.set_pool(self)
 
@@ -38,7 +41,8 @@ class EventPool(object):
     def tick(self):
         lst = self.event_list
         for event in lst:
-            event.run()
+            if not event.is_done:
+                event.run()
             if event.is_done:
                 self.event_list.remove(event)
 
@@ -60,12 +64,14 @@ class Event(object):
         self._done_callback = None
         self.action = action
 
-    def failed(self, error, traceback=True):
+    def failed(self, error, traceback=False):
         self.is_done = True
         self.is_success = False
         self.error = str(error)
+        logging.warn('Task failed with error: %s', self.error)
         if traceback:
             self.traceback = _traceback.format_exc()
+            logging.warn(self.traceback)
         else:
             self.traceback = self.error
 
@@ -113,7 +119,7 @@ class Event(object):
         try:
             self.result = do_strict_action(self.action, self)
         except Exception as error:
-            self.failed(error)
+            self.failed(error, traceback=True)
         if self.is_prevent_done:
             self.is_prevent_done = False
         else:
@@ -123,6 +129,11 @@ class Event(object):
                 self.is_success = True
             if self._done_callback:
                 self._done_callback(self)
+
+    @property
+    def data(self):
+        return self.message
+
 
 
 class ServerEvent(Event):

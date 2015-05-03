@@ -13,7 +13,6 @@ from openre.agent.server.server import Agent
 
 def run():
     args = parse_args(parser)
-    agent = Agent(args)
     def sigterm(signum, frame):
         signum_to_str = dict(
             (k, v) for v, k in reversed(sorted(signal.__dict__.items()))
@@ -37,6 +36,7 @@ def run():
         Запуск серера
         """
         logging.info('Sart OpenRE.Agent server')
+        agent = Agent(args)
         agent.run()
 
     def stop():

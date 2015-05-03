@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Серверная часть агента. Запускается на сервере, открывает соединение для
-получения команд из клиентской части.
+Прокси. Публикует данные с нескольких доменов на одном порте.
 """
 from openre.agent.decorators import daemonize
 from openre.agent.helpers import daemon_stop
@@ -13,7 +12,6 @@ from openre.agent.proxy.proxy import Agent
 
 def run():
     args = parse_args(parser)
-    agent = Agent(args)
     def sigterm(signum, frame):
         signum_to_str = dict(
             (k, v) for v, k in reversed(sorted(signal.__dict__.items()))
@@ -26,6 +24,7 @@ def run():
         exit(0)
 
     @daemonize(
+        args.pid_file,
         signal_map={
             signal.SIGTERM: sigterm,
             signal.SIGINT: sigterm,
@@ -36,6 +35,7 @@ def run():
         Запуск серера
         """
         logging.info('Sart OpenRE.Agent proxy')
+        agent = Agent(args)
         agent.run()
 
     def stop():

@@ -7,8 +7,12 @@ import zmq
 from openre.agent.helpers import AgentBase
 import os
 import importlib
-from openre.agent.helpers import do_action
-from openre.agent.event import EventPool, ServerEvent
+from openre.agent.event import EventPool, ServerEvent, Event
+import uuid
+import tempfile
+from openre.agent.server.state import state as process_state
+import signal
+import time
 
 class Agent(AgentBase):
     def init(self):
@@ -26,9 +30,11 @@ class Agent(AgentBase):
         self.poller = zmq.Poller()
         self.poller.register(self.responder, zmq.POLLIN)
         self.init_actions()
+        self.proxy_id = uuid.uuid4()
+        self.broker_id = uuid.uuid4()
+        self.subprocess_by_id = {}
 
     def run(self):
-        poll_timeout = -1
         def event_done(event):
             if not event.address:
                 return
@@ -46,7 +52,40 @@ class Agent(AgentBase):
                 }
 
             self.reply(event.address, ret)
+        poll_timeout = 0
         event_pool = EventPool()
+        # init tasks
+        # run proxy and broker
+        proxy_pid = os.path.join(
+            tempfile.gettempdir(), 'openre-proxy.pid')
+        run_proxy_event = Event(
+            'run_proxy',
+            {
+                'host': self.config.proxy_host,
+                'port': self.config.proxy_port,
+                'server_host': self.config.host,
+                'server_port': self.config.port,
+                'id': self.proxy_id,
+                'pid': proxy_pid,
+                'server': self,
+            }
+        )
+        event_pool.register(run_proxy_event)
+
+        broker_pid = os.path.join(
+            tempfile.gettempdir(), 'openre-broker.pid')
+        run_broker_event = Event(
+            'run_broker',
+            {
+                'server_host': self.config.host,
+                'server_port': self.config.port,
+                'id': self.broker_id,
+                'pid': broker_pid,
+                'server': self,
+            }
+        )
+        event_pool.register(run_broker_event)
+
         while True:
             socks = dict(self.poller.poll(poll_timeout))
             if socks.get(self.responder) == zmq.POLLIN:
@@ -85,7 +124,60 @@ class Agent(AgentBase):
         self.responder.send_multipart(message)
         logging.debug('Reply with message: %s', message)
 
+    def shutdown_mode(self):
+        was_message = True
+        while was_message:
+            was_message = False
+            socks = dict(self.poller.poll(0))
+            if socks.get(self.responder) == zmq.POLLIN:
+                message = self.responder.recv_multipart()
+                if len(message) < 3:
+                    logging.warn('Broken message: %s', message)
+                    continue
+                address = message[0]
+                ret = {
+                    'success': False,
+                    'data': None,
+                    'error': 'Server is in shutdown mode',
+                    'traceback': 'Server is in shutdown mode',
+                }
+                self.reply(address, ret)
+                was_message = True
+
     def clean(self):
+        for state in process_state.values():
+            if state['status'] not in ['exit', 'error', 'kill'] \
+               and state['pid']:
+                process_state[str(state['id'])] = {
+                    'status': 'kill',
+                }
+                pid_num = state['pid']
+                logging.debug('Stop process with pid %s' % pid_num)
+                os.kill(pid_num, signal.SIGTERM)
+
+        # number of tries to check (every 1 sec) if all subprocesses is stoped
+        tries = 600
+        success = False
+        while tries and not success:
+            tries -= 1
+            success = True
+            self.shutdown_mode()
+            for state in process_state.values():
+                if state['status'] not in ['kill']:
+                    continue
+                pid_num = state['pid']
+                try:
+                    os.kill(pid_num, 0)
+                    success = False
+                except OSError:  #No process with locked PID
+                    process_state[str(state['id'])] = {
+                        'status': 'exit',
+                    }
+                    logging.debug(
+                        'Successfully stopped process with pid %s' % pid_num)
+            if success:
+                break
+            time.sleep(1)
         self.responder.close()
 
     def init_actions(self):
