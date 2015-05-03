@@ -44,9 +44,8 @@ class EventPool(object):
 
 
 class Event(object):
-    def __init__(self, message, address):
+    def __init__(self, action, message):
         self.message = message
-        self.address = address
         self.is_done = False
         self.is_prevent_done = False
         self.timeout_start = None
@@ -59,11 +58,7 @@ class Event(object):
         self.traceback = None
         self.is_success = None
         self._done_callback = None
-        try:
-            self.action = self.message['action']
-            self.id = self.message['id']
-        except ValueError as error:
-            self.failed(error)
+        self.action = action
 
     def failed(self, error, traceback=True):
         self.is_done = True
@@ -73,10 +68,6 @@ class Event(object):
             self.traceback = _traceback.format_exc()
         else:
             self.traceback = self.error
-
-    @property
-    def data(self):
-        return self.message.get('data')
 
     def set_pool(self, pool):
         self.pool = pool
@@ -134,9 +125,25 @@ class Event(object):
                 self._done_callback(self)
 
 
+class ServerEvent(Event):
+    def __init__(self, action, message, address=None):
+        self.address = address
+        super(ServerEvent, self).__init__(action, message)
+
+    @property
+    def id(self):
+        return self.message.get('id')
+
+    @property
+    def data(self):
+        return self.message.get('data')
+
+
 def test_event():
     pool = EventPool()
-    event = Event({
+    event = ServerEvent(
+        'state',
+        {
             'action': 'state',
             'id': 'uuid_id',
             'data': {}

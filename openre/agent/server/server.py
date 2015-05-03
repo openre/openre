@@ -8,7 +8,7 @@ from openre.agent.helpers import AgentBase
 import os
 import importlib
 from openre.agent.helpers import do_action
-from openre.agent.event import EventPool, Event
+from openre.agent.event import EventPool, ServerEvent
 
 class Agent(AgentBase):
     def init(self):
@@ -30,6 +30,8 @@ class Agent(AgentBase):
     def run(self):
         poll_timeout = -1
         def event_done(event):
+            if not event.address:
+                return
             if event.is_success:
                 ret = {
                     'success': event.is_success,
@@ -56,7 +58,20 @@ class Agent(AgentBase):
                 data = self.from_json(message[2])
                 logging.debug('Received message: %s', data)
 
-                event = Event(data, address)
+                if not isinstance(data, dict) or 'action' not in data:
+                    logging.warn(
+                        'Malformed data in message ' \
+                        '(should be dict with \'action\' key): %s', data)
+                    ret = {
+                        'success': False,
+                        'data': None,
+                        'error': 'Malformed message: %s' % data,
+                        'traceback': 'Malformed message: %s' % data
+                    }
+                    self.reply(address, ret)
+                    continue
+
+                event = ServerEvent(data['action'], data, address)
                 event.done_callback(event_done)
                 event_pool.register(event)
             event_pool.tick()
