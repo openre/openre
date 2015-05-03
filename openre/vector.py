@@ -35,6 +35,7 @@ class Vector(object):
         self.metadata.append(metadata)
         self.length += metadata.length
         metadata.set_address(self, address)
+        # TODO: reshape self.data if vector.create() was aready called
 
     def __len__(self):
         return self.length
@@ -44,7 +45,8 @@ class Vector(object):
         Создает в памяти вектор заданного типа и помещает его в self.data
         """
         assert self.data is None
-        self.data = np.zeros((self.length)).astype(self.type)
+        self.data = np.zeros((1)).astype(self.type)
+        self.data.resize((self.length), refcheck=False)
 
     def create_device_data_pointer(self, device):
         """
