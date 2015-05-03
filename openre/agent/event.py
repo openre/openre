@@ -9,9 +9,8 @@ import traceback as _traceback
 
 
 class EventPool(object):
-    def __init__(self, done_callback=None):
+    def __init__(self):
         self.event_list = []
-        self.done_callback = done_callback
 
     def register(self, event):
         self.event_list.append(event)
@@ -41,9 +40,8 @@ class EventPool(object):
         for event in lst:
             event.run()
             if event.is_done:
-                if self.done_callback:
-                    self.done_callback(event)
                 self.event_list.remove(event)
+
 
 class Event(object):
     def __init__(self, message, address):
@@ -60,6 +58,7 @@ class Event(object):
         self.error = None
         self.traceback = None
         self.is_success = None
+        self._done_callback = None
         try:
             self.action = self.message['action']
             self.id = self.message['id']
@@ -104,6 +103,9 @@ class Event(object):
     def done(self):
         self.is_done = True
 
+    def done_callback(self, callback):
+        self._done_callback = callback
+
     def run(self):
         if self.expire_value \
            and time.time() - self.expire_start >= self.expire_value:
@@ -125,8 +127,11 @@ class Event(object):
             self.is_prevent_done = False
         else:
             self.done()
-        if self.is_done and self.is_success is None:
-            self.is_success = True
+        if self.is_done:
+            if self.is_success is None:
+                self.is_success = True
+            if self._done_callback:
+                self._done_callback(self)
 
 
 def test_event():

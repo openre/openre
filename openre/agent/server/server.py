@@ -44,7 +44,7 @@ class Agent(AgentBase):
                 }
 
             self.reply(event.address, ret)
-        event_pool = EventPool(event_done)
+        event_pool = EventPool()
         while True:
             socks = dict(self.poller.poll(poll_timeout))
             if socks.get(self.responder) == zmq.POLLIN:
@@ -57,6 +57,7 @@ class Agent(AgentBase):
                 logging.debug('Received message: %s', data)
 
                 event = Event(data, address)
+                event.done_callback(event_done)
                 event_pool.register(event)
             event_pool.tick()
             # if no events - than wait for new events without timeout
