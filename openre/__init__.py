@@ -48,21 +48,21 @@ class OpenRE(object):
         Создание домена.
         """
         layer_by_id = {}
-        if 'sinapse' not in self.config:
-            self.config['sinapse'] = {}
-        if 'max_level' not in self.config['sinapse']:
-            self.config['sinapse']['max_level'] = 30000
-        if 'learn_rate' not in self.config['sinapse']:
-            self.config['sinapse']['learn_rate'] = 10
-        if 'learn_threshold' not in self.config['sinapse']:
-            self.config['sinapse']['learn_threshold'] = 9000
-        if 'spike_learn_threshold' not in self.config['sinapse']:
-            self.config['sinapse']['spike_learn_threshold'] = 0
-        if 'spike_forget_threshold' not in self.config['sinapse']:
-            self.config['sinapse']['spike_forget_threshold'] = 0
+        if 'synapse' not in self.config:
+            self.config['synapse'] = {}
+        if 'max_level' not in self.config['synapse']:
+            self.config['synapse']['max_level'] = 30000
+        if 'learn_rate' not in self.config['synapse']:
+            self.config['synapse']['learn_rate'] = 10
+        if 'learn_threshold' not in self.config['synapse']:
+            self.config['synapse']['learn_threshold'] = 9000
+        if 'spike_learn_threshold' not in self.config['synapse']:
+            self.config['synapse']['spike_learn_threshold'] = 0
+        if 'spike_forget_threshold' not in self.config['synapse']:
+            self.config['synapse']['spike_forget_threshold'] = 0
         for layer in self.config['layers']:
             if 'threshold' not in layer:
-                layer['threshold'] = self.config['sinapse']['max_level']
+                layer['threshold'] = self.config['synapse']['max_level']
             if 'is_inhibitory' not in layer:
                 layer['is_inhibitory'] = False
             if 'spike_cost' not in layer:
@@ -159,10 +159,10 @@ def test_openre():
     from openre.neurons import IS_INHIBITORY
     from openre.data_types import null
     from openre.device import Dummy
-    sinapse_max_level = 30000
+    synapse_max_level = 30000
     config = {
-        'sinapse': {
-            'max_level': sinapse_max_level,
+        'synapse': {
+            'max_level': synapse_max_level,
             'learn_rate': 10,
             'learn_threshold': 9000,
             'spike_learn_threshold': 0,
@@ -299,24 +299,24 @@ def test_openre():
     neuron_layers_0.extend([1]*100)
     neuron_layers_0.extend([2]*100)
     assert list(ore.domains[0].neurons.layer.data) == neuron_layers_0
-    # sinapses
-    assert ore.domains[0].sinapses
-    assert ore.domains[0].sinapses.length
-    assert ore.domains[0].sinapses.length == \
-            ore.domains[0].sinapses.level.length
-    assert ore.domains[0].sinapses.length == \
-            len(ore.domains[0].sinapses.level.data)
-    assert len(ore.domains[0].pre_sinapse_index.value.data) \
-            == len(ore.domains[0].sinapses)
-    assert len(ore.domains[0].pre_sinapse_index.key.data) \
+    # synapses
+    assert ore.domains[0].synapses
+    assert ore.domains[0].synapses.length
+    assert ore.domains[0].synapses.length == \
+            ore.domains[0].synapses.level.length
+    assert ore.domains[0].synapses.length == \
+            len(ore.domains[0].synapses.level.data)
+    assert len(ore.domains[0].pre_synapse_index.value.data) \
+            == len(ore.domains[0].synapses)
+    assert len(ore.domains[0].pre_synapse_index.key.data) \
             == len(ore.domains[0].neurons)
-    assert len([x for x in ore.domains[0].pre_sinapse_index.value.data
+    assert len([x for x in ore.domains[0].pre_synapse_index.value.data
                 if x != null]) == 0
-    assert len([x for x in ore.domains[0].post_sinapse_index.value.data
+    assert len([x for x in ore.domains[0].post_synapse_index.value.data
                 if x != null]) == 150
-    assert len([x for x in ore.domains[0].pre_sinapse_index.key.data
+    assert len([x for x in ore.domains[0].pre_synapse_index.key.data
                 if x != null]) == 200
-    assert len([x for x in ore.domains[0].post_sinapse_index.key.data
+    assert len([x for x in ore.domains[0].post_synapse_index.key.data
                 if x != null]) == 50
     # check layer shape
     assert ore.domains[1].layers[2].shape == [0, 0, 5, 10]
@@ -328,13 +328,13 @@ def test_openre():
         domain = ore.domains[i]
         assert domain.id == domain_config['id']
         assert domain.spike_learn_threshold == \
-                ore.config['sinapse']['spike_learn_threshold']
+                ore.config['synapse']['spike_learn_threshold']
         assert domain.spike_forget_threshold == \
-                ore.config['sinapse']['spike_forget_threshold']
+                ore.config['synapse']['spike_forget_threshold']
         assert domain.learn_rate == \
-                ore.config['sinapse']['learn_rate']
+                ore.config['synapse']['learn_rate']
         assert domain.learn_threshold == \
-                ore.config['sinapse']['learn_threshold']
+                ore.config['synapse']['learn_threshold']
         assert domain.ticks == 0
         for j, layer_config in enumerate(domain.config['layers']):
             layer = domain.layers[j]

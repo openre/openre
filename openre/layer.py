@@ -26,7 +26,7 @@ class Layer(object):
         threshold: types.threshold - если neuron.level больше layer.threshold,
                    то происходит спайк. Не должен быть больше чем максимум у
                    синапса.
-        relaxation: types.sinapse_level - на сколько снижается neuron.level
+        relaxation: types.synapse_level - на сколько снижается neuron.level
                     с каждым тиком (tick). По умолчанию - 0.
         width: types.address - количество колонок в массиве нейронов
         height: types.address - количество рядов в массиве нейронов

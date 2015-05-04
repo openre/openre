@@ -73,9 +73,9 @@ class DomainState(State):
             blank - только запустился, ожидает команду
             config - загружен конфиг
             create_layers - создание слоев
-            count_sinapses - подсчет синапсов
+            count_synapses - подсчет синапсов
             create_neurons - создание нейронов
-            create_sinapses - создание синапсов
+            create_synapses - создание синапсов
             create_indexes - создание индексов
             upload_data - зазрузка данных на устройство
             run - домен запущен

@@ -16,7 +16,7 @@ class Device(object):
         """
         raise NotImplementedError
 
-    def tick_sinapses(self, domain):
+    def tick_synapses(self, domain):
         """
         Передаем сигналы от pre-нейронов, у которых наступил спайк к
         post-нейронам

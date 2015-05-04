@@ -2,7 +2,7 @@
 """
 Ошибки
 """
-class OreNoSinapsesError(Exception):
+class OreNoSynapsesError(Exception):
     pass
 
 class OreError(Exception):

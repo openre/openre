@@ -11,7 +11,7 @@ from openre.device.abstract import Device
 from openre.templates import env
 from openre.data_types import types, null
 import numpy as np
-from openre import sinapses
+from openre import synapses
 
 class OpenCL(Device):
     """
@@ -63,30 +63,30 @@ class OpenCL(Device):
             domain.neurons.vitality.device_data_pointer
         ).wait()
 
-    def tick_sinapses(self, domain):
-        self.program.tick_sinapses(
+    def tick_synapses(self, domain):
+        self.program.tick_synapses(
             self.queue, (domain.neurons.length,), None,
             # domain
-            types.sinapse_level(domain.learn_rate),
-            types.sinapse_level(domain.learn_threshold),
+            types.synapse_level(domain.learn_rate),
+            types.synapse_level(domain.learn_threshold),
             types.tick(domain.spike_learn_threshold),
             types.tick(domain.spike_forget_threshold),
             # neurons
             domain.neurons.level.device_data_pointer,
             domain.neurons.flags.device_data_pointer,
             domain.neurons.spike_tick.device_data_pointer,
-            # sinapses
-            domain.sinapses.level.device_data_pointer,
-            domain.sinapses.pre.device_data_pointer,
-            domain.sinapses.post.device_data_pointer,
-            domain.sinapses.learn.device_data_pointer,
-            domain.sinapses.flags.device_data_pointer,
-            # pre-neuron - sinapse index
-            domain.pre_sinapse_index.key.device_data_pointer,
-            domain.pre_sinapse_index.value.device_data_pointer,
-            # post-neuron - sinapse index
-            domain.post_sinapse_index.key.device_data_pointer,
-            domain.post_sinapse_index.value.device_data_pointer
+            # synapses
+            domain.synapses.level.device_data_pointer,
+            domain.synapses.pre.device_data_pointer,
+            domain.synapses.post.device_data_pointer,
+            domain.synapses.learn.device_data_pointer,
+            domain.synapses.flags.device_data_pointer,
+            # pre-neuron - synapse index
+            domain.pre_synapse_index.key.device_data_pointer,
+            domain.pre_synapse_index.value.device_data_pointer,
+            # post-neuron - synapse index
+            domain.post_synapse_index.key.device_data_pointer,
+            domain.post_synapse_index.value.device_data_pointer
         ).wait()
         # download layers stats from device once
         # per domain.config['stat_size'] ticks
@@ -120,14 +120,14 @@ class OpenCL(Device):
                 self.queue, (len(domain.layers_stat),), None,
                 domain.layers_stat.device_data_pointer
             ).wait()
-            # count sinapses stats
+            # count synapses stats
             domain.stat.to_device(self)
-            self.program.update_sinapses_stat(
-                self.queue, (len(domain.sinapses),), None,
+            self.program.update_synapses_stat(
+                self.queue, (len(domain.synapses),), None,
                 domain.stat.device_data_pointer,
-                # sinapses
-                domain.sinapses.learn.device_data_pointer,
-                domain.sinapses.flags.device_data_pointer
+                # synapses
+                domain.synapses.learn.device_data_pointer,
+                domain.synapses.flags.device_data_pointer
             ).wait()
             domain.stat.from_device(self)
 
@@ -161,16 +161,16 @@ def test_device():
     from pytest import raises
     import numpy as np
     from openre import neurons
-    sinapse_max_level = 30000
+    synapse_max_level = 30000
     config = {
-        'sinapse': {
-            'max_level': sinapse_max_level,
+        'synapse': {
+            'max_level': synapse_max_level,
             'spike_learn_threshold': 2,
         },
         'layers': [
             {
                 'id': 'V1',
-                'threshold': sinapse_max_level,
+                'threshold': synapse_max_level,
                 'relaxation': 1000,
                 'width': 20,
                 'height': 20,
@@ -185,7 +185,7 @@ def test_device():
             },
             {
                 'id': 'V2',
-                'threshold': sinapse_max_level,
+                'threshold': synapse_max_level,
                 'relaxation': 1000,
                 'width': 20,
                 'height': 20,
@@ -215,18 +215,18 @@ def test_device():
     device = ore.domains[0].device
     max_vitality = types.max(types.vitality)
     # prepare neurons
-    layer.neurons_metadata.level[0, 0] = sinapse_max_level
+    layer.neurons_metadata.level[0, 0] = synapse_max_level
     assert not layer.neurons_metadata.flags[0, 0] & neurons.IS_SPIKED
 
     layer.neurons_metadata.level[0, 1] = layer.relaxation + 1
     layer.neurons_metadata.flags[0, 1] |= neurons.IS_SPIKED
     assert layer.neurons_metadata.flags[0, 1] | neurons.IS_SPIKED
 
-    layer.neurons_metadata.level[0, 2] = sinapse_max_level
+    layer.neurons_metadata.level[0, 2] = synapse_max_level
     layer.neurons_metadata.flags[0, 2] |= neurons.IS_DEAD
     layer.neurons_metadata.flags[0, 2] |= neurons.IS_SPIKED
 
-    layer.neurons_metadata.level[0, 3] = sinapse_max_level
+    layer.neurons_metadata.level[0, 3] = synapse_max_level
     layer.neurons_metadata.flags[0, 3] |= neurons.IS_RECEIVER
     layer.neurons_metadata.flags[0, 3] |= neurons.IS_SPIKED
 
@@ -234,39 +234,39 @@ def test_device():
 
     layer.neurons_metadata.level[0, 5] = -1
 
-    layer.neurons_metadata.level[0, 6] = sinapse_max_level
+    layer.neurons_metadata.level[0, 6] = synapse_max_level
     layer.neurons_metadata.vitality[0, 6] = layer.spike_cost
 
-    layer.neurons_metadata.level[0, 7] = sinapse_max_level
-    layer2.neurons_metadata.level[0, 7] = sinapse_max_level
+    layer.neurons_metadata.level[0, 7] = synapse_max_level
+    layer2.neurons_metadata.level[0, 7] = synapse_max_level
 
-    # sinapses
+    # synapses
     before = layer2.neurons_metadata.level[0, 0]
-    sinapse_address = domain.pre_sinapse_index.key[0]
-    sinapse_level = domain.sinapses.level[sinapse_address]
-    layer.neurons_metadata.level[1, 0] = sinapse_max_level
+    synapse_address = domain.pre_synapse_index.key[0]
+    synapse_level = domain.synapses.level[synapse_address]
+    layer.neurons_metadata.level[1, 0] = synapse_max_level
     layer2.neurons_metadata.flags[1, 0] |= neurons.IS_DEAD
-    layer2.neurons_metadata.level[1, 1] = sinapse_max_level
+    layer2.neurons_metadata.level[1, 1] = synapse_max_level
     layer.neurons_metadata.flags[1, 2] |= neurons.IS_DEAD
-    layer2.neurons_metadata.level[1, 2] = sinapse_max_level
+    layer2.neurons_metadata.level[1, 2] = synapse_max_level
 
     l2_n_level_before = layer2.neurons_metadata.level[0, 0]
 
-    layer2.neurons_metadata.level[0, 6] = sinapse_max_level
-    s_level_before_7 = domain.sinapses.level[domain.post_sinapse_index.key[
+    layer2.neurons_metadata.level[0, 6] = synapse_max_level
+    s_level_before_7 = domain.synapses.level[domain.post_synapse_index.key[
         layer2.neurons_metadata.level.to_address(0, 7)
     ]]
-    domain.sinapses.learn[domain.post_sinapse_index.key[
+    domain.synapses.learn[domain.post_synapse_index.key[
         layer2.neurons_metadata.level.to_address(0, 7)
     ]] = domain.learn_threshold
 
     domain.neurons.to_device(device)
-    domain.sinapses.to_device(device)
+    domain.synapses.to_device(device)
     domain.tick()
     domain.neurons.from_device(device)
-    domain.sinapses.from_device(device)
+    domain.synapses.from_device(device)
 
-    s_level = domain.sinapses.level[domain.post_sinapse_index.key[
+    s_level = domain.synapses.level[domain.post_synapse_index.key[
         layer2.neurons_metadata.level.to_address(0, 0)
     ]]
     if l2_n_level_before - layer2.relaxation < 0:
@@ -289,11 +289,11 @@ def test_device():
     assert layer.neurons_metadata.vitality[0, 1] \
             == max_vitality
 
-    assert layer.neurons_metadata.level[0, 2] == sinapse_max_level
+    assert layer.neurons_metadata.level[0, 2] == synapse_max_level
     assert layer.neurons_metadata.flags[0, 2] & neurons.IS_DEAD
     assert layer.neurons_metadata.flags[0, 2] & neurons.IS_SPIKED
 
-    assert layer.neurons_metadata.level[0, 3] == sinapse_max_level
+    assert layer.neurons_metadata.level[0, 3] == synapse_max_level
     assert layer.neurons_metadata.flags[0, 3] & neurons.IS_RECEIVER
     assert not layer.neurons_metadata.flags[0, 3] & neurons.IS_SPIKED
 
@@ -307,37 +307,37 @@ def test_device():
     assert layer.neurons_metadata.vitality[0, 6] \
             == max_vitality
 
-    # check sinapses
-    s_level_after_7 = domain.sinapses.level[domain.post_sinapse_index.key[
+    # check synapses
+    s_level_after_7 = domain.synapses.level[domain.post_synapse_index.key[
         layer2.neurons_metadata.level.to_address(0, 7)
     ]]
-    s_learn_after_7 = domain.sinapses.learn[domain.post_sinapse_index.key[
+    s_learn_after_7 = domain.synapses.learn[domain.post_synapse_index.key[
         layer2.neurons_metadata.level.to_address(0, 7)
     ]]
     assert s_level_before_7 + domain.learn_threshold == s_level_after_7
     assert s_learn_after_7 <= domain.learn_rate
-    assert domain.sinapses.flags[domain.post_sinapse_index.key[
+    assert domain.synapses.flags[domain.post_synapse_index.key[
         layer2.neurons_metadata.level.to_address(0, 7)
-    ]] & sinapses.IS_STRENGTHENED
-    assert not domain.sinapses.flags[domain.post_sinapse_index.key[
+    ]] & synapses.IS_STRENGTHENED
+    assert not domain.synapses.flags[domain.post_synapse_index.key[
         layer2.neurons_metadata.level.to_address(0, 0)
-    ]] & sinapses.IS_STRENGTHENED
+    ]] & synapses.IS_STRENGTHENED
 
     before = before - 1000
     if before < 0:
         before = 0
     # layer 1 is inhibitory
-    assert layer2.neurons_metadata.level[0, 0] == before - sinapse_level
-    # dead post-neuron so sinapse level should be 0
-    assert domain.sinapses.level[domain.pre_sinapse_index.key[
+    assert layer2.neurons_metadata.level[0, 0] == before - synapse_level
+    # dead post-neuron so synapse level should be 0
+    assert domain.synapses.level[domain.pre_synapse_index.key[
         layer.neurons_metadata.level.to_address(1, 0)
     ]] == 0
     assert layer2.neurons_metadata.flags[1, 1] & neurons.IS_SPIKED
-    # dead pre-neuron so sinapse level should be 0
-    assert domain.sinapses.level[domain.post_sinapse_index.key[
+    # dead pre-neuron so synapse level should be 0
+    assert domain.synapses.level[domain.post_synapse_index.key[
         layer2.neurons_metadata.level.to_address(1, 2)
     ]] == 0
-    assert domain.sinapses.learn[domain.pre_sinapse_index.key[
+    assert domain.synapses.learn[domain.pre_synapse_index.key[
         layer.neurons_metadata.level.to_address(0, 0)
     ]] == domain.learn_rate - 1
     # check stats
@@ -355,7 +355,7 @@ def test_device():
     # field 1 - number of the dead neurons
     assert domain.layers_stat[1] == 3
     assert domain.layers_stat[1 + len(domain.stat)] == 1
-    # field 2 - number of sinapses with IS_STRENGTHENED flag
+    # field 2 - number of synapses with IS_STRENGTHENED flag
     assert domain.stat[2] == 1
     # field 3 - tiredness
     assert domain.layers_stat[3] \
@@ -363,7 +363,7 @@ def test_device():
     assert domain.layers_stat[3 + len(domain.stat)] \
             == (layer2.spike_cost - 1) \
                 * domain.layers_stat[0 + len(domain.stat)]
-    # field 4 - sum(sinapse.learn)
+    # field 4 - sum(synapse.learn)
     assert domain.stat[4] >= (domain.learn_rate - 1) * 3
 
     # test kernel
@@ -393,6 +393,6 @@ def test_device():
         0, # 3 & IS_DEAD
         test_length,
         null,
-        sinapses.IS_STRENGTHENED,
+        synapses.IS_STRENGTHENED,
         3
     ]

@@ -11,8 +11,8 @@
 {{ types.neuron_flags | to_c_type }} constant IS_DEAD = 1<<2;
 {{ types.neuron_flags | to_c_type }} constant IS_TRANSMITTER = 1<<3;
 {{ types.neuron_flags | to_c_type }} constant IS_RECEIVER = 1<<4;
-/* sinapse.flags */
-{{ types.sinapse_flags | to_c_type }} constant IS_STRENGTHENED = 1<<0;
+/* synapse.flags */
+{{ types.synapse_flags | to_c_type }} constant IS_STRENGTHENED = 1<<0;
 /* openre.data_types.null */
 {{ types.address | to_c_type }} constant NULL_ADDRESS = {{ null }};
 
@@ -93,40 +93,40 @@ __kernel void tick_neurons(
         n_vitality[neuron_address] += 1;
     }
 }
-__kernel void tick_sinapses(
+__kernel void tick_synapses(
     /* domain */
-    __const {{ types.sinapse_level | to_c_type }}   d_learn_rate,
-    __const {{ types.sinapse_level | to_c_type }}   d_learn_threshold,
+    __const {{ types.synapse_level | to_c_type }}   d_learn_rate,
+    __const {{ types.synapse_level | to_c_type }}   d_learn_threshold,
     __const {{ types.tick | to_c_type }}            d_spike_learn_threshold,
     __const {{ types.tick | to_c_type }}            d_spike_forget_threshold,
     /* neurons */
     __global {{ types.neuron_level | to_c_type }}   * n_level,
     __global {{ types.neuron_flags | to_c_type }}   * n_flags,
     __global {{ types.tick | to_c_type }}           * n_spike_tick,
-    /* sinapses */
-    __global {{ types.sinapse_level | to_c_type }}  * s_level,
+    /* synapses */
+    __global {{ types.synapse_level | to_c_type }}  * s_level,
     __global {{ types.address | to_c_type }}        * s_pre,
     __global {{ types.address | to_c_type }}        * s_post,
-    __global {{ types.sinapse_level | to_c_type }}  * s_learn,
-    __global {{ types.sinapse_flags | to_c_type }}  * s_flags,
-    /* pre-neuron - sinapse index */
+    __global {{ types.synapse_level | to_c_type }}  * s_learn,
+    __global {{ types.synapse_flags | to_c_type }}  * s_flags,
+    /* pre-neuron - synapse index */
     __global {{ types.address | to_c_type }}        * pre_key,
     __global {{ types.address | to_c_type }}        * pre_value,
-    /* post-neuron - sinapse index */
+    /* post-neuron - synapse index */
     __global {{ types.address | to_c_type }}        * post_key,
     __global {{ types.address | to_c_type }}        * post_value
 ) {
     {{ types.address | to_c_type }} neuron_address = get_global_id(0);
     /*
-     *  pre-neuron -> pre-sinapse -> neuron -> post-sinapse -> post-neuron
-     *  pre_key - sinapses index, for neuron in sinapse.pre
-     *  post_key - sinapses index, for neuron in sinapse.post
-     *  post-sinapse address = pre_key[neuron address]
-     *  pre-sinapse address = post_key[neuron address]
+     *  pre-neuron -> pre-synapse -> neuron -> post-synapse -> post-neuron
+     *  pre_key - synapses index, for neuron in synapse.pre
+     *  post_key - synapses index, for neuron in synapse.post
+     *  post-synapse address = pre_key[neuron address]
+     *  pre-synapse address = post_key[neuron address]
      * */
-    {{ types.address | to_c_type }} post_sinapse_address = pre_key[neuron_address];
+    {{ types.address | to_c_type }} post_synapse_address = pre_key[neuron_address];
     {{ types.address | to_c_type }} post_neuron_address = NULL_ADDRESS;
-    {{ types.address | to_c_type }} pre_sinapse_address = post_key[neuron_address];
+    {{ types.address | to_c_type }} pre_synapse_address = post_key[neuron_address];
     {{ types.address | to_c_type }} pre_neuron_address = NULL_ADDRESS;
     int not_infinite = 0;
     // stop if neuron is dead or not spiked
@@ -136,86 +136,86 @@ __kernel void tick_sinapses(
     ){
         return;
     }
-    // for each post-sinapses
+    // for each post-synapses
     not_infinite = 1000000;
-    while(post_sinapse_address != NULL_ADDRESS && not_infinite){
+    while(post_synapse_address != NULL_ADDRESS && not_infinite){
         not_infinite--; /* TODO: send error to host if infinite loop */
-        post_neuron_address = s_post[post_sinapse_address];
-        // sinapse is dead
-        if(s_level[post_sinapse_address] == 0){
+        post_neuron_address = s_post[post_synapse_address];
+        // synapse is dead
+        if(s_level[post_synapse_address] == 0){
             continue;
         }
-        // post-neuron is dead - kill sinapse
+        // post-neuron is dead - kill synapse
         if(n_flags[post_neuron_address] & IS_DEAD){
-            s_level[post_sinapse_address] = 0;
+            s_level[post_synapse_address] = 0;
             continue;
         }
         // is spiked - change post neuron level
         atomic_add(
             &n_level[post_neuron_address],
             n_flags[neuron_address] & IS_INHIBITORY
-            ? -(s_level[post_sinapse_address] + s_learn[post_sinapse_address])
-            : (s_level[post_sinapse_address] + s_learn[post_sinapse_address])
+            ? -(s_level[post_synapse_address] + s_learn[post_synapse_address])
+            : (s_level[post_synapse_address] + s_learn[post_synapse_address])
         );
-        // post-sinapse learning
+        // post-synapse learning
         if(n_spike_tick[neuron_address] - n_spike_tick[post_neuron_address]
                 < d_spike_learn_threshold){
-            s_learn[post_sinapse_address] += d_learn_rate;
-            if(s_learn[post_sinapse_address] > d_learn_threshold){
-                if((s_flags[post_sinapse_address] & IS_STRENGTHENED) == 0){
+            s_learn[post_synapse_address] += d_learn_rate;
+            if(s_learn[post_synapse_address] > d_learn_threshold){
+                if((s_flags[post_synapse_address] & IS_STRENGTHENED) == 0){
                     // set learned flag
-                    s_flags[post_sinapse_address] |= IS_STRENGTHENED;
-                    // once increase sinapse level
-                    s_level[post_sinapse_address] += d_learn_threshold;
-                    s_learn[post_sinapse_address] = 0;
+                    s_flags[post_synapse_address] |= IS_STRENGTHENED;
+                    // once increase synapse level
+                    s_level[post_synapse_address] += d_learn_threshold;
+                    s_learn[post_synapse_address] = 0;
                 }
                 else{
-                    s_learn[post_sinapse_address] = d_learn_threshold;
+                    s_learn[post_synapse_address] = d_learn_threshold;
                 }
             }
         }
-        if (s_learn[post_sinapse_address]){
-            s_learn[post_sinapse_address] -= 1;
+        if (s_learn[post_synapse_address]){
+            s_learn[post_synapse_address] -= 1;
         }
-        // next sinapse
-        post_sinapse_address = pre_value[post_sinapse_address];
+        // next synapse
+        post_synapse_address = pre_value[post_synapse_address];
     }
-    // for each pre-sinapses
+    // for each pre-synapses
     not_infinite = 1000000;
-    while(pre_sinapse_address != NULL_ADDRESS && not_infinite){
+    while(pre_synapse_address != NULL_ADDRESS && not_infinite){
         not_infinite--; /* TODO: send error to host if infinite loop */
-        pre_neuron_address = s_pre[pre_sinapse_address];
-        // sinapse is dead
-        if(s_level[pre_sinapse_address] == 0){
+        pre_neuron_address = s_pre[pre_synapse_address];
+        // synapse is dead
+        if(s_level[pre_synapse_address] == 0){
             continue;
         }
-        // pre-neuron is dead - kill sinapse
+        // pre-neuron is dead - kill synapse
         if(n_flags[pre_neuron_address] & IS_DEAD){
-            s_level[pre_sinapse_address] = 0;
+            s_level[pre_synapse_address] = 0;
             continue;
         }
-        // pre-sinapse learning
+        // pre-synapse learning
         if(n_spike_tick[neuron_address] - n_spike_tick[pre_neuron_address]
                 < d_spike_learn_threshold){
-            s_learn[pre_sinapse_address] += d_learn_rate;
-            if(s_learn[pre_sinapse_address] > d_learn_threshold){
-                if((s_flags[pre_sinapse_address] & IS_STRENGTHENED) == 0){
+            s_learn[pre_synapse_address] += d_learn_rate;
+            if(s_learn[pre_synapse_address] > d_learn_threshold){
+                if((s_flags[pre_synapse_address] & IS_STRENGTHENED) == 0){
                     // set learned flag
-                    s_flags[pre_sinapse_address] |= IS_STRENGTHENED;
-                    // once increase sinapse level
-                    s_level[pre_sinapse_address] += d_learn_threshold;
-                    s_learn[pre_sinapse_address] = 0;
+                    s_flags[pre_synapse_address] |= IS_STRENGTHENED;
+                    // once increase synapse level
+                    s_level[pre_synapse_address] += d_learn_threshold;
+                    s_learn[pre_synapse_address] = 0;
                 }
                 else{
-                    s_learn[pre_sinapse_address] = d_learn_threshold;
+                    s_learn[pre_synapse_address] = d_learn_threshold;
                 }
             }
         }
-        if (s_learn[pre_sinapse_address]){
-            s_learn[pre_sinapse_address] -= 1;
+        if (s_learn[pre_synapse_address]){
+            s_learn[pre_synapse_address] -= 1;
         }
-        // next pre-sinapse
-        pre_sinapse_address = post_value[pre_sinapse_address];
+        // next pre-synapse
+        pre_synapse_address = post_value[pre_synapse_address];
     }
 }
 
@@ -294,23 +294,23 @@ __kernel void update_layers_stat(
     }
 }
 
-// calc sinapses stats
-__kernel void update_sinapses_stat(
+// calc synapses stats
+__kernel void update_synapses_stat(
     __global {{ types.stat | to_c_type }}           * d_stat,
-    __global {{ types.sinapse_level | to_c_type }}  * s_learn,
-    __global {{ types.sinapse_flags | to_c_type }}  * s_flags
+    __global {{ types.synapse_level | to_c_type }}  * s_learn,
+    __global {{ types.synapse_flags | to_c_type }}  * s_flags
 ) {
-    {{ types.address | to_c_type }} sinapse_address = get_global_id(0);
-    // field 2 - count of the sinapses with IS_STRENGTHENED flag
+    {{ types.address | to_c_type }} synapse_address = get_global_id(0);
+    // field 2 - count of the synapses with IS_STRENGTHENED flag
     if(
-        s_flags[sinapse_address] & IS_STRENGTHENED
+        s_flags[synapse_address] & IS_STRENGTHENED
     ){
         atom_add(&d_stat[2], 1);
     }
-    // field 4 - sinapse learn level
+    // field 4 - synapse learn level
     if(
-        s_learn[sinapse_address]
+        s_learn[synapse_address]
     ){
-        atom_add(&d_stat[4], s_learn[sinapse_address]);
+        atom_add(&d_stat[4], s_learn[synapse_address]);
     }
 }

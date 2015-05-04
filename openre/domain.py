@@ -7,7 +7,7 @@ from openre.metadata import Metadata
 from openre.data_types import types
 from openre.layer import Layer, LayersVector
 from openre.neurons import NeuronsVector
-from openre.sinapses import SinapsesVector, SinapsesMetadata
+from openre.synapses import SynapsesVector, SynapsesMetadata
 import logging
 import uuid
 import random
@@ -39,14 +39,14 @@ class Domain(object):
                                  уменьшился вес синапса.
                                  0 - по умолчанию (сеть не забывает).
     self.layers - список слоев (class Layer) домена
-    self.learn_rate: types.sinapse_level - с какой скоростью увеличивается
-                     sinapse.learn если у нейронов синапса расстояние между
+    self.learn_rate: types.synapse_level - с какой скоростью увеличивается
+                     synapse.learn если у нейронов синапса расстояние между
                      спайками меньше чем self.spike_learn_threshold
-    self.learn_threshold: types.sinapse_level - какой максимальный уровень может
-                          быть у sinapse.learn. При спайке sinapse.learn
-                          суммируется с sinapse.level (кратковременная память)
+    self.learn_threshold: types.synapse_level - какой максимальный уровень может
+                          быть у synapse.learn. При спайке synapse.learn
+                          суммируется с synapse.level (кратковременная память)
                           и суммарный сигнал передается post-нейрону.
-                          Минимальный уровень у sinapse.learn == 0. При первом
+                          Минимальный уровень у synapse.learn == 0. При первом
                           достижении максимального уровня синапс должен
                           одноразово усиливаться (долговременная память).
     Жеательно что бы выполнялось условие:
@@ -60,26 +60,26 @@ class Domain(object):
         self.id = self.config['id']
         self.ticks = 0
         self.spike_learn_threshold \
-                = self.ore.config['sinapse'].get('spike_learn_threshold', 0)
+                = self.ore.config['synapse'].get('spike_learn_threshold', 0)
         self.spike_forget_threshold \
-                = self.ore.config['sinapse'].get('spike_forget_threshold', 0)
+                = self.ore.config['synapse'].get('spike_forget_threshold', 0)
         self.learn_rate \
-                = self.ore.config['sinapse'].get('learn_rate', 0)
+                = self.ore.config['synapse'].get('learn_rate', 0)
         self.learn_threshold \
-                = self.ore.config['sinapse'].get('learn_threshold', 0)
+                = self.ore.config['synapse'].get('learn_threshold', 0)
         self.layers = []
         self.layers_vector = LayersVector()
         # domain layers config
         self.layers_config = deepcopy(self.config['layers'])
         # neurons vector. Metadata stored in layer.neurons_metadata
         self.neurons = NeuronsVector()
-        # sinapses vector
-        self.sinapses = SinapsesVector()
-        self.sinapses_metadata = None
+        # synapses vector
+        self.synapses = SynapsesVector()
+        self.synapses_metadata = None
         self.random = random.Random()
         self.seed = uuid.uuid4().hex
-        self.pre_sinapse_index = None
-        self.post_sinapse_index = None
+        self.pre_synapse_index = None
+        self.post_synapse_index = None
         self.device = getattr(
             device,
             self.config['device'].get('type', 'OpenCL')
@@ -90,9 +90,9 @@ class Domain(object):
         # fields:
         # 0 - total spikes (one per neuron) per self.config['stat_size'] ticks
         # 1 - number of the dead neurons
-        # 2 - number of sinapses with flag IS_STRENGTHENED
+        # 2 - number of synapses with flag IS_STRENGTHENED
         # 3 - neurons tiredness = sum(layer.max_vitality - neuron.vitality)
-        # 4 - sinapse learn level
+        # 4 - synapse learn level
         self.stat_fields = 5
         stat_metadata = Metadata(
             (1, self.stat_fields),
@@ -144,19 +144,19 @@ class Domain(object):
             self.layers_vector.spike_cost[layer_id] = layer.spike_cost
             self.layers_vector.max_vitality[layer_id] = layer.max_vitality
 
-        # Count sinapses (first pass - virtual sinapses connections)
-        total_sinapses = self.count_sinapses()
-        # allocate sinapses buffer in memory
-        domain_total_sinapses = total_sinapses.get(self.id, 0)
-        if not domain_total_sinapses:
-            logging.warn('No sinapses in domain %s', self.id)
-        self.sinapses_metadata = SinapsesMetadata(domain_total_sinapses)
-        self.sinapses.add(self.sinapses_metadata)
+        # Count synapses (first pass - virtual synapses connections)
+        total_synapses = self.count_synapses()
+        # allocate synapses buffer in memory
+        domain_total_synapses = total_synapses.get(self.id, 0)
+        if not domain_total_synapses:
+            logging.warn('No synapses in domain %s', self.id)
+        self.synapses_metadata = SynapsesMetadata(domain_total_synapses)
+        self.synapses.add(self.synapses_metadata)
         logging.debug(
-            'Allocate sinapses vector (%s sinapses in domain)',
-            domain_total_sinapses
+            'Allocate synapses vector (%s synapses in domain)',
+            domain_total_synapses
         )
-        self.sinapses.create(0, self.ore.config['sinapse']['max_level'])
+        self.synapses.create(0, self.ore.config['synapse']['max_level'])
         # allocate neurons buffer in memory
         logging.debug(
             'Allocate neurons vector (%s neurons in domain)',
@@ -164,40 +164,40 @@ class Domain(object):
         )
         self.neurons.create()
         self.create_neurons()
-        # Create sinapses (second pass)
-        self.create_sinapses()
-        # create pre-neuron - sinapse index
-        logging.debug('Create pre-neuron - sinapse index')
-        self.pre_sinapse_index = Index(len(self.neurons), self.sinapses.pre)
-        # create post-neuron - sinapse index
-        logging.debug('Create post-neuron - sinapse index')
-        self.post_sinapse_index = Index(len(self.neurons), self.sinapses.post)
+        # Create synapses (second pass)
+        self.create_synapses()
+        # create pre-neuron - synapse index
+        logging.debug('Create pre-neuron - synapse index')
+        self.pre_synapse_index = Index(len(self.neurons), self.synapses.pre)
+        # create post-neuron - synapse index
+        logging.debug('Create post-neuron - synapse index')
+        self.post_synapse_index = Index(len(self.neurons), self.synapses.post)
         # upload data on device
         logging.debug('Upload data to device')
         for vector in [
             self.layers_vector,
             self.neurons,
-            self.sinapses,
-            self.pre_sinapse_index,
-            self.post_sinapse_index,
+            self.synapses,
+            self.pre_synapse_index,
+            self.post_synapse_index,
             self.stat,
             self.layers_stat,
         ]:
             vector.create_device_data_pointer(self.device)
 
-    def count_sinapses(self):
+    def count_synapses(self):
         """
         Подсчитываем количество синапсов, которое образуется в данном домене
         """
-        logging.debug('Counting sinapses')
-        # Domains sinapses
-        total_sinapses = self.connect_layers(virtual=True)
-        for domain_id in total_sinapses:
+        logging.debug('Counting synapses')
+        # Domains synapses
+        total_synapses = self.connect_layers(virtual=True)
+        for domain_id in total_synapses:
             if domain_id != self.id:
-                # TODO: send sinapse counts (in total_sinapses) to other domains
+                # TODO: send synapse counts (in total_synapses) to other domains
                 pass
-        # TODO: recieve sinapse counts from other domains
-        return total_sinapses
+        # TODO: recieve synapse counts from other domains
+        return total_synapses
 
     def connect_layers(self, virtual=False):
         """
@@ -206,8 +206,8 @@ class Domain(object):
         """
         self.random.seed(self.seed)
         layer_config_by_id = {}
-        total_sinapses = {}
-        sinapse_address = -1
+        total_synapses = {}
+        synapse_address = -1
         # cache
         self_connect_neurons = self.connect_neurons
         for layer_config in self.ore.config['layers']:
@@ -215,7 +215,7 @@ class Domain(object):
         domain_index_to_id = []
         for domain_index, domain in enumerate(self.ore.config['domains']):
             domain_index_to_id.append(domain['id'])
-            total_sinapses[domain['id']] = 0
+            total_synapses[domain['id']] = 0
         domain_index_to_id.append(None)
         # cache neurn -> domain and neuron -> layer in domain
         if 'layer' not in self.cache:
@@ -348,7 +348,7 @@ class Domain(object):
                                     if post_info_domain_id == self.id:
                                         # inf[1] - post layer index in domain
                                         post_layer = self.layers[inf[1]]
-                                        sinapse_address += 1
+                                        synapse_address += 1
                                         self_connect_neurons(
                                             layer_neuron_address,
                                             post_layer.neurons_metadata.level \
@@ -356,17 +356,17 @@ class Domain(object):
                                                 post_x - post_layer.x,
                                                 post_y - post_layer.y
                                             ),
-                                            sinapse_address
+                                            synapse_address
                                         )
                                     else:
                                         # TODO: connect neurons with other
                                         #       domains
                                         pass
                                 else:
-                                    total_sinapses[post_info_domain_id] += 1
+                                    total_synapses[post_info_domain_id] += 1
 
 
-        return total_sinapses
+        return total_synapses
 
     def create_neurons(self):
         """
@@ -376,20 +376,20 @@ class Domain(object):
         for layer in self.layers:
             layer.create_neurons()
 
-    def create_sinapses(self):
+    def create_synapses(self):
         """
         Создаем физически синапсы в ранее созданном векторе
         """
-        logging.debug('Create sinapses')
+        logging.debug('Create synapses')
         self.connect_layers(virtual=False)
 
-    def connect_neurons(self, pre_address, post_address, sinapse_address):
+    def connect_neurons(self, pre_address, post_address, synapse_address):
         """
         Соединяем два нейрона с помощью синапса.
         """
-        sinapses = self.sinapses
-        sinapses.pre.data[sinapse_address] = pre_address
-        sinapses.post.data[sinapse_address] = post_address
+        synapses = self.synapses
+        synapses.pre.data[synapse_address] = pre_address
+        synapses.post.data[synapse_address] = post_address
 
     def send_spikes(self):
         """
@@ -445,21 +445,21 @@ class Domain(object):
             - формируем сообщения для тех нейронов, у которых произошел спайк и
               асинхронно отправляем их в другие домены.
 
-        6. по всем записям в pre_sinapse_index.key (device):
-            - если pre_sinapse_index.key[i] == null - заканчиваем обсчет
+        6. по всем записям в pre_synapse_index.key (device):
+            - если pre_synapse_index.key[i] == null - заканчиваем обсчет
             - если neuron.flags & IS_DEAD - обнуляем все синапсы
-              (sinapse.level = 0)
+              (synapse.level = 0)
             - если не neuron.flags & IS_SPIKED, то заканчиваем обсчет
-            - по всем записям в pre_sinapse_index.value, относящимся к
-              pre_sinapse_index.key[i]:
-                - если sinapse.level == 0 - считаем что синапс мертв и не
+            - по всем записям в pre_synapse_index.value, относящимся к
+              pre_synapse_index.key[i]:
+                - если synapse.level == 0 - считаем что синапс мертв и не
                   обсчитываем дальше внутренний цикл
-                - если post.flags & IS_DEAD - удаляем синапс (sinapse.level = 0)
+                - если post.flags & IS_DEAD - удаляем синапс (synapse.level = 0)
                   и не обсчитываем дальше внутренний цикл
                 - если дошли до этого места, то neuron.flags & IS_SPIKED и
                   делаем:
                     - post.level += (neuron.flags & IS_INHIBITORY ?
-                      -sinapse.level : sinapse.level)
+                      -synapse.level : synapse.level)
                     # Обучение синапсов к post нейронам
                     - если neuron.tick - post.tick
                         < domain.spike_learn_threshold,
@@ -471,11 +471,11 @@ class Domain(object):
                       то уменьшаем вес синапса. Вес можно уменьшать, например,
                       как f(neuron.tick - post.tick), либо на фиксированное
                       значение
-            - по всем записям в post_sinapse_index.value, относящимся к
-              post_sinapse_index.key[i]:
-                - если sinapse.level == 0 - считаем что синапс мертв и не
+            - по всем записям в post_synapse_index.value, относящимся к
+              post_synapse_index.key[i]:
+                - если synapse.level == 0 - считаем что синапс мертв и не
                   обсчитываем дальше внутренний цикл
-                - если pre.flags & IS_DEAD - удаляем синапс (sinapse.level = 0)
+                - если pre.flags & IS_DEAD - удаляем синапс (synapse.level = 0)
                   и не обсчитываем дальше внутренний цикл
                 # Обучение синапсов от pre нейронов
                 - если neuron.tick - pre.tick <= domain.spike_learn_threshold,
@@ -495,4 +495,4 @@ class Domain(object):
         # step 4 & 5
         self.send_spikes()
         # step 6
-        self.device.tick_sinapses(self)
+        self.device.tick_synapses(self)

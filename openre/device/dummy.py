@@ -9,7 +9,7 @@ class Dummy(Device):
     def tick_neurons(self, domain):
         pass
 
-    def tick_sinapses(self, domain):
+    def tick_synapses(self, domain):
         pass
 
     def create(self, data):

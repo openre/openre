@@ -8,24 +8,24 @@ from openre.data_types import types
 
 IS_STRENGTHENED = 1<<0
 
-class SinapsesVector(MultiFieldVector):
+class SynapsesVector(MultiFieldVector):
     """
-    Синапс (sinapse) - Содержит информацию о связи между двумя нейронами -
+    Синапс (synapse) - Содержит информацию о связи между двумя нейронами -
     pre- и post-нейроном с определенной силой (level). Если у pre-нейрона
     произошел спайк, то post-нейрон увеличивает или уменьшает (зависит от
     типа pre-нейрона, тормозящий он или возбуждающий) свой уровень
-    на sinapse.level
-    level: types.sinapse_level - сила с которой синапс передает возбуждение
+    на synapse.level
+    level: types.synapse_level - сила с которой синапс передает возбуждение
            к post-нейрону
     pre: types.address - адрес pre-нейрона внутри одного домена
     post: types.address - адрес post-нейрона внутри одного домена
     """
     fields = [
-        ('level', types.sinapse_level),
+        ('level', types.synapse_level),
         ('pre', types.address),
         ('post', types.address),
-        ('learn', types.sinapse_level),
-        ('flags', types.sinapse_flags),
+        ('learn', types.synapse_level),
+        ('flags', types.synapse_flags),
     ]
     def __init__(self):
         assert self.__class__.fields
@@ -46,8 +46,8 @@ class SinapsesVector(MultiFieldVector):
             else:
                 getattr(self, field).create()
 
-class SinapsesMetadata(MultiFieldMetadata):
+class SynapsesMetadata(MultiFieldMetadata):
     """
     Метаданные для нейронов
     """
-    fields = list(SinapsesVector.fields)
+    fields = list(SynapsesVector.fields)
