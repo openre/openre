@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from openre.agent.decorators import action
-from openre.agent.server.state import state as process_state
+from openre.agent.server.state import process_state
 
 @action()
 def state(event):

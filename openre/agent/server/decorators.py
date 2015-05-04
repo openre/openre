@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 from functools import wraps
-from openre.agent.server.state import state as process_state, is_running
+from openre.agent.server.state import process_state, is_running
 
 def start_process(name='process'):
     def wrapper(f):

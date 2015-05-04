@@ -9,8 +9,7 @@ import os
 import importlib
 from openre.agent.event import EventPool, ServerEvent, Event
 import uuid
-import tempfile
-from openre.agent.server.state import state as process_state
+from openre.agent.server.state import process_state
 import signal
 import time
 

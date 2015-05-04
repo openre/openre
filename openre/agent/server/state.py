@@ -16,14 +16,7 @@ class State(dict):
         self.is_loaded = True
 
     def default(self):
-        return {
-            'status': 'unknown',
-            'pid': 0,
-            'id': None,
-            'time': datetime.datetime.utcnow(),
-            'message': '',
-            'name': '',
-        }
+        return {}
 
     def __keytransform__(self, key):
         return str(key)
@@ -61,4 +54,16 @@ def is_running(state):
         return False
     return True
 
-state = State()
+class ProcessState(State):
+    def default(self):
+        return {
+            'status': 'unknown',
+            'pid': 0,
+            'id': None,
+            'time': datetime.datetime.utcnow(),
+            'message': '',
+            'name': '',
+        }
+
+
+process_state = ProcessState()

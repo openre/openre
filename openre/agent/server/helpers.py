@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-from openre.agent.server.state import state as process_state, is_running
+from openre.agent.server.state import process_state, is_running
 import uuid
 import signal
 import logging
