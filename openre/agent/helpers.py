@@ -223,7 +223,7 @@ class AgentBase(object):
                 self.config.server_port
             )
         if self.__class__.server_connect:
-            self.send_server('state', {
+            self.send_server('process_state', {
                 'status': 'init',
                 'pid': os.getpid(),
                 'name': self.config.type,
@@ -232,7 +232,7 @@ class AgentBase(object):
             self.init()
         except Exception:
             if self.__class__.server_connect:
-                self.send_server('state', {
+                self.send_server('process_state', {
                     'status': 'error',
                     'pid': 0,
                     'message': traceback.format_exc()
@@ -262,7 +262,7 @@ class AgentBase(object):
     def __run(self):
         try:
             if self.__class__.server_connect:
-                self.send_server('state', {
+                self.send_server('process_state', {
                     'status': 'run'
                 })
 
@@ -275,12 +275,12 @@ class AgentBase(object):
     def __clean(self):
         logging.debug('Agent cleaning')
         if self.__class__.server_connect:
-            self.send_server('state', {
+            self.send_server('process_state', {
                 'status': 'clean',
             })
         self.__clean_user()
         if self.__class__.server_connect:
-            self.send_server('state', {
+            self.send_server('process_state', {
                 'status': 'exit',
                 'pid': 0,
             })

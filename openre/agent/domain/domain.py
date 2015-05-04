@@ -32,6 +32,11 @@ class Agent(AgentBase):
         self.poller.register(self.sub, zmq.POLLIN)
 
     def run(self):
+        self.send_server('domain_state', {
+            'state': 'blank',
+            'status': 'done',
+            'process_id': self.id,
+        })
         # main loop
         while True:
             # receive all messages in while loop

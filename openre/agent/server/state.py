@@ -86,7 +86,7 @@ class DomainState(State):
             error - ошибка
         """
         return {
-            'state': 'start',
+            'state': 'done',
             'status': 'unknown',
             'id': None,
             'process_id': None,

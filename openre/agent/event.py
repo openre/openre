@@ -157,9 +157,9 @@ class ServerEvent(Event):
 def test_event():
     pool = EventPool()
     event = ServerEvent(
-        'state',
+        'process_state',
         {
-            'action': 'state',
+            'action': 'process_state',
             'id': 'uuid_id',
             'data': {}
         },
