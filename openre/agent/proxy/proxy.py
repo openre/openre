@@ -12,7 +12,7 @@ class Agent(AgentBase):
     server_connect = True
     def init(self):
         # Socket facing clients
-        self.frontend = self.socket(zmq.SUB)
+        self.frontend = self.socket(zmq.PUB)
         try:
             self.frontend.bind(
                 "tcp://%s:%s" % (self.config.host, self.config.port)
@@ -25,12 +25,12 @@ class Agent(AgentBase):
                     self.config.host, self.config.port)
             raise
 
-        self.frontend.setsockopt(zmq.SUBSCRIBE, "")
 
         # Socket facing services
         ipc_file = os.path.join(tempfile.gettempdir(), 'openre-proxy')
-        self.backend = self.socket(zmq.PUB)
+        self.backend = self.socket(zmq.SUB)
         self.backend.bind("ipc://%s" % ipc_file)
+        self.backend.setsockopt(zmq.SUBSCRIBE, "")
 
 
     def run(self):

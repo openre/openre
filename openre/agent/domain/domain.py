@@ -19,10 +19,10 @@ class Agent(AgentBase):
         self.backend.setsockopt(zmq.IDENTITY, self.id.bytes)
         self.backend.connect("ipc://%s" % ipc_broker_file)
 
-#        ipc_pub_file = os.path.join(
-#            tempfile.gettempdir(), 'openre-proxy')
-#        self.pub = self.socket(zmq.PUB)
-#        self.pub.connect("ipc://%s" % ipc_pub_file)
+        ipc_pub_file = os.path.join(
+            tempfile.gettempdir(), 'openre-proxy')
+        self.pub = self.socket(zmq.PUB)
+        self.pub.connect("ipc://%s" % ipc_pub_file)
 
         self.sub = self.socket(zmq.SUB)
         self.sub.setsockopt(zmq.SUBSCRIBE, self.id.bytes)
