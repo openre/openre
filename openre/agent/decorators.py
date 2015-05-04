@@ -9,7 +9,7 @@ import signal
 from openre.agent.helpers import add_action
 
 
-def daemonize(pid_file=None, signal_map=None, clean=None):
+def daemonize(pid_file=None, signal_map=None, clean=None, force_daemon=False):
     """
     pid - if provided - then run as daemon in background,
           else - run in console
@@ -20,7 +20,7 @@ def daemonize(pid_file=None, signal_map=None, clean=None):
         @wraps(f)
         def wrapped(*args, **kwargs):
             logging.debug('Start daemon')
-            if not pid_file:
+            if not pid_file and not force_daemon:
                 if signal_map:
                     for key in signal_map.keys():
                         signal.signal(key, signal_map[key])
@@ -29,26 +29,29 @@ def daemonize(pid_file=None, signal_map=None, clean=None):
                 if clean:
                     clean()
                 return
-            pid_path = os.path.abspath(pid_file)
+            if pid_file and pid_file not in ['-']:
+                pid_path = os.path.abspath(pid_file)
 
-            # clean old pids
-            pidfile = PIDLockFile(pid_path, timeout=-1)
-            try:
-                pidfile.acquire()
-                pidfile.release()
-            except (AlreadyLocked, LockTimeout):
+                # clean old pids
+                pidfile = PIDLockFile(pid_path, timeout=-1)
                 try:
-                    os.kill(pidfile.read_pid(), 0)
-                    logging.warn('Process already running!')
-                    exit(2)
-                except OSError:  #No process with locked PID
-                    pidfile.break_lock()
+                    pidfile.acquire()
+                    pidfile.release()
+                except (AlreadyLocked, LockTimeout):
+                    try:
+                        os.kill(pidfile.read_pid(), 0)
+                        logging.warn('Process already running!')
+                        exit(2)
+                    except OSError:  #No process with locked PID
+                        pidfile.break_lock()
 
-            pidfile = PIDLockFile(pid_path, timeout=-1)
+                pidfile = PIDLockFile(pid_path, timeout=-1)
 
-            context = _daemon.DaemonContext(
-                pidfile=pidfile
-            )
+                context = _daemon.DaemonContext(
+                    pidfile=pidfile
+                )
+            else:
+                context = _daemon.DaemonContext()
 
             if signal_map:
                 context.signal_map = signal_map

@@ -121,7 +121,7 @@ class Agent(AgentBase):
 
     def clean(self):
         for state in process_state.values():
-            if state['status'] not in ['exit', 'error', 'kill'] \
+            if state['status'] not in ['exit', 'error', 'kill', 'clean'] \
                and state['pid']:
                 process_state[str(state['id'])] = {
                     'status': 'kill',
@@ -138,7 +138,7 @@ class Agent(AgentBase):
             success = True
             self.shutdown_mode()
             for state in process_state.values():
-                if state['status'] not in ['kill']:
+                if state['status'] not in ['kill', 'clean']:
                     continue
                 pid_num = state['pid']
                 try:

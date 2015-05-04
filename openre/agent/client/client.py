@@ -13,6 +13,7 @@ class Agent(AgentBase):
         result = self.send_server(
             self.config.action,
             self.from_json(self.config.data)
+
         )
         if result['success']:
             if not result['data']:

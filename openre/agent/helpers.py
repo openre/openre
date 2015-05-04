@@ -226,6 +226,7 @@ class AgentBase(object):
             self.send_server('state', {
                 'status': 'init',
                 'pid': os.getpid(),
+                'name': self.config.type,
             })
         try:
             self.init()

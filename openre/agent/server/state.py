@@ -44,7 +44,7 @@ class State(dict):
         return super(State, self).__contains__(self.__keytransform__(key))
 
 def is_running(state):
-    if state['status'] in ['exit', 'error', 'kill']:
+    if state['status'] in ['exit', 'error', 'kill', 'clean']:
         return False
     if not state['pid']:
         return False
