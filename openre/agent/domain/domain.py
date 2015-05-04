@@ -35,7 +35,6 @@ class Agent(AgentBase):
         self.send_server('domain_state', {
             'state': 'blank',
             'status': 'done',
-            'process_id': self.id,
         })
         # main loop
         while True:

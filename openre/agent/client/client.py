@@ -13,10 +13,9 @@ class Agent(AgentBase):
         result = self.send_server(
             self.config.action,
             self.from_json(self.config.data)
-
         )
         if result['success']:
-            if not result['data']:
+            if result['data'] is None:
                 print 'Done.'
             elif self.config.pretty:
                 pp = pprint.PrettyPrinter(indent=4)

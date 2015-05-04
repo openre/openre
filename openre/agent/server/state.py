@@ -89,7 +89,6 @@ class DomainState(State):
             'state': 'done',
             'status': 'unknown',
             'id': None,
-            'process_id': None,
             'name': '',
             'time': datetime.datetime.utcnow(),
             'message': '',
