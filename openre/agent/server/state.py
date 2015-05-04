@@ -58,12 +58,44 @@ class ProcessState(State):
     def default(self):
         return {
             'status': 'unknown',
-            'pid': 0,
             'id': None,
+            'name': '',
+            'pid': 0,
             'time': datetime.datetime.utcnow(),
             'message': '',
+        }
+
+class DomainState(State):
+    def default(self):
+        """
+        state:
+            unknown - нет статуса
+            blank - только запустился, ожидает команду
+            config - загружен конфиг
+            create_layers - создание слоев
+            count_sinapses - подсчет синапсов
+            create_neurons - создание нейронов
+            create_sinapses - создание синапсов
+            create_indexes - создание индексов
+            upload_data - зазрузка данных на устройство
+            run - домен запущен
+        status:
+            running - задача выполняется
+            pause - домен на паузе
+            done - задача выполнена
+            error - ошибка
+        """
+        return {
+            'state': 'start',
+            'status': 'unknown',
+            'id': None,
+            'process_id': None,
             'name': '',
+            'time': datetime.datetime.utcnow(),
+            'message': '',
+            'synapses_count': None,
         }
 
 
 process_state = ProcessState()
+domain_state = DomainState()
