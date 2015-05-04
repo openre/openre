@@ -11,8 +11,15 @@ mixin_default(parser)
 
 parser.add_argument(
     'action',
-    help='hello'
+    help='command to send'
 )
+
+parser.add_argument(
+    '--data',
+    default='null',
+    help='data to send, json or string'
+)
+
 parser.add_argument(
     '--host',
     dest='host',

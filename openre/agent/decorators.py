@@ -8,6 +8,7 @@ import logging
 import signal
 from openre.agent.helpers import add_action
 
+
 def daemonize(pid_file=None, signal_map=None, clean=None):
     """
     pid - if provided - then run as daemon in background,

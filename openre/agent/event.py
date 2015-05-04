@@ -12,6 +12,7 @@ import logging
 class EventPool(object):
     def __init__(self):
         self.event_list = []
+        self.context = {}
 
     def register(self, event):
         if event.is_done:
@@ -48,7 +49,7 @@ class EventPool(object):
 
 
 class Event(object):
-    def __init__(self, action, message):
+    def __init__(self, action, message=None):
         self.message = message
         self.is_done = False
         self.is_prevent_done = False
@@ -63,6 +64,7 @@ class Event(object):
         self.is_success = None
         self._done_callback = None
         self.action = action
+        self.context = {}
 
     def failed(self, error, traceback=False):
         self.is_done = True
@@ -87,6 +89,7 @@ class Event(object):
         return ret
 
     def timeout(self, sec):
+        self.prevent_done()
         self.timeout_start = time.time()
         self.timeout_value = sec
 
@@ -116,6 +119,7 @@ class Event(object):
         if self.timeout_value:
             self.timeout_start = None
             self.timeout_value = None
+        self.is_prevent_done = False
         try:
             self.result = do_strict_action(self.action, self)
         except Exception as error:

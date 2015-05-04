@@ -32,7 +32,6 @@ class Agent(AgentBase):
         self.init_actions()
         self.proxy_id = uuid.uuid4()
         self.broker_id = uuid.uuid4()
-        self.subprocess_by_id = {}
 
     def run(self):
         def event_done(event):
@@ -54,36 +53,13 @@ class Agent(AgentBase):
             self.reply(event.address, ret)
         poll_timeout = 0
         event_pool = EventPool()
+        event_pool.context['server'] = self
         # init tasks
         # run proxy and broker
-        proxy_pid = os.path.join(
-            tempfile.gettempdir(), 'openre-proxy.pid')
-        run_proxy_event = Event(
-            'run_proxy',
-            {
-                'host': self.config.proxy_host,
-                'port': self.config.proxy_port,
-                'server_host': self.config.host,
-                'server_port': self.config.port,
-                'id': self.proxy_id,
-                'pid': proxy_pid,
-                'server': self,
-            }
-        )
+        run_proxy_event = Event('start_proxy', {'exit_on_error': True})
         event_pool.register(run_proxy_event)
 
-        broker_pid = os.path.join(
-            tempfile.gettempdir(), 'openre-broker.pid')
-        run_broker_event = Event(
-            'run_broker',
-            {
-                'server_host': self.config.host,
-                'server_port': self.config.port,
-                'id': self.broker_id,
-                'pid': broker_pid,
-                'server': self,
-            }
-        )
+        run_broker_event = Event('start_broker', {'exit_on_error': True})
         event_pool.register(run_broker_event)
 
         while True:
@@ -172,6 +148,7 @@ class Agent(AgentBase):
                 except OSError:  #No process with locked PID
                     process_state[str(state['id'])] = {
                         'status': 'exit',
+                        'pid': 0,
                     }
                     logging.debug(
                         'Successfully stopped process with pid %s' % pid_num)

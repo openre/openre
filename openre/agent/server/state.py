@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import copy
 import datetime
+import os
 
 class State(dict):
     _instance = None
@@ -21,6 +22,7 @@ class State(dict):
             'id': None,
             'time': datetime.datetime.utcnow(),
             'message': '',
+            'name': '',
         }
 
     def __keytransform__(self, key):
@@ -47,5 +49,16 @@ class State(dict):
 
     def __contains__(self, key):
         return super(State, self).__contains__(self.__keytransform__(key))
+
+def is_running(state):
+    if state['status'] in ['exit', 'error', 'kill']:
+        return False
+    if not state['pid']:
+        return False
+    try:
+        os.kill(state['pid'], 0)
+    except OSError:  #No process with locked PID
+        return False
+    return True
 
 state = State()

@@ -10,9 +10,14 @@ class Agent(AgentBase):
         self.connect_server(self.config.host, self.config.port)
 
     def run(self):
-        result = self.send_server(self.config.action)
+        result = self.send_server(
+            self.config.action,
+            self.from_json(self.config.data)
+        )
         if result['success']:
-            if self.config.pretty:
+            if not result['data']:
+                print 'Done.'
+            elif self.config.pretty:
                 pp = pprint.PrettyPrinter(indent=4)
                 pp.pprint(result['data'])
             else:

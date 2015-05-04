@@ -233,6 +233,7 @@ class AgentBase(object):
             if self.__class__.server_connect:
                 self.send_server('state', {
                     'status': 'error',
+                    'pid': 0,
                     'message': traceback.format_exc()
                 })
             raise
@@ -274,12 +275,13 @@ class AgentBase(object):
         logging.debug('Agent cleaning')
         if self.__class__.server_connect:
             self.send_server('state', {
-                'status': 'clean'
+                'status': 'clean',
             })
         self.__clean_user()
         if self.__class__.server_connect:
             self.send_server('state', {
-                'status': 'exit'
+                'status': 'exit',
+                'pid': 0,
             })
         if self.server:
             self.server.close()
@@ -328,4 +330,5 @@ class AgentBase(object):
         except ValueError:
             logging.warn('Message is not valid json: %s', json)
         return json
+
 
