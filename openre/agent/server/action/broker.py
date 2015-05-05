@@ -9,12 +9,12 @@ from openre import BASE_PATH
 import tempfile
 
 @action()
-def start_broker(event):
+def broker_start(event):
     server = event.pool.context['server']
     data = event.data
     if not isinstance(data, dict):
         data = {}
-    do_start_broker(
+    do_broker_start(
         event,
         str(data.get('id', server.broker_id)),
         wait=data.get('wait', True),
@@ -22,7 +22,7 @@ def start_broker(event):
     )
 
 @start_process('broker')
-def do_start_broker(event, process_id):
+def do_broker_start(event, process_id):
     server = event.pool.context['server']
     data = event.data
     if not isinstance(data, dict):
@@ -41,5 +41,5 @@ def do_start_broker(event, process_id):
     ])
 
 @action()
-def stop_broker(event):
+def broker_stop(event):
     return stop_process(event, name='broker')

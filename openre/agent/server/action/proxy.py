@@ -10,12 +10,12 @@ from openre import BASE_PATH
 import tempfile
 
 @action()
-def start_proxy(event):
+def proxy_start(event):
     server = event.pool.context['server']
     data = event.data
     if not isinstance(data, dict):
         data = {}
-    do_start_proxy(
+    do_proxy_start(
         event,
         str(data.get('id', server.proxy_id)),
         wait=data.get('wait', True),
@@ -23,7 +23,7 @@ def start_proxy(event):
     )
 
 @start_process('proxy')
-def do_start_proxy(event, proccess_id):
+def do_proxy_start(event, proccess_id):
     server = event.pool.context['server']
     data = event.data
     if not isinstance(data, dict):
@@ -44,5 +44,5 @@ def do_start_proxy(event, proccess_id):
     ])
 
 @action()
-def stop_proxy(event):
+def proxy_stop(event):
     return stop_process(event, name='proxy')

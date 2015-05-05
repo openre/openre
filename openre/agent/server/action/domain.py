@@ -8,13 +8,14 @@ import subprocess
 import os
 from openre import BASE_PATH
 import uuid
+import re
 
 @action()
-def start_domain(event):
+def domain_start(event):
     data = event.data
     if not isinstance(data, dict):
         data = {}
-    do_start_domain(
+    do_domain_start(
         event,
         str(data.get('id', uuid.uuid4())),
         wait=data.get('wait', True),
@@ -22,12 +23,12 @@ def start_domain(event):
     )
 
 @start_process('domain')
-def do_start_domain(event, proccess_id):
+def do_domain_start(event, proccess_id):
     server = event.pool.context['server']
     data = event.data
     if not isinstance(data, dict):
         data = {}
-    return subprocess.Popen([
+    params = [
         sys.executable,
         os.path.realpath(os.path.join(BASE_PATH, '../openre-agent')),
         'domain',
@@ -36,8 +37,18 @@ def do_start_domain(event, proccess_id):
         '--server-port', data.get('server_port', server.config.port),
         '--id', proccess_id,
         '--pid', '-',
-    ])
+    ]
+    if data.get('name'):
+        print data
+        params.extend([
+            '--name', data['name']
+        ])
+    return subprocess.Popen(params)
 
 @action()
-def stop_domain(event):
-    return stop_process(event, name='domain')
+def domain_stop(event):
+    name = 'domain'
+    if isinstance(event.data, basestring):
+        if re.search(r'^domain\.', event.data):
+            name = event.data
+    return stop_process(event, name=name)

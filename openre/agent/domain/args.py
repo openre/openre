@@ -22,5 +22,11 @@ parser.add_argument(
     help='path to pid file (default: none)'
 )
 
+parser.add_argument(
+    '--name',
+    default='domain',
+    help='name of the domain. (default: domain)'
+)
+
 mixin_log_level(parser)
 mixin_server_endpoint(parser)

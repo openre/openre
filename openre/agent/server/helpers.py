@@ -9,32 +9,44 @@ def stop_process(event, name=None):
     """
     If name is not None, than check that state have the same name
     """
+    # on the second run pid is already in event.context['id']
     pid = event.context.get('id', event.data)
     state = None
     if isinstance(pid, uuid.UUID) or str(pid) in process_state:
         state = process_state[str(pid)]
         pid = state['pid']
     elif isinstance(pid, int):
-        for st in process_state.values():
-            if st['pid'] == pid:
-                state = st
+        for stt in process_state.values():
+            if stt['pid'] == pid:
+                state = stt
                 break
-    elif pid is None and name:
-        for st in process_state.values():
-            if st['name'] == name:
-                state = st
+    elif name:
+        rows = []
+        for stt in process_state.values():
+            if stt['name'] == name and stt['pid']:
+                state = stt
+                rows.append(stt)
                 pid = state['pid']
-                break
+        if len(rows) > 1:
+            command = ''
+            for row in rows:
+                command += '%s (status: %s)\n' % (row['pid'], row['status'])
+            return event.failed(
+                'There are %s processes with name "%s".' \
+                ' Specify which one to stop:\n%s'
+                % (len(rows), name, command)
+            )
 
-    # first run
+    if not state:
+        return event.failed('Process state not found for "%s", cant kill' % pid)
+    # first run of the task
     if 'id' not in event.context:
         event.context['id'] = state['id']
         if not is_running(state):
             return event.failed('%s already stopped.' % name.capitalize())
         if not isinstance(pid, int) or not pid:
             return event.failed('Wrong pid format %s' % repr(pid))
-    if not state:
-        return event.failed('Process state not found for "%s", cant kill' % pid)
+
     if name and state['name'] != name:
         return event.failed(
             'Process state name "%s" not equal "%s", cant kill' % (
@@ -43,7 +55,7 @@ def stop_process(event, name=None):
     if state['status'] not in ['exit', 'error', 'kill', 'clean']:
         try:
             os.kill(pid, signal.SIGTERM)
-            logging.debug('Kill %s' % pid)
+            logging.debug('Kill %s', pid)
             process_state[str(state['id'])] = {
                 'status': 'kill',
             }
@@ -67,9 +79,9 @@ def stop_process(event, name=None):
                     'pid': 0,
                 }
                 logging.warn(
-                    'Process with pid %s stopped with errors' % pid)
+                    'Process with pid %s stopped with errors', pid)
             else:
                 logging.debug(
-                    'Successfully stopped process with pid %s' % pid)
+                    'Successfully stopped process with pid %s', pid)
             return
         event.timeout(1)

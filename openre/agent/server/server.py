@@ -55,10 +55,10 @@ class Agent(AgentBase):
         event_pool.context['server'] = self
         # init tasks
         # run proxy and broker
-        run_proxy_event = Event('start_proxy', {'exit_on_error': True})
+        run_proxy_event = Event('proxy_start', {'exit_on_error': True})
         event_pool.register(run_proxy_event)
 
-        run_broker_event = Event('start_broker', {'exit_on_error': True})
+        run_broker_event = Event('broker_start', {'exit_on_error': True})
         event_pool.register(run_broker_event)
 
         while True:
