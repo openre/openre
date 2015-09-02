@@ -74,7 +74,8 @@ class Domain(object):
         # neurons vector. Metadata stored in layer.neurons_metadata
         self.neurons = NeuronsVector()
         # synapses vector
-        self.synapses = SynapsesVector()
+        self.synapses = SynapsesVector(
+            0, self.ore.config['synapse']['max_level'])
         self.synapses_metadata = None
         self.random = random.Random()
         self.seed = uuid.uuid4().hex
@@ -99,7 +100,6 @@ class Domain(object):
             types.stat
         )
         self.stat.add(stat_metadata)
-        self.stat.create()
         # stats for vectors
         self.layers_stat = Vector()
 
@@ -136,8 +136,6 @@ class Domain(object):
                     if connect['id'] == layer.id:
                         connect['domain_layers'].append(layer)
         logging.debug('Allocate layers vector')
-        self.layers_vector.create()
-        self.layers_stat.create()
         for layer_id, layer in enumerate(self.layers):
             self.layers_vector.threshold[layer_id] = layer.threshold
             self.layers_vector.relaxation[layer_id] = layer.relaxation
@@ -156,13 +154,11 @@ class Domain(object):
             'Allocate synapses vector (%s synapses in domain)',
             domain_total_synapses
         )
-        self.synapses.create(0, self.ore.config['synapse']['max_level'])
         # allocate neurons buffer in memory
         logging.debug(
             'Allocate neurons vector (%s neurons in domain)',
             len(self.neurons)
         )
-        self.neurons.create()
         self.create_neurons()
         # Create synapses (second pass)
         self.create_synapses()

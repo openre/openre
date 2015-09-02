@@ -21,10 +21,8 @@ class Index(object):
         meta_key = Metadata((length, 1), types.address)
         meta_value = Metadata((len(data), 1), types.address)
         self.key.add(meta_key)
-        self.key.create()
         self.key.fill(null)
         self.value.add(meta_value)
-        self.value.create()
         self.value.fill(null)
         for value_address, key_address in enumerate(data):
             prev_value_address = self.key.data[key_address]

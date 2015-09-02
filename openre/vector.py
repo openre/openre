@@ -4,7 +4,7 @@
 """
 import numpy as np
 from openre.errors import OreError
-
+from openre.metadata import ExtendableMetadata
 
 class Vector(object):
     """
@@ -29,13 +29,18 @@ class Vector(object):
             self.type = metadata.type
         else:
             assert self.type == metadata.type
+        for m in self.metadata:
+            if isinstance(m, ExtendableMetadata):
+                raise OreError('You can add only one extendable metadata and ' \
+                               'it should be the last one')
         if metadata.vector:
             raise OreError('Metadata already assigned to vector')
+        if self.data is None:
+            self.create()
         address = self.length
         self.metadata.append(metadata)
-        self.length += metadata.length
+        self.resize(portion=metadata.length)
         metadata.set_address(self, address)
-        # TODO: reshape self.data if vector.create() was aready called
 
     def __len__(self):
         return self.length
@@ -44,14 +49,29 @@ class Vector(object):
         """
         Создает в памяти вектор заданного типа и помещает его в self.data
         """
+        if not self.data is None:
+            return
         assert self.data is None
         self.data = np.zeros((1)).astype(self.type)
+
+    def shrink(self):
+        length = 0
+        for metadata in self.metadata:
+            length += metadata.length
+        if self.length == length:
+            return
+        self.length = length
+        self.data.resize((self.length), refcheck=False)
+
+    def resize(self, portion):
+        self.length += portion
         self.data.resize((self.length), refcheck=False)
 
     def create_device_data_pointer(self, device):
         """
         Создает self.device_data_pointer для устройства device
         """
+        self.shrink()
         self.device_data_pointer = device.create(self.data)
 
     def to_device(self, device, is_blocking=True):
@@ -76,6 +96,7 @@ class Vector(object):
         return self.data[key]
 
     def __setitem__(self, key, value):
+
         if key < 0 or key >= self.length:
             raise IndexError
         self.data[key] = value
@@ -91,13 +112,26 @@ class RandomIntVector(Vector):
     При создании указывается диапазон случайных значений, которыми будет
     заполнен RandomIntVector, в отличии от заполнении нулями в исходном Vector.
     """
-    def create(self, low, high=None):
+    def __init__(self, type=None, low=None, high=None):
+        super(RandomIntVector, self).__init__(type=type)
+        assert not low is None
+        self.low = low
+        self.high = high
+
+    def resize(self, portion):
+        super(RandomIntVector, self).resize(portion=portion)
+        self.data[self.length-portion:self.length] = np.random.random_integers(
+            self.low, high=self.high, size=(portion))
+
+    def create(self):
         """
         Создает в памяти вектор заданного типа и помещает его в self.data
         """
+        if not self.data is None:
+            return
         assert self.data is None
         self.data = np.random.random_integers(
-            low, high=high, size=(self.length)).astype(self.type)
+            self.low, high=self.high, size=(self.length)).astype(self.type)
 
 class MultiFieldVector(object):
     """
@@ -113,7 +147,7 @@ class MultiFieldVector(object):
 
     def add(self, metadata):
         """
-        Добавляем метаданные нейронов в слое в вектор
+        Добавляем метаданные
         """
         for field, _ in self.__class__.fields:
             getattr(self, field).add(getattr(metadata, field))
@@ -123,6 +157,13 @@ class MultiFieldVector(object):
 
     def __len__(self):
         return self.length
+
+    def shrink(self):
+        """
+        Уменьшаем буфер и делаем его равным длине всех метаданных
+        """
+        for field, _ in self.__class__.fields:
+            getattr(self, field).shrink()
 
     def create(self):
         """
@@ -172,7 +213,7 @@ def test_vector():
     assert meta1.address == 200 # 10*20 - shape of m0
     def has_2_metas():
         assert vector.length == 10*20 + 25*15
-        assert vector.data == None
+        assert len(vector.data) == vector.length
         assert len(vector.metadata) == 2
         assert vector.metadata[0] == meta0
     has_2_metas()
@@ -185,8 +226,8 @@ def test_vector():
     vector.create()
     assert len(vector.data) == 10*20 + 25*15
     assert np.result_type(vector.data) == vector.type
-    with raises(AssertionError):
-        vector.create()
+    vector.create() # second call do nothing
+    assert len(vector.data) == 10*20 + 25*15
     vector2 = Vector(types.index_flags)
     assert vector2.type == types.index_flags
 
@@ -198,8 +239,8 @@ def test_vector():
     vector.add(meta3)
     vector.create()
     assert len(vector.data) == 0
-    with raises(AssertionError):
-        vector.create()
+    vector.create() # second call do nothing
+    assert len(vector.data) == 0
 
     # test meta index
     index_vector = Vector()
@@ -245,4 +286,53 @@ def test_vector():
     assert index_meta1.to_address(1, 0) == 1
     assert index_meta1.to_address(0, 1) == 2
     assert index_meta2.to_address(0, 0) == 6
+
+    # RandomIntVector
+    meta0 = Metadata((10, 20), types.index_flags)
+    meta1 = Metadata((25, 15), types.index_flags)
+    assert meta0.address is None
+
+    vector = RandomIntVector(None, 1, 5)
+    assert vector.type is None
+    vector.add(meta0)
+    assert vector.type == meta0.type
+    assert meta0.address == 0
+    assert len(vector.data) == meta0.length
+    assert type(vector.data[0]) == types.index_flags
+    vector.add(meta1)
+    assert 0 not in vector.data
+
+    # ExtendableMetadata
+    vector = Vector()
+    meta0 = ExtendableMetadata((2, 2), types.index_flags)
+    vector.add(meta0)
+    meta1 = ExtendableMetadata((10, 20), types.index_flags)
+    with raises(OreError):
+        vector.add(meta1)
+    meta0[0,0] = 1
+    assert vector.length == meta0.length
+    assert vector.length == 2*2
+    assert [_ for _ in vector.data] == [1, 0, 0, 0]
+    meta0[2,0] = 2
+    assert [_ for _ in vector.data] == [1, 0, 2, 0, 0, 0, 0, 0]
+    assert meta0.length == 3*2
+    assert vector.length == 2*2*2
+    meta0[0,3] = 3
+    assert [_ for _ in vector.data] == [1, 0, 2,
+                                        0, 0, 0,
+                                        0, 0, 0,
+                                        3, 0, 0,
+                                        0, 0, 0, 0]
+    assert vector.length == 2*2*2*2
+    assert meta0.length == 3*4
+
+    vector.shrink()
+    assert [_ for _ in vector.data] == [1, 0, 2,
+                                        0, 0, 0,
+                                        0, 0, 0,
+                                        3, 0, 0,
+                                       ]
+    assert vector.length == 3*4
+    assert meta0.length == 3*4
+
 

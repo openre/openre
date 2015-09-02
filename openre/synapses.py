@@ -27,11 +27,12 @@ class SynapsesVector(MultiFieldVector):
         ('learn', types.synapse_level),
         ('flags', types.synapse_flags),
     ]
-    def __init__(self):
+    def __init__(self, low, high=None):
         assert self.__class__.fields
         for field, field_type in self.__class__.fields:
             if field == 'level':
-                setattr(self, field, RandomIntVector(field_type))
+                setattr(self, field, RandomIntVector(field_type,
+                                                     low, high=high))
             else:
                 setattr(self, field, Vector(field_type))
         self.length = 0

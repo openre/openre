@@ -71,6 +71,53 @@ class Metadata(object):
             key = (key, 0)
         self.vector[self.address + key[0] + key[1]*self.shape[0]] = value
 
+class ExtendableMetadata(Metadata):
+    def __setitem__(self, key, value):
+        max_portion = 50*1024*1024
+        if isinstance(key, (tuple, list)):
+            if key[0] >= self.shape[0]:
+                self.shape = (key[0] + 1, self.shape[1])
+                portion = self.shape[0] * self.shape[1] - self.length
+                self.length += portion
+                if self.length > self.vector.length:
+                    # multiply by 2
+                    if self.vector.length > portion and portion <= max_portion:
+                        portion = self.vector.length
+                        if portion > max_portion:
+                            portion = max_portion
+                self.vector.resize(portion=portion)
+            if key[1] >= self.shape[1]:
+                self.shape = (self.shape[0], key[1] + 1)
+                portion = self.shape[0] * self.shape[1] - self.length
+                self.length += portion
+                if self.length > self.vector.length:
+                    # multiply by 2
+                    if self.vector.length > portion and portion <= max_portion:
+                        portion = self.vector.length
+                        if portion > max_portion:
+                            portion = max_portion
+                self.vector.resize(portion=portion)
+            if key[0] < 0 or key[0] >= self.shape[0]:
+                raise IndexError
+            if key[1] < 0 or key[1] >= self.shape[1]:
+                raise IndexError
+        else:
+            if key >= self.length:
+                self.shape = (key + 1, self.shape[1])
+                portion = self.shape[0] * self.shape[1] - self.length
+                self.length += portion
+                if self.length > self.vector.length:
+                    # multiply by 2
+                    if self.vector.length > portion and portion <= max_portion:
+                        portion = self.vector.length
+                        if portion > max_portion:
+                            portion = max_portion
+                self.vector.resize(portion=portion)
+            if key < 0 or key >= self.length:
+                raise IndexError
+            key = (key, 0)
+        self.vector[self.address + key[0] + key[1]*self.shape[0]] = value
+
 class MultiFieldMetadata(object):
     """
     Метаданные с несколькими полями одинаковой длины.
