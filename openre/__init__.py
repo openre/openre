@@ -92,6 +92,7 @@ class OpenRE(object):
         """
         Основной цикл.
         """
+        logging.debug('Run')
         last_sec = int(time())
         tick_per_sec = 0
         logger_level = logging.getLogger().getEffectiveLevel()

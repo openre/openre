@@ -2,7 +2,7 @@
 """
 Массив данных для моделирования синапсов
 """
-from openre.metadata import MultiFieldMetadata
+from openre.metadata import MultiFieldExtendableMetadata
 from openre.vector import Vector, RandomIntVector, MultiFieldVector
 from openre.data_types import types
 
@@ -47,7 +47,7 @@ class SynapsesVector(MultiFieldVector):
             else:
                 getattr(self, field).create()
 
-class SynapsesMetadata(MultiFieldMetadata):
+class SynapsesMetadata(MultiFieldExtendableMetadata):
     """
     Метаданные для нейронов
     """

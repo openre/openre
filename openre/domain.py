@@ -142,26 +142,26 @@ class Domain(object):
             self.layers_vector.spike_cost[layer_id] = layer.spike_cost
             self.layers_vector.max_vitality[layer_id] = layer.max_vitality
 
-        # Count synapses (first pass - virtual synapses connections)
-        total_synapses = self.count_synapses()
         # allocate synapses buffer in memory
-        domain_total_synapses = total_synapses.get(self.id, 0)
-        if not domain_total_synapses:
-            logging.warn('No synapses in domain %s', self.id)
-        self.synapses_metadata = SynapsesMetadata(domain_total_synapses)
+        self.synapses_metadata = SynapsesMetadata(0)
         self.synapses.add(self.synapses_metadata)
-        logging.debug(
-            'Allocate synapses vector (%s synapses in domain)',
-            domain_total_synapses
-        )
         # allocate neurons buffer in memory
         logging.debug(
-            'Allocate neurons vector (%s neurons in domain)',
+            'Total %s neurons in domain',
             len(self.neurons)
         )
         self.create_neurons()
         # Create synapses (second pass)
-        self.create_synapses()
+        total_synapses = self.create_synapses()
+        domain_total_synapses = total_synapses.get(self.id, 0)
+        if not domain_total_synapses:
+            logging.warn('No synapses in domain %s', self.id)
+        logging.debug(
+            'Total %s synapses in domain',
+            domain_total_synapses
+        )
+        # sync length between synapses multifield metadata fields
+        self.synapses_metadata.sync_length()
         # create pre-neuron - synapse index
         logging.debug('Create pre-neuron - synapse index')
         self.pre_synapse_index = Index(len(self.neurons), self.synapses.pre)
@@ -181,13 +181,13 @@ class Domain(object):
         ]:
             vector.create_device_data_pointer(self.device)
 
-    def count_synapses(self):
+    def create_synapses(self):
         """
-        Подсчитываем количество синапсов, которое образуется в данном домене
+        Создаем физически синапсы
         """
-        logging.debug('Counting synapses')
+        logging.debug('Create synapses')
         # Domains synapses
-        total_synapses = self.connect_layers(virtual=True)
+        total_synapses = self.connect_layers()
         for domain_id in total_synapses:
             if domain_id != self.id:
                 # TODO: send synapse counts (in total_synapses) to other domains
@@ -195,10 +195,9 @@ class Domain(object):
         # TODO: recieve synapse counts from other domains
         return total_synapses
 
-    def connect_layers(self, virtual=False):
+    def connect_layers(self):
         """
-        Реализует непосредственное соединение слоев или (если virtual == True)
-        подсчет синапсов без физического соединения
+        Реализует непосредственное соединение слоев
         """
         self.random.seed(self.seed)
         layer_config_by_id = {}
@@ -289,12 +288,10 @@ class Domain(object):
                         # Determine post x coordinate of neuron in post layer.
                         # Should be recalculated for every y because of possible
                         # random shift
-                        layer_neuron_address = None
-                        if not virtual:
-                            layer_neuron_address = layer_to_address(
-                                pre_x - layer.x,
-                                pre_y - layer.y
-                            )
+                        layer_neuron_address = layer_to_address(
+                            pre_x - layer.x,
+                            pre_y - layer.y
+                        )
                         central_post_x = int(math.floor(
                             1.0 * pre_x / (layer_config['width']) \
                             * (post_layer_config['width'])
@@ -340,26 +337,24 @@ class Domain(object):
                                 inf = post_info_cache_y[post_x]
                                 post_info_domain_id = domain_index_to_id[inf[0]]
                                 # actually create connections
-                                if not virtual:
-                                    if post_info_domain_id == self.id:
-                                        # inf[1] - post layer index in domain
-                                        post_layer = self.layers[inf[1]]
-                                        synapse_address += 1
-                                        self_connect_neurons(
-                                            layer_neuron_address,
-                                            post_layer.neurons_metadata.level \
-                                            .to_address(
-                                                post_x - post_layer.x,
-                                                post_y - post_layer.y
-                                            ),
-                                            synapse_address
-                                        )
-                                    else:
-                                        # TODO: connect neurons with other
-                                        #       domains
-                                        pass
+                                if post_info_domain_id == self.id:
+                                    # inf[1] - post layer index in domain
+                                    post_layer = self.layers[inf[1]]
+                                    synapse_address += 1
+                                    self_connect_neurons(
+                                        layer_neuron_address,
+                                        post_layer.neurons_metadata.level \
+                                        .to_address(
+                                            post_x - post_layer.x,
+                                            post_y - post_layer.y
+                                        ),
+                                        synapse_address
+                                    )
                                 else:
-                                    total_synapses[post_info_domain_id] += 1
+                                    # TODO: connect neurons with other
+                                    #       domains
+                                    pass
+                                total_synapses[post_info_domain_id] += 1
 
 
         return total_synapses
@@ -372,20 +367,21 @@ class Domain(object):
         for layer in self.layers:
             layer.create_neurons()
 
-    def create_synapses(self):
-        """
-        Создаем физически синапсы в ранее созданном векторе
-        """
-        logging.debug('Create synapses')
-        self.connect_layers(virtual=False)
-
     def connect_neurons(self, pre_address, post_address, synapse_address):
         """
         Соединяем два нейрона с помощью синапса.
         """
-        synapses = self.synapses
-        synapses.pre.data[synapse_address] = pre_address
-        synapses.post.data[synapse_address] = post_address
+        # Speedup this:
+        #   synapses = self.synapses_metadata
+        #   synapses.pre[synapse_address] = pre_address
+        #   synapses.post[synapse_address] = post_address
+        synapses_vector = self.synapses
+        synapses_metadata = self.synapses_metadata
+        if synapse_address >= synapses_metadata.pre.length:
+            synapses_metadata.pre.resize()
+            synapses_metadata.post.resize()
+        synapses_vector.pre.data[synapse_address] = pre_address
+        synapses_vector.post.data[synapse_address] = post_address
 
     def send_spikes(self):
         """

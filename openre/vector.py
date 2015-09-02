@@ -63,9 +63,15 @@ class Vector(object):
         self.length = length
         self.data.resize((self.length), refcheck=False)
 
-    def resize(self, portion):
+    def resize(self, portion=None):
+        if portion is None:
+            max_portion = 50*1024*1024
+            portion = self.length or 1024
+            if portion > max_portion:
+                portion = max_portion
         self.length += portion
         self.data.resize((self.length), refcheck=False)
+        return portion
 
     def create_device_data_pointer(self, device):
         """
@@ -118,8 +124,8 @@ class RandomIntVector(Vector):
         self.low = low
         self.high = high
 
-    def resize(self, portion):
-        super(RandomIntVector, self).resize(portion=portion)
+    def resize(self, portion=None):
+        portion = super(RandomIntVector, self).resize(portion=portion)
         self.data[self.length-portion:self.length] = np.random.random_integers(
             self.low, high=self.high, size=(portion))
 

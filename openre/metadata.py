@@ -82,7 +82,7 @@ class ExtendableMetadata(Metadata):
                 if self.length > self.vector.length:
                     # multiply by 2
                     if self.vector.length > portion and portion <= max_portion:
-                        portion = self.vector.length
+                        portion = self.vector.length or 1024
                         if portion > max_portion:
                             portion = max_portion
                 self.vector.resize(portion=portion)
@@ -93,7 +93,7 @@ class ExtendableMetadata(Metadata):
                 if self.length > self.vector.length:
                     # multiply by 2
                     if self.vector.length > portion and portion <= max_portion:
-                        portion = self.vector.length
+                        portion = self.vector.length or 1024
                         if portion > max_portion:
                             portion = max_portion
                 self.vector.resize(portion=portion)
@@ -109,7 +109,7 @@ class ExtendableMetadata(Metadata):
                 if self.length > self.vector.length:
                     # multiply by 2
                     if self.vector.length > portion and portion <= max_portion:
-                        portion = self.vector.length
+                        portion = self.vector.length or 1024
                         if portion > max_portion:
                             portion = max_portion
                 self.vector.resize(portion=portion)
@@ -118,16 +118,41 @@ class ExtendableMetadata(Metadata):
             key = (key, 0)
         self.vector[self.address + key[0] + key[1]*self.shape[0]] = value
 
+    def resize(self, portion=None):
+        portion = self.vector.resize(portion)
+        self.length += portion
+
+
 class MultiFieldMetadata(object):
     """
     Метаданные с несколькими полями одинаковой длины.
     """
     fields = []
+    _metadata_class = Metadata
     def __init__(self, shape):
         assert self.__class__.fields
         if not isinstance(shape, tuple):
             shape = (shape, 1)
         for field, field_type in self.__class__.fields:
-            setattr(self, field, Metadata(shape, field_type))
+            setattr(self, field,
+                    self.__class__._metadata_class(shape, field_type))
         self.address = None
+
+    def sync_length(self):
+        max_length = 0
+        for field, field_type in self.__class__.fields:
+            length = getattr(self, field).length
+            if length >= max_length:
+                max_length = length
+        for field, field_type in self.__class__.fields:
+            metadata = getattr(self, field)
+            length = metadata.length
+            if length < max_length:
+                portion = max_length - length
+                metadata.length = max_length
+                metadata.vector.resize(portion=portion)
+
+
+class MultiFieldExtendableMetadata(MultiFieldMetadata):
+    _metadata_class = ExtendableMetadata
 
