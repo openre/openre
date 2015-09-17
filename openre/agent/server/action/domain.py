@@ -39,7 +39,6 @@ def do_domain_start(event, proccess_id):
         '--pid', '-',
     ]
     if data.get('name'):
-        print data
         params.extend([
             '--name', data['name']
         ])
