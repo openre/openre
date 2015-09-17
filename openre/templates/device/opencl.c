@@ -140,14 +140,19 @@ __kernel void tick_synapses(
     not_infinite = 1000000;
     while(post_synapse_address != NULL_ADDRESS && not_infinite){
         not_infinite--; /* TODO: send error to host if infinite loop */
+        if(!not_infinite){
+            printf("Warning: infinite loop in post synapse while\n");
+        }
         post_neuron_address = s_post[post_synapse_address];
         // synapse is dead
         if(s_level[post_synapse_address] == 0){
+            post_synapse_address = pre_value[post_synapse_address];
             continue;
         }
         // post-neuron is dead - kill synapse
         if(n_flags[post_neuron_address] & IS_DEAD){
             s_level[post_synapse_address] = 0;
+            post_synapse_address = pre_value[post_synapse_address];
             continue;
         }
         // is spiked - change post neuron level
@@ -184,14 +189,19 @@ __kernel void tick_synapses(
     not_infinite = 1000000;
     while(pre_synapse_address != NULL_ADDRESS && not_infinite){
         not_infinite--; /* TODO: send error to host if infinite loop */
+        if(!not_infinite){
+            printf("Warning: infinite loop in pre synapse while\n");
+        }
         pre_neuron_address = s_pre[pre_synapse_address];
         // synapse is dead
         if(s_level[pre_synapse_address] == 0){
+            pre_synapse_address = post_value[pre_synapse_address];
             continue;
         }
         // pre-neuron is dead - kill synapse
         if(n_flags[pre_neuron_address] & IS_DEAD){
             s_level[pre_synapse_address] = 0;
+            pre_synapse_address = post_value[pre_synapse_address];
             continue;
         }
         // pre-synapse learning
@@ -302,6 +312,7 @@ __kernel void update_synapses_stat(
 ) {
     {{ types.address | to_c_type }} synapse_address = get_global_id(0);
     // field 2 - count of the synapses with IS_STRENGTHENED flag
+
     if(
         s_flags[synapse_address] & IS_STRENGTHENED
     ){

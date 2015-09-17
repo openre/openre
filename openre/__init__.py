@@ -82,11 +82,13 @@ class OpenRE(object):
                     'type': 'OpenCL'
                 }
             if 'stat_size' not in domain:
-                # how many ticks collect stats before get it from device
+                # how many ticks collect stats before get them from device
                 domain['stat_size'] = 1000
             for domain_layer in domain['layers']:
                 domain_layer.update(deepcopy(layer_by_id[domain_layer['id']]))
             self.domains.append(Domain(domain, self))
+        for domain in self.domains:
+            domain.deploy()
 
     def run(self):
         """

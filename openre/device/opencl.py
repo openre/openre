@@ -214,6 +214,22 @@ def test_device():
     layer2 = domain.layers[1]
     device = ore.domains[0].device
     max_vitality = types.max(types.vitality)
+
+    # check lengths
+    assert len(domain.synapses.level) == 400
+    assert len(domain.synapses) == 400
+    assert domain.neurons.length == 800
+    assert layer.neurons_metadata.level.length == 400
+    assert layer2.neurons_metadata.level.length == 400
+    for field, field_type in domain.synapses_metadata.__class__.fields:
+        assert getattr(domain.synapses_metadata, field).length == 400
+        assert len(getattr(domain.synapses, field).data) == 400
+    assert domain.pre_synapse_index.key.length == 800
+    assert domain.pre_synapse_index.value.length == 400
+
+    assert domain.post_synapse_index.key.length == 800
+    assert domain.post_synapse_index.value.length == 400
+
     # prepare neurons
     layer.neurons_metadata.level[0, 0] = synapse_max_level
     assert not layer.neurons_metadata.flags[0, 0] & neurons.IS_SPIKED

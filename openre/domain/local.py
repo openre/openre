@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Содержит в себе слои и синапсы.
+Содержит в себе слои и синапсы. Запускается в текущем процессе.
 """
 from openre.vector import Vector
 from openre.metadata import Metadata
@@ -103,8 +103,7 @@ class Domain(object):
         # stats for vectors
         self.layers_stat = Vector()
 
-        self.deploy()
-        logging.debug('Domain created')
+        logging.debug('Domain created (id: %s)', self.id)
 
     def __repr__(self):
         return 'Domain(%s, %s)' % (repr(self.config), repr(self.ore))
@@ -115,6 +114,7 @@ class Domain(object):
         загрузка данных на устройство (device - например, gpu или cpu)
         config.device
         """
+        logging.debug('Deploy domain (id: %s)', self.id)
         # Create layers
         for layer_config in self.layers_config:
             layer = Layer(layer_config)
@@ -161,7 +161,7 @@ class Domain(object):
             domain_total_synapses
         )
         # sync length between synapses multifield metadata fields
-        self.synapses_metadata.sync_length()
+        self.synapses_metadata.sync_length(domain_total_synapses)
         # create pre-neuron - synapse index
         logging.debug('Create pre-neuron - synapse index')
         self.pre_synapse_index = Index(len(self.neurons), self.synapses.pre)
@@ -180,6 +180,7 @@ class Domain(object):
             self.layers_stat,
         ]:
             vector.create_device_data_pointer(self.device)
+        logging.debug('Domain deployed (id: %s)', self.id)
 
     def create_synapses(self):
         """

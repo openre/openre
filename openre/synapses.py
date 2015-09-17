@@ -35,7 +35,6 @@ class SynapsesVector(MultiFieldVector):
                                                      low, high=high))
             else:
                 setattr(self, field, Vector(field_type))
-        self.length = 0
 
     def create(self, low, high=None):
         """

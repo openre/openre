@@ -149,7 +149,6 @@ class MultiFieldVector(object):
         assert self.__class__.fields
         for field, field_type in self.__class__.fields:
             setattr(self, field, Vector(field_type))
-        self.length = 0
 
     def add(self, metadata):
         """
@@ -159,7 +158,11 @@ class MultiFieldVector(object):
             getattr(self, field).add(getattr(metadata, field))
         field, _ = self.__class__.fields[0]
         metadata.address = getattr(metadata, field).address
-        self.length = getattr(self, field).length
+
+    @property
+    def length(self):
+        field, _ = self.__class__.fields[0]
+        return getattr(self, field).length
 
     def __len__(self):
         return self.length

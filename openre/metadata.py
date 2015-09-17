@@ -138,16 +138,17 @@ class MultiFieldMetadata(object):
                     self.__class__._metadata_class(shape, field_type))
         self.address = None
 
-    def sync_length(self):
-        max_length = 0
-        for field, field_type in self.__class__.fields:
-            length = getattr(self, field).length
-            if length >= max_length:
-                max_length = length
+    def sync_length(self, max_length=None):
+        if max_length is None:
+            max_length = 0
+            for field, field_type in self.__class__.fields:
+                length = getattr(self, field).length
+                if length >= max_length:
+                    max_length = length
         for field, field_type in self.__class__.fields:
             metadata = getattr(self, field)
             length = metadata.length
-            if length < max_length:
+            if length != max_length:
                 portion = max_length - length
                 metadata.length = max_length
                 metadata.vector.resize(portion=portion)
