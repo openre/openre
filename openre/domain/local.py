@@ -6,7 +6,7 @@ from openre.vector import Vector
 from openre.metadata import Metadata
 from openre.data_types import types
 from openre.layer import Layer, LayersVector
-from openre.neurons import NeuronsVector
+from openre.neurons import NeuronsVector, IS_TRANSMITTER
 from openre.synapses import SynapsesVector, SynapsesMetadata
 import logging
 import uuid
@@ -213,7 +213,7 @@ class Domain(object):
             domain_index_to_id.append(domain['id'])
             total_synapses[domain['id']] = 0
         domain_index_to_id.append(None)
-        # cache neurn -> domain and neuron -> layer in domain
+        # cache neuron -> domain and neuron -> layer in domain
         if 'layer' not in self.cache:
             self.cache['layer'] = {}
             for layer_config in self.ore.config['layers']:
@@ -354,7 +354,8 @@ class Domain(object):
                                 else:
                                     # TODO: connect neurons with other
                                     #       domains
-                                    pass
+                                    self.neurons.flags[layer_neuron_address] \
+                                            |= IS_TRANSMITTER
                                 total_synapses[post_info_domain_id] += 1
 
 

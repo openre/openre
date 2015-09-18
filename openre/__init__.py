@@ -159,7 +159,7 @@ class OpenRE(object):
 
 
 def test_openre():
-    from openre.neurons import IS_INHIBITORY
+    from openre.neurons import IS_INHIBITORY, IS_TRANSMITTER
     from openre.data_types import null
     from openre.device import Dummy
     synapse_max_level = 30000
@@ -277,6 +277,10 @@ def test_openre():
     assert not ore.domains[0].layers[1].neurons_metadata.flags[0] \
             & IS_INHIBITORY
     assert ore.domains[0].layers[2].neurons_metadata.flags[0] & IS_INHIBITORY
+    assert not ore.domains[0].layers[2].neurons_metadata.flags[0] \
+            & IS_TRANSMITTER
+    assert ore.domains[0].layers[2].neurons_metadata.flags[2, 0] \
+            & IS_TRANSMITTER
     assert list(ore.domains[0].layers_vector.threshold.data) \
             == [20000, 20000, 10000]
     assert list(ore.domains[1].layers_vector.threshold.data) \
