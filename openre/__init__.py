@@ -264,6 +264,8 @@ def test_openre():
     # domain layers
     assert isinstance(ore.domains[0].device, Dummy)
     assert ore.domains[0].config['stat_size'] == 1000
+    # 200 synapses in domain 1
+    print ore.domains[0].synapse_count_by_domain['D1'] == 200
     assert len(ore.domains[0].stat.data) \
             == ore.domains[0].stat_fields
     assert ore.domains[0].layers[0].id == 'V1'

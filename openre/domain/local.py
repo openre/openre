@@ -59,6 +59,7 @@ class Domain(object):
         self.ore = ore
         self.id = self.config['id']
         self.ticks = 0
+        self.synapse_count_by_domain = {}
         self.spike_learn_threshold \
                 = self.ore.config['synapse'].get('spike_learn_threshold', 0)
         self.spike_forget_threshold \
@@ -152,8 +153,8 @@ class Domain(object):
         )
         self.create_neurons()
         # Create synapses (second pass)
-        total_synapses = self.create_synapses()
-        domain_total_synapses = total_synapses.get(self.id, 0)
+        self.create_synapses()
+        domain_total_synapses = self.synapse_count_by_domain.get(self.id, 0)
         if not domain_total_synapses:
             logging.warn('No synapses in domain %s', self.id)
         logging.debug(
@@ -188,13 +189,13 @@ class Domain(object):
         """
         logging.debug('Create synapses')
         # Domains synapses
-        total_synapses = self.connect_layers()
-        for domain_id in total_synapses:
+        self.connect_layers()
+        for domain_id in self.synapse_count_by_domain:
             if domain_id != self.id:
-                # TODO: send synapse counts (in total_synapses) to other domains
+                # TODO: send synapse counts (in self.synapse_count_by_domain)
+                # to other domains
                 pass
         # TODO: recieve synapse counts from other domains
-        return total_synapses
 
     def connect_layers(self):
         """
@@ -202,7 +203,7 @@ class Domain(object):
         """
         self.random.seed(self.seed)
         layer_config_by_id = {}
-        total_synapses = {}
+        total_synapses = self.synapse_count_by_domain
         synapse_address = -1
         # cache
         self_connect_neurons = self.connect_neurons
@@ -361,9 +362,6 @@ class Domain(object):
                                     # connect pre neuron with post neuron in
                                     # post_neuron_domain
                                 total_synapses[post_info_domain_id] += 1
-
-
-        return total_synapses
 
     def create_neurons(self):
         """
