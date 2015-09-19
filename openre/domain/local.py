@@ -212,7 +212,6 @@ class Domain(object):
         for domain_index, domain in enumerate(self.ore.config['domains']):
             domain_index_to_id.append(domain['id'])
             total_synapses[domain['id']] = 0
-        domain_index_to_id.append(None)
         # cache neuron -> domain and neuron -> layer in domain
         if 'layer' not in self.cache:
             self.cache['layer'] = {}
@@ -289,7 +288,7 @@ class Domain(object):
                         # Determine post x coordinate of neuron in post layer.
                         # Should be recalculated for every y because of possible
                         # random shift
-                        layer_neuron_address = layer_to_address(
+                        layer_pre_neuron_address = layer_to_address(
                             pre_x - layer.x,
                             pre_y - layer.y
                         )
@@ -343,7 +342,7 @@ class Domain(object):
                                     post_layer = self.layers[inf[1]]
                                     synapse_address += 1
                                     self_connect_neurons(
-                                        layer_neuron_address,
+                                        layer_pre_neuron_address,
                                         post_layer.neurons_metadata.level \
                                         .to_address(
                                             post_x - post_layer.x,
@@ -354,8 +353,13 @@ class Domain(object):
                                 else:
                                     # TODO: connect neurons with other
                                     #       domains
-                                    self.neurons.flags[layer_neuron_address] \
+                                    # pre neuron is transmitter
+                                    self.neurons \
+                                            .flags[layer_pre_neuron_address] \
                                             |= IS_TRANSMITTER
+                                    # get post_neuron_domain
+                                    # connect pre neuron with post neuron in
+                                    # post_neuron_domain
                                 total_synapses[post_info_domain_id] += 1
 
 
