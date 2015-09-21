@@ -3,9 +3,10 @@
 Массив данных для моделирования нейронов (представляет из себя объект, который
 содержит по одному вектору на каждый из параметров нейрона)
 """
-from openre.metadata import MultiFieldMetadata
+from openre.metadata import MultiFieldMetadata, MultiFieldExtendableMetadata
 from openre.vector import MultiFieldVector
 from openre.data_types import types
+import random
 
 IS_INHIBITORY = 1<<0
 IS_SPIKED = 1<<1
@@ -13,6 +14,16 @@ IS_DEAD = 1<<2
 IS_TRANSMITTER = 1<<3
 IS_RECEIVER = 1<<4
 IS_INFINITE_ERROR = 1<<5
+
+def create_neuron(address, neurons_metadata, layer, layer_index):
+    neurons_metadata.level[address] \
+            = int(random.random() * (layer.threshold + 1))
+    neurons_metadata.flags[address] = 0
+    if layer.is_inhibitory:
+        neurons_metadata.flags[address] |= IS_INHIBITORY
+    neurons_metadata.layer[address] = layer_index
+    neurons_metadata.vitality[address] = layer.max_vitality
+
 
 class NeuronsVector(MultiFieldVector):
     """
@@ -54,6 +65,12 @@ class NeuronsVector(MultiFieldVector):
 class NeuronsMetadata(MultiFieldMetadata):
     """
     Метаданные для одного слоя нейронов
+    """
+    fields = list(NeuronsVector.fields)
+
+class NeuronsExtendableMetadata(MultiFieldExtendableMetadata):
+    """
+    Метаданные для нейронов из другого домена
     """
     fields = list(NeuronsVector.fields)
 

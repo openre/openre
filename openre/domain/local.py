@@ -6,7 +6,8 @@ from openre.vector import Vector
 from openre.metadata import Metadata
 from openre.data_types import types
 from openre.layer import Layer, LayersVector
-from openre.neurons import NeuronsVector, IS_TRANSMITTER
+from openre.neurons import NeuronsVector, IS_TRANSMITTER, create_neuron, \
+        NeuronsExtendableMetadata, IS_RECEIVER
 from openre.synapses import SynapsesVector, SynapsesMetadata
 import logging
 import uuid
@@ -58,6 +59,7 @@ class Domain(object):
         self.config = config
         self.ore = ore
         self.id = self.config['id']
+        self.index = 0
         self.ticks = 0
         self.synapse_count_by_domain = {}
         self.spike_learn_threshold \
@@ -74,7 +76,11 @@ class Domain(object):
         self.layers_config = deepcopy(self.config['layers'])
         # neurons vector. Metadata stored in layer.neurons_metadata
         self.neurons = NeuronsVector()
+        self.remote_neuron_address = -1
+        self.remote_neurons_metadata = NeuronsExtendableMetadata(0)
+
         # synapses vector
+        self.synapse_address = -1
         self.synapses = SynapsesVector(
             0, self.ore.config['synapse']['max_level'])
         self.synapses_metadata = None
@@ -104,19 +110,21 @@ class Domain(object):
         # stats for vectors
         self.layers_stat = Vector()
 
+        # pre_domain neuron_address -> self domain neuron_address
+        self.remote_to_local_neuron_address = {}
+        # self neuron_address -> remote domain neuron_address
+        self.local_to_remote_neuron_address = {}
+
         logging.debug('Domain created (id: %s)', self.id)
 
     def __repr__(self):
         return 'Domain(%s, %s)' % (repr(self.config), repr(self.ore))
 
-    def deploy(self):
+    def deploy_layers(self):
         """
-        Создание слоев и нейронов, синапсов на основе self.config и
-        загрузка данных на устройство (device - например, gpu или cpu)
-        config.device
+        Create layers
         """
         logging.debug('Deploy domain (id: %s)', self.id)
-        # Create layers
         for layer_config in self.layers_config:
             layer = Layer(layer_config)
             self.neurons.add(layer.neurons_metadata)
@@ -129,6 +137,7 @@ class Domain(object):
                 types.stat
             )
             self.layers_stat.add(layer_stat_metadata)
+        self.neurons.add(self.remote_neurons_metadata)
         for layer_config in self.layers_config:
             for connect in layer_config.get('connect', []):
                 connect['domain_layers'] = []
@@ -143,16 +152,29 @@ class Domain(object):
             self.layers_vector.spike_cost[layer_id] = layer.spike_cost
             self.layers_vector.max_vitality[layer_id] = layer.max_vitality
 
-        # allocate synapses buffer in memory
-        self.synapses_metadata = SynapsesMetadata(0)
-        self.synapses.add(self.synapses_metadata)
-        # allocate neurons buffer in memory
+    def deploy_neurons(self):
+        """
+        Create neurons
+        """
         logging.debug(
             'Total %s neurons in domain',
             len(self.neurons)
         )
         self.create_neurons()
-        # Create synapses (second pass)
+
+    def pre_deploy_synapses(self):
+        """
+        Init synapses vector
+        """
+        # allocate synapses buffer in memory
+        self.synapses_metadata = SynapsesMetadata(0)
+        self.synapses.add(self.synapses_metadata)
+
+    def deploy_synapses(self):
+        """
+        Create synapses
+        """
+        # Create synapses
         self.create_synapses()
         domain_total_synapses = self.synapse_count_by_domain.get(self.id, 0)
         if not domain_total_synapses:
@@ -161,15 +183,28 @@ class Domain(object):
             'Total %s synapses in domain',
             domain_total_synapses
         )
+
+    def post_deploy_synapses(self):
+        """
+        Run after all domains is synced
+        """
         # sync length between synapses multifield metadata fields
-        self.synapses_metadata.sync_length(domain_total_synapses)
+        self.synapses_metadata.sync_length(self.synapse_address+1)
+        # sync self.neurons length after adding remote neurons
+        self.remote_neurons_metadata.sync_length(self.remote_neuron_address+1)
+
+    def deploy_indexes(self):
         # create pre-neuron - synapse index
         logging.debug('Create pre-neuron - synapse index')
         self.pre_synapse_index = Index(len(self.neurons), self.synapses.pre)
         # create post-neuron - synapse index
         logging.debug('Create post-neuron - synapse index')
         self.post_synapse_index = Index(len(self.neurons), self.synapses.post)
-        # upload data on device
+
+    def deploy_device(self):
+        """
+        Upload data to device
+        """
         logging.debug('Upload data to device')
         for vector in [
             self.layers_vector,
@@ -204,7 +239,6 @@ class Domain(object):
         self.random.seed(self.seed)
         layer_config_by_id = {}
         total_synapses = self.synapse_count_by_domain
-        synapse_address = -1
         # cache
         self_connect_neurons = self.connect_neurons
         for layer_config in self.ore.config['layers']:
@@ -213,6 +247,8 @@ class Domain(object):
         for domain_index, domain in enumerate(self.ore.config['domains']):
             domain_index_to_id.append(domain['id'])
             total_synapses[domain['id']] = 0
+            if domain['id'] == self.id:
+                pre_domain_index = domain_index
         # cache neuron -> domain and neuron -> layer in domain
         if 'layer' not in self.cache:
             self.cache['layer'] = {}
@@ -253,7 +289,9 @@ class Domain(object):
                             layer_cache_y[x][1] = layer_index
 
         # start connecting
+        pre_layer_index = -1
         for layer_config in self.layers_config:
+            pre_layer_index += 1
             # no connections with other layers
             if not layer_config.get('connect'):
                 continue
@@ -289,18 +327,22 @@ class Domain(object):
                         # Determine post x coordinate of neuron in post layer.
                         # Should be recalculated for every y because of possible
                         # random shift
-                        layer_pre_neuron_address = layer_to_address(
+                        pre_neuron_address = layer_to_address(
                             pre_x - layer.x,
                             pre_y - layer.y
                         )
                         central_post_x = int(math.floor(
                             1.0 * pre_x / (layer_config['width']) \
                             * (post_layer_config['width'])
+                            + (post_layer_config['width'] \
+                               / layer_config['width'] / 2.0)
                         )) + shift_x()
                         # determine post y coordinate of neuron in post layer
                         central_post_y = int(math.floor(
                             1.0 * pre_y / (layer_config['height']) \
                             * (post_layer_config['height'])
+                            + (post_layer_config['height'] \
+                               / layer_config['height'] / 2.0)
                         )) + shift_y()
                         # for all neurons (in post layer) inside of the
                         # connect['radius'] with given central point
@@ -336,31 +378,36 @@ class Domain(object):
                                 post_to_range_x
                             ):
                                 inf = post_info_cache_y[post_x]
+                                if inf[0] == -1 or inf[1] == -1:
+                                    continue
+                                # inf[0] - domain index
                                 post_info_domain_id = domain_index_to_id[inf[0]]
                                 # actually create connections
                                 if post_info_domain_id == self.id:
                                     # inf[1] - post layer index in domain
                                     post_layer = self.layers[inf[1]]
-                                    synapse_address += 1
+                                    self.synapse_address += 1
                                     self_connect_neurons(
-                                        layer_pre_neuron_address,
+                                        pre_neuron_address,
                                         post_layer.neurons_metadata.level \
                                         .to_address(
                                             post_x - post_layer.x,
                                             post_y - post_layer.y
                                         ),
-                                        synapse_address
+                                        self.synapse_address
                                     )
                                 else:
                                     # TODO: connect neurons with other
                                     #       domains
-                                    # pre neuron is transmitter
-                                    self.neurons \
-                                            .flags[layer_pre_neuron_address] \
-                                            |= IS_TRANSMITTER
-                                    # get post_neuron_domain
-                                    # connect pre neuron with post neuron in
-                                    # post_neuron_domain
+                                    self.connect_remote_neurons(
+                                        pre_domain_index,
+                                        pre_layer_index,
+                                        pre_neuron_address,
+                                        inf[0], # post domain index
+                                        inf[1], # post layer index
+                                        post_x,
+                                        post_y
+                                    )
                                 total_synapses[post_info_domain_id] += 1
 
     def create_neurons(self):
@@ -386,6 +433,83 @@ class Domain(object):
             synapses_metadata.post.resize()
         synapses_vector.pre.data[synapse_address] = pre_address
         synapses_vector.post.data[synapse_address] = post_address
+
+    def connect_remote_neurons(
+        self,
+        pre_domain_index, pre_layer_index, pre_neuron_address,
+        post_domain_index, post_layer_index, post_x, post_y
+    ):
+        """
+        Соединяем локальный нейрон с нейроном в другом домене
+        self == pre_domain
+        """
+        # local pre neuron is transmitter
+        self.neurons.flags[pre_neuron_address] |= IS_TRANSMITTER
+        # get post_neuron_domain
+        domain = self.ore.domains[post_domain_index]
+        # connect pre neuron with post neuron in post_neuron_domain
+        domain.send_synapse(
+            pre_domain_index, pre_layer_index, pre_neuron_address,
+            post_layer_index, post_x, post_y)
+
+    def send_synapse(
+        self,
+        pre_domain_index, pre_layer_index, pre_neuron_address,
+        post_layer_index, post_x, post_y):
+        """
+        Обрабатываем информацию о синапсе из другого домена
+        self == post_domain
+        """
+        pre_domain = self.ore.domains[pre_domain_index]
+        pre_layer = pre_domain.layers[pre_layer_index]
+        post_layer = self.layers[post_layer_index]
+        if pre_domain_index not in self.remote_to_local_neuron_address:
+            self.remote_to_local_neuron_address[pre_domain_index] = {}
+        local_pre_neuron_address \
+                = self.remote_to_local_neuron_address[pre_domain_index] \
+                .get(pre_neuron_address)
+        if not local_pre_neuron_address:
+            self.remote_neuron_address += 1
+            # add pre_neuron to domain.remote_neurons_metadata if not added (use
+            # create_neuron function)
+            create_neuron(self.remote_neuron_address,
+                          self.remote_neurons_metadata,
+                          pre_layer,
+                          pre_layer_index)
+            # get local_pre_neuron_address
+            local_pre_neuron_address = self.remote_neurons_metadata.level \
+                    .to_address(self.remote_neuron_address, 0)
+            self.remote_to_local_neuron_address[pre_domain_index] \
+                    [pre_neuron_address] = local_pre_neuron_address
+            # set IS_RECEIVER flag to pre_neuron
+            self.remote_neurons_metadata.flags[self.remote_neuron_address] \
+                    |= IS_RECEIVER
+        # get synapse_address
+        self.synapse_address += 1
+        self.connect_neurons(
+            local_pre_neuron_address,
+            post_layer.neurons_metadata.level.to_address(
+                post_x - post_layer.x,
+                post_y - post_layer.y
+            ),
+            self.synapse_address
+        )
+        # return local_pre_neuron_address to send it back to source domain
+        pre_domain.send_neuron_address(self.index, pre_neuron_address,
+                                       local_pre_neuron_address)
+
+    def send_neuron_address(self, post_domain_index, pre_neuron_address,
+                            remote_pre_neuron_address):
+        """
+        Запоминаем remote_neuron_address для pre_neuron_address
+        self == pre_domain
+        """
+        pre_domain = self
+        if post_domain_index not in pre_domain.local_to_remote_neuron_address:
+            pre_domain.local_to_remote_neuron_address[post_domain_index] = {}
+        pre_domain.local_to_remote_neuron_address \
+                [post_domain_index][pre_neuron_address] \
+                = remote_pre_neuron_address
 
     def send_spikes(self):
         """
@@ -492,3 +616,5 @@ class Domain(object):
         self.send_spikes()
         # step 6
         self.device.tick_synapses(self)
+
+

@@ -3,9 +3,8 @@
 Содержит в себе 2d массив однотипных нейронов.
 """
 import logging
-from openre.neurons import NeuronsMetadata, IS_INHIBITORY
+from openre.neurons import NeuronsMetadata, create_neuron
 from copy import deepcopy
-import random
 from openre.metadata import MultiFieldMetadata
 from openre.vector import MultiFieldVector
 from openre.data_types import types
@@ -84,17 +83,11 @@ class Layer(object):
 
     def create_neurons(self):
         """
-        Создание нейронов слоя в ранее выделенном для этого векторе
+        Создание слоя нейронов в ранее выделенном для этого векторе
         """
         for i in xrange(self.length):
-            self.neurons_metadata.level[i] \
-                    = int(random.random() * (self.threshold + 1))
-            self.neurons_metadata.flags[i] = 0
-            if self.is_inhibitory:
-                self.neurons_metadata.flags[i] |= IS_INHIBITORY
-            self.neurons_metadata.layer[i] = self.layer_metadata.address
-            self.neurons_metadata.vitality[i] = self.max_vitality
-
+            create_neuron(i, self.neurons_metadata, self,
+                          self.layer_metadata.address)
 
 class LayersVector(MultiFieldVector):
     """

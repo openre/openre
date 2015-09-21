@@ -75,7 +75,9 @@ class OpenRE(object):
         # TODO: - выдавать предупреждение если не весь слой моделируется
         #       - выдавать предупреждение или падать если один и тот же слoй
         #           частично или полностью моделируется дважды
+        domain_index = -1
         for domain in self.config['domains']:
+            domain_index += 1
             domain = deepcopy(domain)
             if 'device' not in domain:
                 domain['device'] = {
@@ -86,9 +88,22 @@ class OpenRE(object):
                 domain['stat_size'] = 1000
             for domain_layer in domain['layers']:
                 domain_layer.update(deepcopy(layer_by_id[domain_layer['id']]))
-            self.domains.append(Domain(domain, self))
+            domain = Domain(domain, self)
+            domain.index = domain_index
+            self.domains.append(domain)
         for domain in self.domains:
-            domain.deploy()
+            domain.deploy_layers()
+        for domain in self.domains:
+            domain.deploy_neurons()
+            domain.pre_deploy_synapses()
+        # here wait for all domains is synced
+        for domain in self.domains:
+            domain.deploy_synapses()
+        # here wait for all domains is synced
+        for domain in self.domains:
+            domain.post_deploy_synapses()
+            domain.deploy_indexes()
+            domain.deploy_device()
 
     def run(self):
         """
@@ -159,9 +174,10 @@ class OpenRE(object):
 
 
 def test_openre():
-    from openre.neurons import IS_INHIBITORY, IS_TRANSMITTER
+    from openre.neurons import IS_INHIBITORY, IS_TRANSMITTER, IS_RECEIVER
     from openre.data_types import null
     from openre.device import Dummy
+    from pytest import raises
     synapse_max_level = 30000
     config = {
         'synapse': {
@@ -209,6 +225,13 @@ def test_openre():
                 'relaxation': 3000,
                 'width': 5,
                 'height': 10,
+                'connect': [
+                    {
+                        'id': 'V4',
+                        'radius': 2,
+                        'shift': [0, 0],
+                    },
+                ],
             },
             {
                 'id': 'V4',
@@ -261,11 +284,11 @@ def test_openre():
         'domain_id': 'D2',
         'layer_index': 1
     }
+    assert ore.domains[0].index == 0
     # domain layers
     assert isinstance(ore.domains[0].device, Dummy)
     assert ore.domains[0].config['stat_size'] == 1000
     # 200 synapses in domain D1
-    print ore.domains[0].synapse_count_by_domain['D1'] == 200
     assert len(ore.domains[0].stat.data) \
             == ore.domains[0].stat_fields
     assert ore.domains[0].layers[0].id == 'V1'
@@ -279,10 +302,6 @@ def test_openre():
     assert not ore.domains[0].layers[1].neurons_metadata.flags[0] \
             & IS_INHIBITORY
     assert ore.domains[0].layers[2].neurons_metadata.flags[0] & IS_INHIBITORY
-    assert not ore.domains[0].layers[2].neurons_metadata.flags[0] \
-            & IS_TRANSMITTER
-    assert ore.domains[0].layers[2].neurons_metadata.flags[2, 0] \
-            & IS_TRANSMITTER
     assert list(ore.domains[0].layers_vector.threshold.data) \
             == [20000, 20000, 10000]
     assert list(ore.domains[1].layers_vector.threshold.data) \
@@ -298,15 +317,18 @@ def test_openre():
     assert list(ore.domains[0].layers_vector.max_vitality.data) \
             == [max_vitality - 1, max_vitality - 1, max_vitality]
     # neurons
-    assert ore.domains[0].neurons.length == 300
+    assert ore.domains[0].neurons.length == 300 + 200 # 200 - remote neurons
     assert ore.domains[0].neurons.length == len(ore.domains[0].neurons)
     assert ore.domains[0].neurons.vitality[0] == max_vitality - 1
     assert ore.domains[0].neurons.vitality[100] == max_vitality - 1
     assert ore.domains[0].neurons.vitality[200] == max_vitality
-    assert ore.domains[1].neurons.length == 250
+    assert ore.domains[1].neurons.length == 250 + 72 # 72 remote neurons
     neuron_layers_0 = [0]*100
     neuron_layers_0.extend([1]*100)
     neuron_layers_0.extend([2]*100)
+    # remote neurons
+    neuron_layers_0.extend([0]*100)
+    neuron_layers_0.extend([1]*100)
     assert list(ore.domains[0].neurons.layer.data) == neuron_layers_0
     # synapses
     assert ore.domains[0].synapses
@@ -319,18 +341,45 @@ def test_openre():
             == len(ore.domains[0].synapses)
     assert len(ore.domains[0].pre_synapse_index.key.data) \
             == len(ore.domains[0].neurons)
+    # every pre neuron has only one synapse
     assert len([x for x in ore.domains[0].pre_synapse_index.value.data
                 if x != null]) == 0
+    # every neuron in V2 has 4 connections from V1 layer
+    # -> 3/4 has valid address
     assert len([x for x in ore.domains[0].post_synapse_index.value.data
-                if x != null]) == 150
+                if x != null]) == 150 + 150 # second one is remote neurons
+    # number of connected pre neurons
     assert len([x for x in ore.domains[0].pre_synapse_index.key.data
-                if x != null]) == 200
+                if x != null]) == 200 + 200 # second one is remote neurons
+    # number of connected post neurons
     assert len([x for x in ore.domains[0].post_synapse_index.key.data
-                if x != null]) == 50
+                if x != null]) == 50 + 50 # second one connections from remote
+                                          # neurons
     # check layer shape
     assert ore.domains[1].layers[2].shape == [0, 0, 5, 10]
     assert ore.domains[2].layers[0].shape == [4, 4, 1, 6]
     assert ore.domains[2].layers[1].shape == [5, 10, 0, 0]
+
+    # multy domains
+    d1 = ore.domains[0]
+    d2 = ore.domains[1]
+    d3 = ore.domains[2]
+    v2 = d1.layers[2]
+    assert not v2.neurons_metadata.flags[0] & IS_TRANSMITTER
+    assert v2.neurons_metadata.flags[2, 0] & IS_TRANSMITTER
+    assert d1.remote_neurons_metadata.flags[199] & IS_RECEIVER
+    assert len(d2.remote_neurons_metadata.level) == 72
+    with raises(IndexError):
+        d1.remote_neurons_metadata.flags[200]
+    assert d1.remote_neurons_metadata.vitality[0] \
+            == types.max(types.vitality) - 1
+    assert d2.remote_neurons_metadata.vitality[0] & IS_INHIBITORY
+    assert not d1.remote_neurons_metadata.vitality[0] & IS_INHIBITORY
+    # remote neuron in d2 (domain index == 1)
+    # to local neuron in d3->remote_neurons
+    assert d3.remote_to_local_neuron_address[1][218] == 6
+    # local neuron #218 in d2 to remote neuron #6 in d3 (domain index == 2)
+    assert d2.local_to_remote_neuron_address[2][218] == 6
 
 
     for i, domain_config in enumerate(config['domains']):

@@ -252,6 +252,11 @@ __kernel void update_layers_stat(
     __global {{ types.vitality | to_c_type }}       * n_vitality
 ) {
     {{ types.address | to_c_type }} neuron_address = get_global_id(0);
+    if(
+        n_flags[neuron_address] & IS_RECEIVER
+    ){
+        return;
+    }
     // get layer
     {{ types.address | to_c_type }} layer_address = n_layer[neuron_address];
     // start of the stat block for the layer with layer_address
