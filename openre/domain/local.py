@@ -261,7 +261,8 @@ class Domain(object):
                         (layer_config['height'], layer_config['width'], 2),
                         dtype=np.int
                     )
-                self.cache['layer'][layer_config['id']].fill(-1)
+                self.cache['layer'][layer_config['id']] \
+                        .fill(np.iinfo(np.int).max)
             for domain_index, domain in enumerate(self.ore.config['domains']):
                 layer_index = -1
                 for layer in domain['layers']:
@@ -378,10 +379,12 @@ class Domain(object):
                                 post_to_range_x
                             ):
                                 inf = post_info_cache_y[post_x]
-                                if inf[0] == -1 or inf[1] == -1:
+                                try:
+                                    # inf[0] - domain index
+                                    post_info_domain_id \
+                                            = domain_index_to_id[inf[0]]
+                                except IndexError:
                                     continue
-                                # inf[0] - domain index
-                                post_info_domain_id = domain_index_to_id[inf[0]]
                                 # actually create connections
                                 if post_info_domain_id == self.id:
                                     # inf[1] - post layer index in domain
