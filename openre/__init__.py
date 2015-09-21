@@ -379,7 +379,11 @@ def test_openre():
     # to local neuron in d3->remote_neurons
     assert d3.remote_to_local_neuron_address[1][218] == 6
     # local neuron #218 in d2 to remote neuron #6 in d3 (domain index == 2)
-    assert d2.local_to_remote_neuron_address[2][218] == 6
+    assert d2.local_to_remote_neuron_address[218][2] == 6
+    assert d2.neurons.flags.data[218] & IS_TRANSMITTER
+    assert d3.neurons.flags.data[6] & IS_RECEIVER
+    assert len(d2.transmitter_index.key.data) == 207
+    assert len(d2.transmitter_index.value.data) == 207
 
 
     for i, domain_config in enumerate(config['domains']):

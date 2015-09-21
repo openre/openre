@@ -14,7 +14,7 @@ import uuid
 import random
 from copy import deepcopy
 import math
-from openre.index import Index
+from openre.index import SynapsesIndex, TransmitterIndex
 from openre import device
 import numpy as np
 
@@ -209,10 +209,15 @@ class Domain(object):
         """
         # create pre-neuron - synapse index
         logging.debug('Create pre-neuron - synapse index')
-        self.pre_synapse_index = Index(len(self.neurons), self.synapses.pre)
+        self.pre_synapse_index = SynapsesIndex(
+            len(self.neurons), self.synapses.pre)
         # create post-neuron - synapse index
         logging.debug('Create post-neuron - synapse index')
-        self.post_synapse_index = Index(len(self.neurons), self.synapses.post)
+        self.post_synapse_index = SynapsesIndex(
+            len(self.neurons), self.synapses.post)
+        logging.debug('Create transmitter index')
+        self.transmitter_index = TransmitterIndex(
+            self.local_to_remote_neuron_address)
 
     def deploy_device(self):
         """
@@ -227,6 +232,7 @@ class Domain(object):
             self.post_synapse_index,
             self.stat,
             self.layers_stat,
+            self.transmitter_index,
         ]:
             vector.create_device_data_pointer(self.device)
         logging.debug('Domain deployed (id: %s)', self.id)
@@ -519,10 +525,10 @@ class Domain(object):
         self == pre_domain
         """
         pre_domain = self
-        if post_domain_index not in pre_domain.local_to_remote_neuron_address:
-            pre_domain.local_to_remote_neuron_address[post_domain_index] = {}
+        if pre_neuron_address not in pre_domain.local_to_remote_neuron_address:
+            pre_domain.local_to_remote_neuron_address[pre_neuron_address] = {}
         pre_domain.local_to_remote_neuron_address \
-                [post_domain_index][pre_neuron_address] \
+                [pre_neuron_address][post_domain_index] \
                 = remote_pre_neuron_address
 
     def send_spikes(self):

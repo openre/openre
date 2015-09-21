@@ -6,9 +6,10 @@ from openre.vector import Vector
 from openre.metadata import Metadata
 from openre.data_types import types, null
 
-class Index(object):
+class SynapsesIndex(object):
     """
-    Создает индекс для поиска всех self.value[j] для каждого self.key[i].
+    Создает индекс для поиска всех синапсов в self.value[j]
+    для каждого нейрона в self.key[i].
     self.key - вектор ключей
     self.value - вектор значений
     j = self.key[i]
@@ -65,7 +66,7 @@ class Index(object):
 def test_index():
     from pytest import raises
     data = [0, 0, 2, 2, 5, 5, 3, 0, 4, 4, 4, 4, 1]
-    index = Index(
+    index = SynapsesIndex(
         10,
         data
     )

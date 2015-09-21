@@ -323,9 +323,9 @@ def test_vector():
     assert vector.length == 2*2
     assert [_ for _ in vector.data] == [1, 0, 0, 0]
     meta0[2,0] = 2
-    assert [_ for _ in vector.data] == [1, 0, 2, 0, 0, 0, 0, 0]
     assert meta0.length == 3*2
     assert vector.length == 2*2*2
+    assert [_ for _ in vector.data] == [1, 0, 2, 0, 0, 0, 0, 0]
     meta0[0,3] = 3
     assert [_ for _ in vector.data] == [1, 0, 2,
                                         0, 0, 0,

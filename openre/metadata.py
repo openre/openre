@@ -139,6 +139,8 @@ class MultiFieldMetadata(object):
         self.address = None
 
     def sync_length(self, max_length=None):
+        # FIXME: metadata.length will be wrong if metadata.vector has several
+        #        metadata (or may be not)
         if max_length is None:
             max_length = 0
             for field, field_type in self.__class__.fields:
