@@ -323,51 +323,55 @@ class Domain(object):
                     int(1.0 * layer_config['height'] \
                         / post_layer_config['height'] / 2)
                 ) + 1)
-                for pre_y in xrange(layer.y, layer.y + layer.height):
-                    for pre_x in xrange(layer.x, layer.x + layer.width):
-                        # Determine post x coordinate of neuron in post layer.
-                        # Should be recalculated for every y because of possible
-                        # random shift
-                        pre_neuron_address = layer_to_address(
-                            pre_x - layer.x,
-                            pre_y - layer.y
-                        )
-                        central_post_x = int(math.floor(
-                            1.0 * pre_x / (layer_config['width']) \
-                            * (post_layer_config['width'])
-                            + (post_layer_config['width'] \
-                               / layer_config['width'] / 2.0)
-                        )) + shift_x()
-                        # determine post y coordinate of neuron in post layer
-                        central_post_y = int(math.floor(
-                            1.0 * pre_y / (layer_config['height']) \
-                            * (post_layer_config['height'])
-                            + (post_layer_config['height'] \
-                               / layer_config['height'] / 2.0)
-                        )) + shift_y()
-                        # for all neurons (in post layer) inside of the
-                        # connect['radius'] with given central point
-                        post_from_range_x = central_post_x - (radius - 1)
-                        post_to_range_x = central_post_x + (radius - 1) + 1
-                        if post_from_range_x < 0:
-                            post_from_range_x = 0
-                        if post_from_range_x >= post_layer_config['width']:
-                            continue
-                        if post_to_range_x < 0:
-                            continue
-                        if post_to_range_x > post_layer_config['width']:
-                            post_to_range_x = post_layer_config['width'] - 1
+                def pre_layer_coords():
+                    for pre_y in xrange(layer.y, layer.y + layer.height):
+                        for pre_x in xrange(layer.x, layer.x + layer.width):
+                            yield pre_y, pre_x
+                for pre_y, pre_x in pre_layer_coords():
+                    # Determine post x coordinate of neuron in post layer.
+                    # Should be recalculated for every y because of possible
+                    # random shift
+                    pre_neuron_address = layer_to_address(
+                        pre_x - layer.x,
+                        pre_y - layer.y
+                    )
+                    central_post_x = int(math.floor(
+                        1.0 * pre_x / (layer_config['width']) \
+                        * (post_layer_config['width'])
+                        + (post_layer_config['width'] \
+                           / layer_config['width'] / 2.0)
+                    )) + shift_x()
+                    # determine post y coordinate of neuron in post layer
+                    central_post_y = int(math.floor(
+                        1.0 * pre_y / (layer_config['height']) \
+                        * (post_layer_config['height'])
+                        + (post_layer_config['height'] \
+                           / layer_config['height'] / 2.0)
+                    )) + shift_y()
+                    # for all neurons (in post layer) inside of the
+                    # connect['radius'] with given central point
+                    post_from_range_x = central_post_x - (radius - 1)
+                    post_to_range_x = central_post_x + (radius - 1) + 1
+                    if post_from_range_x < 0:
+                        post_from_range_x = 0
+                    if post_from_range_x >= post_layer_config['width']:
+                        continue
+                    if post_to_range_x < 0:
+                        continue
+                    if post_to_range_x > post_layer_config['width']:
+                        post_to_range_x = post_layer_config['width'] - 1
 
-                        post_from_range_y = central_post_y - (radius - 1)
-                        post_to_range_y = central_post_y + (radius - 1) + 1
-                        if post_from_range_y < 0:
-                            post_from_range_y = 0
-                        if post_from_range_y >= post_layer_config['height']:
-                            continue
-                        if post_to_range_y < 0:
-                            continue
-                        if post_to_range_y > post_layer_config['height']:
-                            post_to_range_y = post_layer_config['height'] - 1
+                    post_from_range_y = central_post_y - (radius - 1)
+                    post_to_range_y = central_post_y + (radius - 1) + 1
+                    if post_from_range_y < 0:
+                        post_from_range_y = 0
+                    if post_from_range_y >= post_layer_config['height']:
+                        continue
+                    if post_to_range_y < 0:
+                        continue
+                    if post_to_range_y > post_layer_config['height']:
+                        post_to_range_y = post_layer_config['height'] - 1
+                    def post_layer_coords():
                         # for neurons in post layer
                         for post_y in xrange(
                             post_from_range_y,
@@ -379,39 +383,39 @@ class Domain(object):
                                 post_to_range_x
                             ):
                                 inf = post_info_cache_y[post_x]
-                                try:
-                                    # inf[0] - domain index
-                                    post_info_domain_id \
-                                            = domain_index_to_id[inf[0]]
-                                except IndexError:
-                                    continue
-                                # actually create connections
-                                if post_info_domain_id == self.id:
-                                    # inf[1] - post layer index in domain
-                                    post_layer = self.layers[inf[1]]
-                                    self.synapse_address += 1
-                                    self_connect_neurons(
-                                        pre_neuron_address,
-                                        post_layer.neurons_metadata.level \
-                                        .to_address(
-                                            post_x - post_layer.x,
-                                            post_y - post_layer.y
-                                        ),
-                                        self.synapse_address
-                                    )
-                                else:
-                                    # TODO: connect neurons with other
-                                    #       domains
-                                    self.connect_remote_neurons(
-                                        pre_domain_index,
-                                        pre_layer_index,
-                                        pre_neuron_address,
-                                        inf[0], # post domain index
-                                        inf[1], # post layer index
-                                        post_x,
-                                        post_y
-                                    )
-                                total_synapses[post_info_domain_id] += 1
+                                yield post_x, post_y, inf
+                    for post_x, post_y, inf in post_layer_coords():
+                        try:
+                            # inf[0] - domain index
+                            post_info_domain_id = domain_index_to_id[inf[0]]
+                        except IndexError:
+                            continue
+                        # actually create connections
+                        if post_info_domain_id == self.id:
+                            # inf[1] - post layer index in domain
+                            post_layer = self.layers[inf[1]]
+                            self.synapse_address += 1
+                            self_connect_neurons(
+                                pre_neuron_address,
+                                post_layer.neurons_metadata.level.to_address(
+                                    post_x - post_layer.x,
+                                    post_y - post_layer.y
+                                ),
+                                self.synapse_address
+                            )
+                        else:
+                            # TODO: connect neurons with other
+                            #       domains
+                            self.connect_remote_neurons(
+                                pre_domain_index,
+                                pre_layer_index,
+                                pre_neuron_address,
+                                inf[0], # post domain index
+                                inf[1], # post layer index
+                                post_x,
+                                post_y
+                            )
+                        total_synapses[post_info_domain_id] += 1
 
     def create_neurons(self):
         """
