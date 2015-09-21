@@ -157,7 +157,7 @@ class Domain(object):
         Create neurons
         """
         logging.debug(
-            'Total %s neurons in domain',
+            'Total %s local neurons in domain',
             len(self.neurons)
         )
         self.create_neurons()
@@ -180,7 +180,7 @@ class Domain(object):
         if not domain_total_synapses:
             logging.warn('No synapses in domain %s', self.id)
         logging.debug(
-            'Total %s synapses in domain',
+            'Total %s local synapses in domain',
             domain_total_synapses
         )
 
@@ -192,6 +192,16 @@ class Domain(object):
         self.synapses_metadata.sync_length(self.synapse_address+1)
         # sync self.neurons length after adding remote neurons
         self.remote_neurons_metadata.sync_length(self.remote_neuron_address+1)
+        logging.debug(
+            'Total %s neurons in domain %s',
+            len(self.neurons),
+            self.id
+        )
+        logging.debug(
+            'Total %s synapses in domain %s',
+            len(self.synapses),
+            self.id
+        )
 
     def deploy_indexes(self):
         """
@@ -228,12 +238,6 @@ class Domain(object):
         logging.debug('Create synapses')
         # Domains synapses
         self.connect_layers()
-        for domain_id in self.synapse_count_by_domain:
-            if domain_id != self.id:
-                # TODO: send synapse counts (in self.synapse_count_by_domain)
-                # to other domains
-                pass
-        # TODO: recieve synapse counts from other domains
 
     def connect_layers(self):
         """
