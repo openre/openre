@@ -194,6 +194,9 @@ class Domain(object):
         self.remote_neurons_metadata.sync_length(self.remote_neuron_address+1)
 
     def deploy_indexes(self):
+        """
+        Create indexes
+        """
         # create pre-neuron - synapse index
         logging.debug('Create pre-neuron - synapse index')
         self.pre_synapse_index = Index(len(self.neurons), self.synapses.pre)
