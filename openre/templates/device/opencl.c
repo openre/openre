@@ -32,6 +32,8 @@ __kernel void test_kernel(__global unsigned int * res, __const unsigned int num)
     if(i == 10){res[i] = NULL_ADDRESS;}
     if(i == 11){res[i] = IS_STRENGTHENED;}
     if(i == 12){res[i] = -ui + 5;}
+    if(i == 13){res[i] = 8 | (3 & IS_SPIKED);}
+    if(i == 14){res[i] = 7 & ~IS_SPIKED;}
 }
 
 // for each neuron
