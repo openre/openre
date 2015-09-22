@@ -76,16 +76,23 @@ class TransmitterIndex(object):
 
         self.data[local_address][remote_domain_index] = remote_address
 
+    def clear(self):
+        self.data = {}
+        self.key_pos = -1
+        self.value_pos = -1
+        self.address_to_key_index = {}
+        for meta in [self.meta_local_address, self.meta_flags, self.meta_key,
+                     self.meta_value, self.meta_remote_domain,
+                     self.meta_remote_address]:
+            meta.resize(length=0)
+
     def rebuild(self, data):
         """
         Перестраивает весь индекс
         """
         # TODO: do not loose order in self.data
 
-        self.data = {}
-        self.key_pos = -1
-        self.value_pos = -1
-        self.address_to_key_index = {}
+        self.clear()
         for local_address in data.keys():
             for domain_index in data[local_address]:
                 self.add(local_address,
@@ -145,6 +152,8 @@ def test_index():
         assert len(vector) == 3
     for vector in [index.value, index.remote_domain, index.remote_address]:
         assert len(vector) == 5
+    assert index.key_pos == 2
+    assert index.value_pos == 4
     assert list(index.local_address.data) == [218, 300, 77]
     assert list(index.flags.data) == [0, 0, 0]
     assert list(index.key.data) == [1, 2, 4]
@@ -164,3 +173,15 @@ def test_index():
     assert list(index.remote_domain.data) == list(index2.remote_domain.data)
     assert list(index.remote_address.data) == list(index2.remote_address.data)
 
+
+    data = OrderedDict([
+        (77, OrderedDict([(5, 12), (6, 13)])),
+        (218, OrderedDict([(1, 10), (12, 20)])),
+    ])
+    index2.rebuild(data)
+    assert index2.key_pos == 1
+    assert index2.value_pos == 3
+    assert len(index2.key.data) == 2
+    assert len(index2.value.data) == 4
+    assert len(index2.meta_key) == 2
+    assert len(index2.meta_value) == 4

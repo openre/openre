@@ -118,7 +118,11 @@ class ExtendableMetadata(Metadata):
             key = (key, 0)
         self.vector[self.address + key[0] + key[1]*self.shape[0]] = value
 
-    def resize(self, portion=None):
+    def resize(self, portion=None, length=None):
+        if not length is None:
+            if length > self.length:
+                length = self.length
+            portion = length - self.length
         portion = self.vector.resize(portion)
         self.length += portion
 
