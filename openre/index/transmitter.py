@@ -160,9 +160,14 @@ def test_index():
     assert list(index.value.data) == [null, 0, null, null, 3]
     assert list(index.remote_domain.data) == [1, 12, 1, 5, 6]
     assert list(index.remote_address.data) == [10, 20, 12, 12, 13]
+
+    # check add method
     index2 = TransmitterIndex()
     for local_address in data.keys():
         for domain_index in data[local_address].keys():
+            index2.add(local_address,
+                       domain_index, data[local_address][domain_index])
+            # additional call should be ignored
             index2.add(local_address,
                        domain_index, data[local_address][domain_index])
     index2.shrink()
@@ -173,7 +178,7 @@ def test_index():
     assert list(index.remote_domain.data) == list(index2.remote_domain.data)
     assert list(index.remote_address.data) == list(index2.remote_address.data)
 
-
+    # check rebuild
     data = OrderedDict([
         (77, OrderedDict([(5, 12), (6, 13)])),
         (218, OrderedDict([(1, 10), (12, 20)])),
