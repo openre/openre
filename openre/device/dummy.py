@@ -12,6 +12,9 @@ class Dummy(Device):
     def tick_synapses(self, domain):
         pass
 
+    def tick_transmitter_index(self, domain):
+        pass
+
     def create(self, data):
         if not len(data):
             return None

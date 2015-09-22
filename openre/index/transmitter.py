@@ -20,44 +20,83 @@ class TransmitterIndex(object):
     remote_domain[j] - домен IS_RECEIVER нейрона
     remote_address[j] - адрес IS_RECEIVER нейрона в удаленнном домене
     """
-    def __init__(self, data):
+    def __init__(self, data=None):
         self.local_address = Vector()
-        meta_local_address = ExtendableMetadata((0, 1), types.address)
-        self.local_address.add(meta_local_address)
+        self.meta_local_address = ExtendableMetadata((0, 1), types.address)
+        self.local_address.add(self.meta_local_address)
         self.flags = Vector()
-        meta_flags = ExtendableMetadata((0, 1), types.neuron_flags)
-        self.flags.add(meta_flags)
+        self.meta_flags = ExtendableMetadata((0, 1), types.neuron_flags)
+        self.flags.add(self.meta_flags)
         self.key = Vector()
-        meta_key = ExtendableMetadata((0, 1), types.address)
-        self.key.add(meta_key)
+        self.meta_key = ExtendableMetadata((0, 1), types.address)
+        self.key.add(self.meta_key)
 
         self.value = Vector()
-        meta_value = ExtendableMetadata((0, 1), types.address)
-        self.value.add(meta_value)
+        self.meta_value = ExtendableMetadata((0, 1), types.address)
+        self.value.add(self.meta_value)
         self.remote_domain = Vector()
-        meta_remote_domain = ExtendableMetadata((0, 1), types.medium_address)
-        self.remote_domain.add(meta_remote_domain)
+        self.meta_remote_domain \
+                = ExtendableMetadata((0, 1), types.medium_address)
+        self.remote_domain.add(self.meta_remote_domain)
         self.remote_address = Vector()
-        meta_remote_address = ExtendableMetadata((0, 1), types.address)
-        self.remote_address.add(meta_remote_address)
+        self.meta_remote_address = ExtendableMetadata((0, 1), types.address)
+        self.remote_address.add(self.meta_remote_address)
 
-        value_index = -1
-        for key_index, local_address in enumerate(data.keys()):
-            meta_key[key_index] = null
-            meta_flags[key_index] = 0
-            meta_local_address[key_index] = local_address
+        self.data = {}
+        self.address_to_key_index = {}
+        self.key_pos = -1
+        self.value_pos = -1
+        if data:
+            self.rebuild(data)
+
+    def add(self, local_address, remote_domain_index, remote_address):
+        """
+        Добавляет один элемент в индекс
+        """
+        if local_address in self.data \
+           and remote_domain_index in self.data[local_address]:
+            return
+        key_index = self.address_to_key_index.get(local_address)
+        if key_index is None:
+            self.key_pos += 1
+            self.data[local_address] = {}
+            self.address_to_key_index[local_address] = self.key_pos
+            key_index = self.key_pos
+
+            self.meta_key[key_index] = null
+            self.meta_flags[key_index] = 0
+            self.meta_local_address[key_index] = local_address
+        self.value_pos += 1
+        value_index = self.value_pos
+        prev_value_index = self.meta_key[key_index]
+        self.meta_key[key_index] = value_index
+        self.meta_value[value_index] = prev_value_index
+        self.meta_remote_domain[value_index] = remote_domain_index
+        self.meta_remote_address[value_index] = remote_address
+
+        self.data[local_address][remote_domain_index] = remote_address
+
+    def rebuild(self, data):
+        """
+        Перестраивает весь индекс
+        """
+        # TODO: do not loose order in self.data
+
+        self.data = {}
+        self.key_pos = -1
+        self.value_pos = -1
+        self.address_to_key_index = {}
+        for local_address in data.keys():
             for domain_index in data[local_address]:
-                value_index += 1
-                prev_value_index = meta_key[key_index]
-                meta_key[key_index] = value_index
-                meta_value[value_index] = prev_value_index
-                meta_remote_domain[value_index] = domain_index
-                meta_remote_address[value_index] \
-                        = data[local_address][domain_index]
+                self.add(local_address,
+                         domain_index, data[local_address][domain_index])
+        self.shrink()
 
+    def shrink(self):
         for vector in [self.local_address, self.flags, self.key,
                        self.value, self.remote_domain, self.remote_address]:
             vector.shrink()
+
 
     def __getitem__(self, key):
         value_address = self.key[key]
@@ -74,8 +113,8 @@ class TransmitterIndex(object):
         """
         Создание указателей на данные на устройстве
         """
-        self.key.create_device_data_pointer(device)
-        self.value.create_device_data_pointer(device)
+        self.local_address.create_device_data_pointer(device)
+        self.flags.create_device_data_pointer(device)
 
     def to_device(self, device):
         """
@@ -112,3 +151,16 @@ def test_index():
     assert list(index.value.data) == [null, 0, null, null, 3]
     assert list(index.remote_domain.data) == [1, 12, 1, 5, 6]
     assert list(index.remote_address.data) == [10, 20, 12, 12, 13]
+    index2 = TransmitterIndex()
+    for local_address in data.keys():
+        for domain_index in data[local_address].keys():
+            index2.add(local_address,
+                       domain_index, data[local_address][domain_index])
+    index2.shrink()
+    assert list(index.local_address.data) == list(index2.local_address.data)
+    assert list(index.flags.data) == list(index2.flags.data)
+    assert list(index.key.data) == list(index2.key.data)
+    assert list(index.value.data) == list(index2.value.data)
+    assert list(index.remote_domain.data) == list(index2.remote_domain.data)
+    assert list(index.remote_address.data) == list(index2.remote_address.data)
+

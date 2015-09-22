@@ -7,7 +7,7 @@ from openre.metadata import Metadata
 from openre.data_types import types
 from openre.layer import Layer, LayersVector
 from openre.neurons import NeuronsVector, IS_TRANSMITTER, create_neuron, \
-        NeuronsExtendableMetadata, IS_RECEIVER
+        NeuronsExtendableMetadata, IS_RECEIVER, IS_SPIKED
 from openre.synapses import SynapsesVector, SynapsesMetadata
 import logging
 import uuid
@@ -112,8 +112,6 @@ class Domain(object):
 
         # pre_domain neuron_address -> self domain neuron_address
         self.remote_to_local_neuron_address = {}
-        # self neuron_address -> remote domain neuron_address
-        self.local_to_remote_neuron_address = {}
 
         logging.debug('Domain created (id: %s)', self.id)
 
@@ -156,6 +154,8 @@ class Domain(object):
         """
         Create neurons
         """
+        logging.debug('Create transmitter index')
+        self.transmitter_index = TransmitterIndex()
         logging.debug(
             'Total %s local neurons in domain',
             len(self.neurons)
@@ -215,9 +215,7 @@ class Domain(object):
         logging.debug('Create post-neuron - synapse index')
         self.post_synapse_index = SynapsesIndex(
             len(self.neurons), self.synapses.post)
-        logging.debug('Create transmitter index')
-        self.transmitter_index = TransmitterIndex(
-            self.local_to_remote_neuron_address)
+        self.transmitter_index.shrink()
 
     def deploy_device(self):
         """
@@ -488,6 +486,7 @@ class Domain(object):
         local_pre_neuron_address \
                 = self.remote_to_local_neuron_address[pre_domain_index] \
                 .get(pre_neuron_address)
+        # create IS_RECEIVER neuron
         if not local_pre_neuron_address:
             self.remote_neuron_address += 1
             # add pre_neuron to domain.remote_neurons_metadata if not added (use
@@ -515,32 +514,47 @@ class Domain(object):
             self.synapse_address
         )
         # return local_pre_neuron_address to send it back to source domain
-        pre_domain.send_neuron_address(self.index, pre_neuron_address,
+        pre_domain.send_receiver_index(self.index, pre_neuron_address,
                                        local_pre_neuron_address)
 
-    def send_neuron_address(self, post_domain_index, pre_neuron_address,
+    def send_receiver_index(self, post_domain_index, pre_neuron_address,
                             remote_pre_neuron_address):
         """
-        Запоминаем remote_neuron_address для pre_neuron_address
+        Запоминаем remote_neuron_address (IS_RECEIVER) для pre_neuron_address
+        (IS_TRANSMITTER)
         self == pre_domain
         """
         pre_domain = self
-        if pre_neuron_address not in pre_domain.local_to_remote_neuron_address:
-            pre_domain.local_to_remote_neuron_address[pre_neuron_address] = {}
-        pre_domain.local_to_remote_neuron_address \
-                [pre_neuron_address][post_domain_index] \
-                = remote_pre_neuron_address
+        pre_domain.transmitter_index.add(pre_neuron_address, post_domain_index,
+                                         remote_pre_neuron_address)
 
     def send_spikes(self):
         """
         Получаем спайки из устройства (device) и отправляем их в другие домены.
         """
+        # step 4
+        self.device.tick_transmitter_index(self)
+        # step 5
+        self.transmitter_index.flags.from_device(self.device)
+        index = self.transmitter_index
+        for (i,), flag in np.ndenumerate(index.flags.data):
+            if not flag & IS_SPIKED:
+                continue
+            post_domain = self.ore.domains[index.remote_domain[i]]
+            post_neuron_address = index.remote_address[i]
+            post_domain.register_spike(post_neuron_address)
 
     def receive_spikes(self):
         """
         Получаем спайки из других доменов, формируем receiver index и копируем
         его в устройство (device).
         """
+
+    def register_spike(self, neuron_address):
+        """
+        Записывает в домен пришедший спайк
+        """
+        print self.id, neuron_address
 
     def tick(self):
         """

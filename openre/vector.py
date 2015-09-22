@@ -52,7 +52,7 @@ class Vector(object):
         if not self.data is None:
             return
         assert self.data is None
-        self.data = np.zeros((1)).astype(self.type)
+        self.data = np.zeros((0)).astype(self.type)
 
     def shrink(self):
         length = 0

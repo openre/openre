@@ -330,3 +330,14 @@ __kernel void update_synapses_stat(
         atom_add(&d_stat[4], s_learn[synapse_address]);
     }
 }
+
+// get spiked IS_TRANSMITTER neurons
+__kernel void tick_transmitter_index(
+    __global {{ types.address | to_c_type }}        * i_local_address,
+    __global {{ types.neuron_flags | to_c_type }}   * i_flags,
+    __global {{ types.neuron_flags | to_c_type }}   * n_flags
+) {
+    {{ types.address | to_c_type }} index = get_global_id(0);
+    {{ types.address | to_c_type }} neuron_address = i_local_address[index];
+    i_flags[index] = n_flags[neuron_address];
+}

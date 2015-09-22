@@ -23,6 +23,12 @@ class Device(object):
         """
         raise NotImplementedError
 
+    def tick_transmitter_index(self, domain):
+        """
+        Получаем спайки для нейронов с флагом IS_TRANSMITTER
+        """
+        raise NotImplementedError
+
     def create(self, data):
         """
         Создает указатель на данные на устройстве для data

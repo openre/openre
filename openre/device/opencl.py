@@ -131,6 +131,16 @@ class OpenCL(Device):
             ).wait()
             domain.stat.from_device(self)
 
+    def tick_transmitter_index(self, domain):
+        self.program.tick_transmitter_index(
+            self.queue, (len(domain.transmitter_index.local_address),), None,
+            # transmitter_index
+            domain.transmitter_index.local_address.device_data_pointer,
+            domain.transmitter_index.flags.device_data_pointer,
+            # neurons
+            domain.neurons.flags.device_data_pointer,
+        ).wait()
+
     def create(self, data):
         if not len(data):
             return None
@@ -281,7 +291,6 @@ def test_device():
     domain.tick()
     domain.neurons.from_device(device)
     domain.synapses.from_device(device)
-
     s_level = domain.synapses.level[domain.post_synapse_index.key[
         layer2.neurons_metadata.level.to_address(0, 0)
     ]]
@@ -412,3 +421,73 @@ def test_device():
         synapses.IS_STRENGTHENED,
         3
     ]
+
+
+    # remote domains
+    config = {
+        'synapse': {
+            'max_level': synapse_max_level,
+            'spike_learn_threshold': 2,
+        },
+        'layers': [
+            {
+                'id': 'V1',
+                'threshold': synapse_max_level,
+                'relaxation': 1000,
+                'width': 20,
+                'height': 20,
+                'is_inhibitory': True,
+                'connect': [
+                    {
+                        'id': 'V2',
+                        'radius': 1,
+                        'shift': [0, 0],
+                    },
+                ],
+            },
+            {
+                'id': 'V2',
+                'threshold': synapse_max_level,
+                'relaxation': 1000,
+                'width': 20,
+                'height': 20,
+            },
+        ],
+        'domains': [
+            {
+                'id'        : 'D1',
+                'device'    : {
+                    'type': 'OpenCL',
+                },
+                'layers'    : [
+                    {'id': 'V1'},
+                ],
+            },
+            {
+                'id'        : 'D2',
+                'device'    : {
+                    'type': 'OpenCL',
+                },
+                'layers'    : [
+                    {'id': 'V2'},
+                ],
+            },
+        ],
+    }
+    ore = OpenRE(config)
+    d1 = ore.domains[0]
+    d2 = ore.domains[1]
+    v1 = d1.layers[0]
+    v1.neurons_metadata.level[0, 0] = synapse_max_level
+    d1.neurons.to_device(d1.device)
+    d1.synapses.to_device(d1.device)
+    d1.tick()
+    d2.tick()
+    d1.neurons.from_device(d1.device)
+    d1.synapses.from_device(d1.device)
+    d1.transmitter_index.flags.from_device(d1.device)
+    assert v1.neurons_metadata.flags[0, 0] & neurons.IS_SPIKED
+    assert v1.neurons_metadata.flags[0, 0] & neurons.IS_INHIBITORY
+    assert d1.transmitter_index.flags[0] & neurons.IS_SPIKED
+    assert d1.transmitter_index.flags[0] & neurons.IS_INHIBITORY
+
