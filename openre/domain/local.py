@@ -2,24 +2,25 @@
 """
 Содержит в себе слои и синапсы. Запускается в текущем процессе.
 """
+from openre.helpers import StatsMixin
 from openre.vector import Vector
 from openre.metadata import Metadata
 from openre.data_types import types
 from openre.layer import Layer, LayersVector
 from openre.neurons import NeuronsVector, IS_TRANSMITTER, create_neuron, \
-        NeuronsExtendableMetadata, IS_RECEIVER, IS_SPIKED
+        NeuronsExtendableMetadata, IS_RECEIVER, IS_SPIKED, IS_DEAD
 from openre.synapses import SynapsesVector, SynapsesMetadata
 import logging
 import uuid
 import random
 from copy import deepcopy
 import math
-from openre.index import SynapsesIndex, TransmitterIndex
+from openre.index import SynapsesIndex, TransmitterIndex, ReceiverIndex
 from openre import device
 import numpy as np
 
 
-class Domain(object):
+class Domain(StatsMixin):
     """
     Домен (Domain) - содержит один и более слоев состоящих из нейронов,
     связанных друг с другом синапсами. Домен можно воспринимать как один процесс
@@ -54,6 +55,7 @@ class Domain(object):
         0 <= spike_learn_threshold <= spike_forget_threshold <= types.tick.max
     """
     def __init__(self, config, ore):
+        super(Domain, self).__init__()
         logging.debug('Create domain (id: %s)', config['id'])
         config = deepcopy(config)
         self.config = config
@@ -94,7 +96,7 @@ class Domain(object):
         )(self.config['device'])
         self.cache = {}
         # stats for domain (number of spikes)
-        self.stat = Vector()
+        self.stat_vector = Vector()
         # fields:
         # 0 - total spikes (one per neuron) per self.config['stat_size'] ticks
         # 1 - number of the dead neurons
@@ -106,12 +108,12 @@ class Domain(object):
             (1, self.stat_fields),
             types.stat
         )
-        self.stat.add(stat_metadata)
+        self.stat_vector.add(stat_metadata)
         # stats for vectors
         self.layers_stat = Vector()
 
-        # pre_domain neuron_address -> self domain neuron_address
-        self.remote_to_local_neuron_address = {}
+        self.transmitter_index = TransmitterIndex()
+        self.receiver_index = ReceiverIndex()
 
         logging.debug('Domain created (id: %s)', self.id)
 
@@ -154,8 +156,6 @@ class Domain(object):
         """
         Create neurons
         """
-        logging.debug('Create transmitter index')
-        self.transmitter_index = TransmitterIndex()
         logging.debug(
             'Total %s local neurons in domain',
             len(self.neurons)
@@ -216,6 +216,7 @@ class Domain(object):
         self.post_synapse_index = SynapsesIndex(
             len(self.neurons), self.synapses.post)
         self.transmitter_index.shrink()
+        self.receiver_index.shrink()
 
     def deploy_device(self):
         """
@@ -228,9 +229,10 @@ class Domain(object):
             self.synapses,
             self.pre_synapse_index,
             self.post_synapse_index,
-            self.stat,
+            self.stat_vector,
             self.layers_stat,
             self.transmitter_index,
+            self.receiver_index,
         ]:
             vector.create_device_data_pointer(self.device)
         logging.debug('Domain deployed (id: %s)', self.id)
@@ -481,11 +483,9 @@ class Domain(object):
         pre_domain = self.ore.domains[pre_domain_index]
         pre_layer = pre_domain.layers[pre_layer_index]
         post_layer = self.layers[post_layer_index]
-        if pre_domain_index not in self.remote_to_local_neuron_address:
-            self.remote_to_local_neuron_address[pre_domain_index] = {}
         local_pre_neuron_address \
-                = self.remote_to_local_neuron_address[pre_domain_index] \
-                .get(pre_neuron_address)
+                = self.receiver_index.get_local_address(
+                    pre_domain_index, pre_neuron_address)
         # create IS_RECEIVER neuron
         if not local_pre_neuron_address:
             self.remote_neuron_address += 1
@@ -498,11 +498,20 @@ class Domain(object):
             # get local_pre_neuron_address
             local_pre_neuron_address = self.remote_neurons_metadata.level \
                     .to_address(self.remote_neuron_address, 0)
-            self.remote_to_local_neuron_address[pre_domain_index] \
-                    [pre_neuron_address] = local_pre_neuron_address
+            if not self.receiver_index.add(
+                local_pre_neuron_address,
+                pre_domain_index,
+                pre_neuron_address
+            ):
+                pre_domain.stat_inc('receiver_index_again')
+            local_pre_neuron_receiver_index = self.receiver_index.pos
             # set IS_RECEIVER flag to pre_neuron
             self.remote_neurons_metadata.flags[self.remote_neuron_address] \
                     |= IS_RECEIVER
+            # send local_pre_neuron_address back to source domain (pre_domain)
+            pre_domain.send_receiver_index(self.index, pre_neuron_address,
+                                           local_pre_neuron_address,
+                                           local_pre_neuron_receiver_index)
         # get synapse_address
         self.synapse_address += 1
         self.connect_neurons(
@@ -513,20 +522,22 @@ class Domain(object):
             ),
             self.synapse_address
         )
-        # return local_pre_neuron_address to send it back to source domain
-        pre_domain.send_receiver_index(self.index, pre_neuron_address,
-                                       local_pre_neuron_address)
 
     def send_receiver_index(self, post_domain_index, pre_neuron_address,
-                            remote_pre_neuron_address):
+                            remote_pre_neuron_address,
+                            remote_pre_neuron_receiver_index):
         """
         Запоминаем remote_neuron_address (IS_RECEIVER) для pre_neuron_address
         (IS_TRANSMITTER)
         self == pre_domain
         """
         pre_domain = self
-        pre_domain.transmitter_index.add(pre_neuron_address, post_domain_index,
-                                         remote_pre_neuron_address)
+        if not pre_domain.transmitter_index.add(
+            pre_neuron_address, post_domain_index, remote_pre_neuron_address,
+            remote_pre_neuron_receiver_index
+        ):
+            pre_domain.stat_inc('transmitter_index_again')
+
 
     def send_spikes(self):
         """
@@ -538,31 +549,36 @@ class Domain(object):
         self.transmitter_index.flags.from_device(self.device)
         index = self.transmitter_index
         for (i,), flag in np.ndenumerate(index.flags.data):
-            if not flag & IS_SPIKED:
+            if not flag & IS_SPIKED or flag & IS_DEAD:
                 continue
             post_domain = self.ore.domains[index.remote_domain[i]]
-            post_neuron_address = index.remote_address[i]
-            post_domain.register_spike(post_neuron_address)
+            receiver_neuron_index = index.remote_receiver_index.data[i]
+            post_domain.register_spike(receiver_neuron_index)
 
     def receive_spikes(self):
         """
         Получаем спайки из других доменов, формируем receiver index и копируем
         его в устройство (device).
         """
+        # step 3
+        self.receiver_index.flags.to_device(self.device)
+        self.device.tick_receiver_index(self)
+        self.receiver_index.flags.from_device(self.device)
 
-    def register_spike(self, neuron_address):
+    def register_spike(self, receiver_neuron_index):
         """
         Записывает в домен пришедший спайк
         """
-        print self.id, neuron_address
+        # step 2
+        self.receiver_index.flags.data[receiver_neuron_index] |= IS_SPIKED
 
     def tick(self):
         """
         Один tick домена.
         0.
             - self.ticks++
-            - self.total_spikes = 0 (эта информация накапливается в domain.stat
-                для поля 0)
+            - self.total_spikes = 0 (эта информация накапливается в
+                domain.stat_vector для поля 0)
         1. по всем слоям layer:
             - layer.total_spikes = 0 (эта информация накапливается в
                 domain.layers_stat для поля 0)
@@ -642,6 +658,7 @@ class Domain(object):
         """
         # step 0
         self.ticks += 1
+        self.stat_set('ticks', self.ticks)
         # step 1
         self.device.tick_neurons(self)
         # step 2 & 3

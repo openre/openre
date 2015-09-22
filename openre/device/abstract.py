@@ -25,7 +25,13 @@ class Device(object):
 
     def tick_transmitter_index(self, domain):
         """
-        Получаем спайки для нейронов с флагом IS_TRANSMITTER
+        Получаем спайки из устройства для нейронов с флагом IS_TRANSMITTER
+        """
+        raise NotImplementedError
+
+    def tick_receiver_index(self, domain):
+        """
+        Передаем в устройство спайки для нейронов с флагом IS_RECEIVER
         """
         raise NotImplementedError
 

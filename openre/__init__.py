@@ -289,7 +289,7 @@ def test_openre():
     assert isinstance(ore.domains[0].device, Dummy)
     assert ore.domains[0].config['stat_size'] == 1000
     # 200 synapses in domain D1
-    assert len(ore.domains[0].stat.data) \
+    assert len(ore.domains[0].stat_vector.data) \
             == ore.domains[0].stat_fields
     assert ore.domains[0].layers[0].id == 'V1'
     assert ore.domains[0].layers_config[0]['layer'].id == 'V1'
@@ -377,15 +377,20 @@ def test_openre():
     assert not d1.remote_neurons_metadata.vitality[0] & IS_INHIBITORY
     # remote neuron in d2 (domain index == 1)
     # to local neuron in d3->remote_neurons
-    assert d3.remote_to_local_neuron_address[1][218] == 6
+    assert d3.receiver_index.data[1][218] == 6
     # local neuron #218 in d2 to remote neuron #6 in d3 (domain index == 2)
-    assert d2.transmitter_index.data[218][2] == 6
+    assert d2.transmitter_index.data[218][2] == (6, 0)
     assert d2.transmitter_index.address_to_key_index[218] == 200
     assert d2.neurons.flags.data[218] & IS_TRANSMITTER
     assert d3.neurons.flags.data[6] & IS_RECEIVER
     assert len(d2.transmitter_index.key.data) == 207
     assert len(d2.transmitter_index.value.data) == 207
-
+    assert d1.stat('transmitter_index_again') is None
+    assert d2.stat('transmitter_index_again') is None
+    assert d3.stat('transmitter_index_again') is None
+    assert d1.stat('receiver_index_again') is None
+    assert d2.stat('receiver_index_again') is None
+    assert d3.stat('receiver_index_again') is None
 
     for i, domain_config in enumerate(config['domains']):
         domain = ore.domains[i]
@@ -409,4 +414,3 @@ def test_openre():
             assert layer.neurons_metadata
         domain.tick()
         assert domain.ticks == 1
-

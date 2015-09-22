@@ -15,6 +15,9 @@ class Dummy(Device):
     def tick_transmitter_index(self, domain):
         pass
 
+    def tick_receiver_index(self, domain):
+        pass
+
     def create(self, data):
         if not len(data):
             return None

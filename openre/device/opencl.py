@@ -46,8 +46,11 @@ class OpenCL(Device):
 
 
     def tick_neurons(self, domain):
+        length = domain.neurons.length
+        if not length:
+            return
         self.program.tick_neurons(
-            self.queue, (domain.neurons.length,), None,
+            self.queue, (length,), None,
             # domain
             types.tick(domain.ticks),
             # layers
@@ -64,8 +67,11 @@ class OpenCL(Device):
         ).wait()
 
     def tick_synapses(self, domain):
+        length = domain.neurons.length
+        if not length:
+            return
         self.program.tick_synapses(
-            self.queue, (domain.neurons.length,), None,
+            self.queue, (length,), None,
             # domain
             types.synapse_level(domain.learn_rate),
             types.synapse_level(domain.learn_threshold),
@@ -91,7 +97,7 @@ class OpenCL(Device):
         # download layers stats from device once
         # per domain.config['stat_size'] ticks
         if domain.ticks % domain.config['stat_size'] == 0:
-            domain.stat.data.fill(0)
+            domain.stat_vector.data.fill(0)
             self.program.update_layers_stat(
                 self.queue, (domain.neurons.length,), None,
                 # domain
@@ -108,12 +114,12 @@ class OpenCL(Device):
                 domain.neurons.vitality.device_data_pointer
             ).wait()
             domain.layers_stat.from_device(self)
-            stat_length = len(domain.stat)
+            stat_length = len(domain.stat_vector)
             for layer_address in range(len(domain.layers)):
                 layer_stat_start = \
                         domain.stat_fields \
                         * layer_address
-                domain.stat.data += domain.layers_stat.data[
+                domain.stat_vector.data += domain.layers_stat.data[
                     layer_stat_start : layer_stat_start + stat_length
                 ]
             self.program.init_layers_stat(
@@ -121,22 +127,50 @@ class OpenCL(Device):
                 domain.layers_stat.device_data_pointer
             ).wait()
             # count synapses stats
-            domain.stat.to_device(self)
+            domain.stat_vector.to_device(self)
             self.program.update_synapses_stat(
                 self.queue, (len(domain.synapses),), None,
-                domain.stat.device_data_pointer,
+                domain.stat_vector.device_data_pointer,
                 # synapses
                 domain.synapses.learn.device_data_pointer,
                 domain.synapses.flags.device_data_pointer
             ).wait()
-            domain.stat.from_device(self)
+            domain.stat_vector.from_device(self)
+            domain.stat_set('stat_size', domain.config['stat_size'])
+            # 0 - total spikes (one per neuron) per self.config['stat_size']
+            # ticks
+            domain.stat_set('total_spikes', domain.stat_vector.data[0])
+            # 1 - number of the dead neurons
+            domain.stat_set('dead_neurons', domain.stat_vector.data[1])
+            # 2 - number of synapses with flag IS_STRENGTHENED
+            domain.stat_set('strengthened_synapses', domain.stat_vector.data[2])
+            # 3 - neurons tiredness = sum(layer.max_vitality - neuron.vitality)
+            domain.stat_set('neurons_tiredness', domain.stat_vector.data[3])
+            # 4 - synapse learn level
+            domain.stat_set('synapse_learn_level', domain.stat_vector.data[4])
 
     def tick_transmitter_index(self, domain):
+        length = len(domain.transmitter_index.local_address)
+        if not length:
+            return
         self.program.tick_transmitter_index(
-            self.queue, (len(domain.transmitter_index.local_address),), None,
+            self.queue, (length,), None,
             # transmitter_index
             domain.transmitter_index.local_address.device_data_pointer,
             domain.transmitter_index.flags.device_data_pointer,
+            # neurons
+            domain.neurons.flags.device_data_pointer,
+        ).wait()
+
+    def tick_receiver_index(self, domain):
+        length = len(domain.receiver_index.local_address)
+        if not length:
+            return
+        self.program.tick_receiver_index(
+            self.queue, (length,), None,
+            # transmitter_index
+            domain.receiver_index.local_address.device_data_pointer,
+            domain.receiver_index.flags.device_data_pointer,
             # neurons
             domain.neurons.flags.device_data_pointer,
         ).wait()
@@ -368,28 +402,34 @@ def test_device():
     # check stats
     for field_num in range(0, domain.stat_fields):
         if field_num not in [2, 4]:
-            assert domain.stat[0 + field_num] \
+            assert domain.stat_vector[0 + field_num] \
                 == domain.layers_stat[0 + field_num] \
                 + domain.layers_stat[ \
-                    0 + field_num + len(domain.stat)]
+                    0 + field_num + len(domain.stat_vector)]
 
+    assert domain.config['stat_size'] == domain.stat('stat_size')
     # field 0 - total spikes
-    assert domain.stat[0] >= 4
+    assert domain.stat_vector[0] >= 4
+    assert domain.stat_vector[0] == domain.stat('total_spikes')
     assert domain.layers_stat[0] >= 2
-    assert domain.layers_stat[0 + len(domain.stat)] >= 2
+    assert domain.layers_stat[0 + len(domain.stat_vector)] >= 2
     # field 1 - number of the dead neurons
     assert domain.layers_stat[1] == 3
-    assert domain.layers_stat[1 + len(domain.stat)] == 1
+    assert domain.stat_vector[1] == domain.stat('dead_neurons')
+    assert domain.layers_stat[1 + len(domain.stat_vector)] == 1
     # field 2 - number of synapses with IS_STRENGTHENED flag
-    assert domain.stat[2] == 1
+    assert domain.stat_vector[2] == 1
+    assert domain.stat_vector[2] == domain.stat('strengthened_synapses')
     # field 3 - tiredness
     assert domain.layers_stat[3] \
             == (layer.spike_cost - 1) * domain.layers_stat[0]
-    assert domain.layers_stat[3 + len(domain.stat)] \
+    assert domain.layers_stat[3 + len(domain.stat_vector)] \
             == (layer2.spike_cost - 1) \
-                * domain.layers_stat[0 + len(domain.stat)]
+                * domain.layers_stat[0 + len(domain.stat_vector)]
+    assert domain.stat_vector[3] == domain.stat('neurons_tiredness')
     # field 4 - sum(synapse.learn)
-    assert domain.stat[4] >= (domain.learn_rate - 1) * 3
+    assert domain.stat_vector[4] >= (domain.learn_rate - 1) * 3
+    assert domain.stat_vector[4] == domain.stat('synapse_learn_level')
 
     # test kernel
     test_length = 13
@@ -482,7 +522,6 @@ def test_device():
     d1.neurons.to_device(d1.device)
     d1.synapses.to_device(d1.device)
     d1.tick()
-    d2.tick()
     d1.neurons.from_device(d1.device)
     d1.synapses.from_device(d1.device)
     d1.transmitter_index.flags.from_device(d1.device)
@@ -490,4 +529,17 @@ def test_device():
     assert v1.neurons_metadata.flags[0, 0] & neurons.IS_INHIBITORY
     assert d1.transmitter_index.flags[0] & neurons.IS_SPIKED
     assert d1.transmitter_index.flags[0] & neurons.IS_INHIBITORY
+
+    assert d2.receiver_index.flags[0] & neurons.IS_SPIKED
+    local_address = d2.receiver_index.local_address[0]
+    assert local_address == 400
+    assert not d2.neurons.flags[local_address] & neurons.IS_SPIKED
+    assert d2.neurons.flags[local_address] & neurons.IS_INHIBITORY
+    assert d2.neurons.flags[local_address] & neurons.IS_RECEIVER
+    d2.tick()
+    d2.neurons.from_device(d2.device)
+    assert not d2.receiver_index.flags[0] & neurons.IS_SPIKED
+    assert d2.neurons.flags[local_address] & neurons.IS_SPIKED
+    assert d2.neurons.flags[local_address] & neurons.IS_INHIBITORY
+    assert d2.neurons.flags[local_address] & neurons.IS_RECEIVER
 

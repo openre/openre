@@ -272,3 +272,36 @@ class OrderedDict(dict):
         "od.viewitems() -> a set-like object providing a view on od's items"
         return ItemsView(self)
 
+
+class StatsMixin(object):
+    """
+    Различная статистика работы объекта
+    """
+    def __init__(self, *args, **kwargs):
+        self._stats = {}
+        super(StatsMixin, self).__init__(*args, **kwargs)
+
+    def stat_inc(self, name):
+        """
+        Увеличивает значение name на еденицу
+        """
+        self._stats[name] = self._stats.get(name, 0) + 1
+
+    def stat_dec(self, name):
+        """
+        Уменьшает значение name на еденицу
+        """
+        self._stats[name] = self._stats.get(name, 0) - 1
+
+    def stat_set(self, name, value):
+        """
+        Устанавливает значение name равным value
+        """
+        self._stats[name] = value
+
+    def stat(self, name):
+        """
+        Получает значение name
+        """
+        return self._stats.get(name)
+
