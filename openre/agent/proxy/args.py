@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Параметры сервера
+Параметры прокси
 """
 import argparse
 from openre.agent.args import mixin_log_level, mixin_server_endpoint

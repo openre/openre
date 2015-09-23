@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Основной код сервера
+Основной код клиента
 """
 from openre.agent.helpers import AgentBase
 import pprint

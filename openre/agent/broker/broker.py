@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Основной код прокси
+Основной код брокера
 """
 import logging
 import zmq

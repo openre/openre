@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Прокси. Публикует данные с нескольких доменов на одном порте.
+Домен. Создает один процесс для одного домена openre. Получает и передает
+спайки (pub), получает команды от сервера (req-rep) и пересылает результат
+выполнения команды.
 """
 from openre.agent.decorators import daemonize
 from openre.agent.helpers import daemon_stop

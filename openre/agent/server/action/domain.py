@@ -3,6 +3,7 @@
 from openre.agent.decorators import action
 from openre.agent.server.decorators import start_process
 from openre.agent.server.helpers import stop_process
+from openre.agent.server.state import process_state, is_running
 import sys
 import subprocess
 import os
@@ -15,6 +16,18 @@ def domain_start(event):
     data = event.data
     if not isinstance(data, dict):
         data = {}
+    # deny run two domains with the same name
+    if False:
+        name = data.get('name')
+        if name:
+            name = 'domain.%s' % name
+        else:
+            name = 'domain'
+        for stt in process_state.values():
+            if name == stt['name'] and is_running(stt):
+                return event.failed(
+                    'Processes with name "%s" is already running' % (name,)
+                    )
     do_domain_start(
         event,
         str(data.get('id', uuid.uuid4())),

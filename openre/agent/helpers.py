@@ -291,6 +291,8 @@ class AgentBase(object):
 
     def socket(self, *args, **kwargs):
         socket = self.context.socket(*args, **kwargs)
+        # The value of 0 specifies no linger period. Pending messages shall be
+        # discarded immediately when the socket is closed with zmq_close().
         socket.setsockopt(zmq.LINGER, 0)
         return socket
 
