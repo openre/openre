@@ -12,6 +12,15 @@ def stop_process(event, name=None):
     # on the second run pid is already in event.context['id']
     pid = event.context.get('id', event.data)
     state = None
+    def is_proper_name(name, state_name):
+        if not name:
+            return False
+        if '.' not in name and '.' in state_name \
+           and state_name.startswith('%s.' % name):
+            return True
+        if name == state_name:
+            return True
+        return False
     if isinstance(pid, uuid.UUID) or str(pid) in process_state:
         state = process_state[str(pid)]
         pid = state['pid']
@@ -23,7 +32,7 @@ def stop_process(event, name=None):
     elif name:
         rows = []
         for stt in process_state.values():
-            if stt['name'] == name and stt['pid']:
+            if is_proper_name(name, stt['name']) and stt['pid']:
                 state = stt
                 rows.append(stt)
                 pid = state['pid']
@@ -47,7 +56,7 @@ def stop_process(event, name=None):
         if not isinstance(pid, int) or not pid:
             return event.failed('Wrong pid format %s' % repr(pid))
 
-    if name and state['name'] != name:
+    if not is_proper_name(name, state['name']):
         return event.failed(
             'Process state name "%s" not equal "%s", cant kill' % (
                 state['name'], name))

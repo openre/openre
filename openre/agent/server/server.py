@@ -12,6 +12,7 @@ import uuid
 from openre.agent.server.state import process_state
 import signal
 import time
+import tempfile
 
 class Agent(AgentBase):
     def init(self):
@@ -26,8 +27,15 @@ class Agent(AgentBase):
                     "runnning?",
                     self.config.host, self.config.port)
             raise
+
+        ipc_broker_file = os.path.join(
+            tempfile.gettempdir(), 'openre-broker-frontend')
+        self.broker = self.socket(zmq.REQ)
+        self.broker.connect("ipc://%s" % ipc_broker_file)
+
         self.poller = zmq.Poller()
         self.poller.register(self.responder, zmq.POLLIN)
+        self.poller.register(self.broker, zmq.POLLIN)
         self.init_actions()
         self.proxy_id = uuid.uuid4()
         self.broker_id = uuid.uuid4()
@@ -155,6 +163,7 @@ class Agent(AgentBase):
                 break
             time.sleep(1)
         self.responder.close()
+        self.broker.close()
 
     def init_actions(self):
         # find module by type
