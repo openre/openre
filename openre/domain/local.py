@@ -512,6 +512,7 @@ class Domain(StatsMixin):
             pre_domain.send_receiver_index(self.index, pre_neuron_address,
                                            local_pre_neuron_address,
                                            local_pre_neuron_receiver_index)
+            pre_domain.stat_inc('total_transmitter_neurons_sended')
         # get synapse_address
         self.synapse_address += 1
         self.connect_neurons(
@@ -537,7 +538,8 @@ class Domain(StatsMixin):
             remote_pre_neuron_receiver_index
         ):
             pre_domain.stat_inc('transmitter_index_again')
-
+        # should be equal to pre_domain.stat('total_transmitter_neurons_sended')
+        pre_domain.stat_inc('total_receiver_neurons_received')
 
     def send_spikes(self):
         """

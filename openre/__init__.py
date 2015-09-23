@@ -392,6 +392,11 @@ def test_openre():
     assert d2.stat('receiver_index_again') is None
     assert d3.stat('receiver_index_again') is None
 
+    assert d1.stat('total_transmitter_neurons_sended') \
+            == d1.stat('total_receiver_neurons_received')
+    assert d1.stat('total_transmitter_neurons_sended') \
+            == len(d2.remote_neurons_metadata.level)
+
     for i, domain_config in enumerate(config['domains']):
         domain = ore.domains[i]
         assert domain.id == domain_config['id']
