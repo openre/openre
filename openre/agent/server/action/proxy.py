@@ -10,37 +10,45 @@ from openre import BASE_PATH
 import tempfile
 
 @action()
-def proxy_start(event):
+def proxy_start(event, wait=True, exit_on_error=False, id=None,
+                host=None, port=None,
+                server_host=None, server_port=None,
+                pid=None
+               ):
     server = event.pool.context['server']
-    data = event.data
-    if not isinstance(data, dict):
-        data = {}
     do_proxy_start(
         event,
-        str(data.get('id', server.proxy_id)),
-        wait=data.get('wait', True),
-        exit_on_error=data.get('exit_on_error', False)
+        str(id or server.proxy_id),
+        wait=wait,
+        exit_on_error=exit_on_error,
+        host=host,
+        port=port,
+        server_host=server_host,
+        server_port=server_port,
+        pid=pid
     )
 
 @start_process('proxy')
-def do_proxy_start(event, proccess_id):
+def do_proxy_start(event, proccess_id,
+                   host=None, port=None,
+                   server_host=None, server_port=None,
+                   pid=None
+                  ):
     server = event.pool.context['server']
-    data = event.data
-    if not isinstance(data, dict):
-        data = {}
-    proxy_pid = os.path.join(
-        tempfile.gettempdir(), 'openre-proxy.pid')
+    if pid is None:
+        pid = os.path.join(
+            tempfile.gettempdir(), 'openre-proxy.pid')
     return subprocess.Popen([
         sys.executable,
         os.path.realpath(os.path.join(BASE_PATH, '../openre-agent')),
         'proxy',
         'start',
-        '--host', data.get('host', server.config.proxy_host),
-        '--port', data.get('port', server.config.proxy_port),
-        '--server-host', data.get('server_host', server.config.host),
-        '--server-port', data.get('server_port', server.config.port),
+        '--host', host or server.config.proxy_host,
+        '--port', port or server.config.proxy_port,
+        '--server-host', server_host or server.config.host,
+        '--server-port', server_port or server.config.port,
         '--id', proccess_id,
-        '--pid', data.get('pid', proxy_pid),
+        '--pid', pid,
     ])
 
 @action()

@@ -6,7 +6,8 @@ from openre.agent.server.state import process_state, is_running
 def start_process(name='process'):
     def wrapper(f):
         @wraps(f)
-        def wrapped(event, process_id, wait=True, exit_on_error=False):
+        def wrapped(event, process_id, wait=True, exit_on_error=False,
+                    *args, **kwargs):
             if process_id in process_state:
                 state = process_state[process_id]
                 if is_running(state):
@@ -20,7 +21,7 @@ def start_process(name='process'):
                 'id': process_id,
                 'name': name,
             }
-            ret = f(event, process_id)
+            ret = f(event, process_id, *args, **kwargs)
             if wait:
                 exit_status = ret.wait()
                 # process already running

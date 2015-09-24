@@ -5,12 +5,12 @@ import uuid
 import signal
 import logging
 
-def stop_process(event, name=None):
+def stop_process(event, name=None, id=None):
     """
     If name is not None, than check that state have the same name
     """
     # on the second run pid is already in event.context['id']
-    pid = event.context.get('id', event.data)
+    pid = event.context.get('id', id)
     state = None
     def is_proper_name(name, state_name):
         if not name:
@@ -47,7 +47,9 @@ def stop_process(event, name=None):
             )
 
     if not state:
-        return event.failed('Process state not found for "%s", cant kill' % pid)
+        return event.failed(
+            'Process state not found for name="%s", id="%s", cant kill'
+            % (name, pid))
     # first run of the task
     if 'id' not in event.context:
         event.context['id'] = state['id']

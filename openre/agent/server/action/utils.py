@@ -10,3 +10,7 @@ def ping(event):
 def exception(event):
     raise Exception('Test exception')
 
+@action()
+def check_args(event, *args, **kwargs):
+    return {'args': args, 'kwargs': kwargs}
+

@@ -71,7 +71,7 @@ def action(name=None, priority=50):
         add_action(name or f.__name__, f, priority)
         @wraps(f)
         def wrapped(*args, **kwargs):
-            f(*args, **kwargs)
+            return f(*args, **kwargs)
         return wrapped
     return wrapper
 

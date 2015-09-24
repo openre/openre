@@ -216,6 +216,7 @@ class AgentBase(object):
         self.__clean_user = self.clean
         self.clean = self.__clean
         self.context = zmq.Context()
+        self.server_socket = None
         self.server = None
         if self.__class__.server_connect:
             self.connect_server(
@@ -291,9 +292,9 @@ class AgentBase(object):
                 'status': 'exit',
                 'pid': 0,
             })
-        if self.server:
-            self.server.close()
-            self.server = None
+        if self.server_socket:
+            self.server_socket.close()
+            self.server_socket = None
         self.context.term()
 
     def socket(self, *args, **kwargs):
@@ -304,11 +305,12 @@ class AgentBase(object):
         return socket
 
     def connect_server(self, host, port):
-        self.server = self.socket(zmq.REQ)
-        self.server.connect('tcp://%s:%s' % (
+        self.server_socket = self.socket(zmq.REQ)
+        self.server_socket.connect('tcp://%s:%s' % (
             host == '*' and '127.0.0.1' or host,
             port
         ))
+        self.server = RPC(self.server_socket)
 
     def send_server(self, action, data=None, skip_recv=False):
         message = {
@@ -318,10 +320,10 @@ class AgentBase(object):
         }
         message = self.to_json(message)
         logging.debug('Agent->Server: %s', message)
-        self.server.send(message)
+        self.server_socket.send(message)
         ret = None
         if not skip_recv:
-            ret = self.server.recv()
+            ret = self.server_socket.recv()
             ret = self.from_json(ret)
             logging.debug('Server->Agent: %s', ret)
         return ret
@@ -341,4 +343,40 @@ class AgentBase(object):
             logging.warn('Message is not valid json: %s', json)
         return json
 
+class RPCException(Exception):
+    def __init__(self, result, *args, **kwargs):
+        self.result = result
+        super(RPCException, self).__init__(*args, **kwargs)
 
+class RPC(object):
+    """
+    Удаленное выполнение процедур
+    """
+    def __init__(self, socket):
+        self._socket = socket
+
+    def __getattr__(self, name):
+        if hasattr(self, name):
+            return super(RPC, self).__getattr__(name)
+        def api_call(*args, **kwargs):
+            message = {
+                'action': name,
+                'data': {},
+                'args': {
+                    'args': args,
+                    'kwargs': kwargs
+                }
+            }
+            message = to_json(message)
+            logging.debug('RPC call server.%s(*%s, **%s)', name, args, kwargs)
+            self._socket.send(message)
+            ret = self._socket.recv()
+            ret = from_json(ret)
+            logging.debug('RPC result %s', ret)
+            if not ret['success']:
+                if 'traceback' in ret and ret['traceback']:
+                    raise RPCException(ret, ret['traceback'])
+                raise RPCException(ret, ret['error'])
+            return ret['data']
+
+        return api_call

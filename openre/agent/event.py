@@ -60,6 +60,7 @@ class Event(object):
         self.pool = None
         self.result = None
         self.error = None
+        self.error_class = None
         self.traceback = None
         self.is_success = None
         self._done_callback = None
@@ -121,7 +122,12 @@ class Event(object):
             self.timeout_value = None
         self.is_prevent_done = False
         try:
-            self.result = do_strict_action(self.action, self)
+            args = {'args':[], 'kwargs': {}}
+            if 'args' in self.message:
+                args = self.message['args']
+            self.result = do_strict_action(
+                self.action, self, *args['args'],
+                **args['kwargs'])
         except Exception as error:
             self.failed(error, traceback=True)
         if self.is_prevent_done:

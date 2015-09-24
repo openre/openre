@@ -12,17 +12,14 @@ import uuid
 import re
 
 @action()
-def domain_start(event):
-    data = event.data
-    if not isinstance(data, dict):
-        data = {}
+def domain_start(
+    event, name=None, id=None, wait=True, exit_on_error=False,
+    server_host=None, server_port=None
+):
+    if id is None:
+        id = uuid.uuid4()
     # deny run two domains with the same name
     if False:
-        name = data.get('name')
-        if name:
-            name = 'domain.%s' % name
-        else:
-            name = 'domain'
         for stt in process_state.values():
             if name == stt['name'] and is_running(stt):
                 return event.failed(
@@ -30,37 +27,40 @@ def domain_start(event):
                     )
     do_domain_start(
         event,
-        str(data.get('id', uuid.uuid4())),
-        wait=data.get('wait', True),
-        exit_on_error=data.get('exit_on_error', False)
+        str(id),
+        wait=wait,
+        exit_on_error=exit_on_error,
+        server_host=server_host,
+        server_port=server_port,
+        name=name
     )
+    return True
 
 @start_process('domain')
-def do_domain_start(event, proccess_id):
+def do_domain_start(event, proccess_id,
+                    server_host=None, server_port=None,
+                    name=None
+                   ):
     server = event.pool.context['server']
-    data = event.data
-    if not isinstance(data, dict):
-        data = {}
     params = [
         sys.executable,
         os.path.realpath(os.path.join(BASE_PATH, '../openre-agent')),
         'domain',
         'start',
-        '--server-host', data.get('server_host', server.config.host),
-        '--server-port', data.get('server_port', server.config.port),
+        '--server-host', server_host or server.config.host,
+        '--server-port', server_port or server.config.port,
         '--id', proccess_id,
         '--pid', '-',
     ]
-    if data.get('name'):
+    if name:
         params.extend([
-            '--name', data['name']
+            '--name', name
         ])
     return subprocess.Popen(params)
 
 @action()
-def domain_stop(event):
-    name = 'domain'
-    if isinstance(event.data, basestring):
-        if re.search(r'^domain\.', event.data):
-            name = event.data
-    return stop_process(event, name=name)
+def domain_stop(event, name='domain', id=None):
+    if name:
+        if not re.search(r'^domain\.', name):
+            name = 'domain'
+    return stop_process(event, name=name, id=id)

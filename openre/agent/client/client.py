@@ -13,9 +13,15 @@ class Agent(AgentBase):
     def init(self):
         self.init_actions()
         self.net_config = None
-#        self.connect_server(self.config.host, self.config.port)
+        # FIXME: remove this and next line
+        self.connect_server(self.config.host, self.config.port)
 
     def run(self):
+        #print self.server.domain_start(name='D2')
+        #print self.server.domain_stop(name='domain.D2')
+        #print self.server.domain_state_dump()
+        #print self.server.process_state_dump()
+        return
         if self.config.config and self.config.action == 'run':
             try:
                 self.net_config = from_json(self.config.config.read())
