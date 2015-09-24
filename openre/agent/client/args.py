@@ -4,6 +4,7 @@
 """
 import argparse
 from openre.agent.args import mixin_log_level, mixin_default
+#import sys
 
 parser = argparse.ArgumentParser(description='OpenRE.Agent client')
 
@@ -40,6 +41,16 @@ parser.add_argument(
     action='store_true',
     help='pretty print the result'
 )
+
+parser.add_argument(
+    '--config',
+    dest='config',
+#    nargs='?',
+    type=argparse.FileType('r'),
+#    default=sys.stdin,
+    help='config json file for net'
+)
+
 
 mixin_log_level(parser)
 
