@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
+from openre.agent.helpers import RPC, RPCProxy
+import uuid
 
 class ConnectionManager(object):
     """
@@ -9,6 +11,8 @@ class ConnectionManager(object):
         self.host = host
         self.port = port
         self.connection = None
+        self.server = RPC(self.connection)
+        self.domain = RPC(self.connection, 'domain')
 
     def clean(self):
         """
@@ -34,11 +38,14 @@ class Domain(object):
         self.index = index
         domain_config = self.config['domains'][index]
         self.id = domain_config['id']
+        self.proccess_id = uuid.uuid4()
         logging.debug('Create domain %s', self.id)
-        self.server = ConnectionManager(
+        self.connection = ConnectionManager(
             domain_config.get('host', '127.0.0.1'),
             domain_config.get('port', 8932)
         )
+        self.server = self.connection.server
+        self.domain = self.connection.domain
 
     def create(self):
         """
@@ -73,4 +80,4 @@ class Domain(object):
         Закрывает соединение.
         """
         logging.debug('Clean domain %s', self.id)
-        self.server.clean()
+        self.connection.clean()

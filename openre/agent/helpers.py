@@ -12,6 +12,26 @@ import re
 from types import FunctionType
 import traceback
 
+ZMQ = {'context':None}
+def get_zmq_context():
+    """
+    Создает один глобальный контекст для zmq.
+    Если контекст уже создан, то возвращает ранее созданный.
+    """
+    if not ZMQ['context']:
+        ZMQ['context'] = zmq.Context()
+    return ZMQ['context']
+
+
+def term_zmq_context():
+    """
+    Удаляет глобальный контекст.
+    """
+    if not ZMQ['context']:
+        return
+    ZMQ['context'].term()
+    ZMQ['context'] = None
+
 def daemon_stop(pid_file=None):
     """
     If pid is provided - then run try to stop daemon.
@@ -198,7 +218,59 @@ def add_filter(action, callback, priority=50):
 def do_filter(action, value):
     return FilterHooks.do_action(action, value)
 
-class AgentBase(object):
+class Transport(object):
+    def __init__(self, *args, **kwargs):
+        super(Transport, self).__init__()
+        self.context = get_zmq_context()
+        self._connection_pool = []
+
+    def clean_sockets(self):
+        for socket in self._connection_pool:
+            self.disconnect(socket)
+
+    def socket(self, *args, **kwargs):
+        socket = self.context.socket(*args, **kwargs)
+        # The value of 0 specifies no linger period. Pending messages shall be
+        # discarded immediately when the socket is closed with zmq_close().
+        socket.setsockopt(zmq.LINGER, 0)
+        return socket
+
+    def disconnect(self, socket):
+        if socket in self._connection_pool:
+            logging.debug('agent.disconnect(%s)', socket)
+            self._connection_pool.remove(socket)
+            socket.close()
+            socket = None
+            return True
+        return False
+
+    def connect(self, host, port):
+        logging.debug('agent.connect(%s, %s)', repr(host), repr(port))
+        socket = self.socket(zmq.REQ)
+        self._connection_pool.append(socket)
+        socket.connect('tcp://%s:%s' % (
+            host == '*' and '127.0.0.1' or host,
+            port
+        ))
+        return socket
+
+    def to_json(self, data):
+        try:
+            data = to_json(data)
+        except ValueError:
+            logging.warn('Cant convert to json: %s', data)
+            raise
+        return data
+
+    def from_json(self, json):
+        try:
+            json = from_json(json)
+        except ValueError:
+            logging.warn('Message is not valid json: %s', json)
+        return json
+
+
+class AgentBase(Transport):
     """
     Абстрактный класс агента.
     """
@@ -215,9 +287,9 @@ class AgentBase(object):
         self.run = self.__run
         self.__clean_user = self.clean
         self.clean = self.__clean
-        self.context = zmq.Context()
         self.server_socket = None
         self.server = None
+        super(AgentBase, self).__init__()
         if self.__class__.server_connect:
             self.connect_server(
                 self.config.server_host,
@@ -292,24 +364,12 @@ class AgentBase(object):
                 'status': 'exit',
                 'pid': 0,
             })
+        self.clean_sockets()
         if self.server_socket:
-            self.server_socket.close()
             self.server_socket = None
-        self.context.term()
-
-    def socket(self, *args, **kwargs):
-        socket = self.context.socket(*args, **kwargs)
-        # The value of 0 specifies no linger period. Pending messages shall be
-        # discarded immediately when the socket is closed with zmq_close().
-        socket.setsockopt(zmq.LINGER, 0)
-        return socket
 
     def connect_server(self, host, port):
-        self.server_socket = self.socket(zmq.REQ)
-        self.server_socket.connect('tcp://%s:%s' % (
-            host == '*' and '127.0.0.1' or host,
-            port
-        ))
+        self.server_socket = self.connect(host, port)
         self.server = RPC(self.server_socket)
 
     def send_server(self, action, data=None, skip_recv=False):
@@ -328,21 +388,6 @@ class AgentBase(object):
             logging.debug('Server->Agent: %s', ret)
         return ret
 
-    def to_json(self, data):
-        try:
-            data = to_json(data)
-        except ValueError:
-            logging.warn('Cant convert to json: %s', data)
-            raise
-        return data
-
-    def from_json(self, json):
-        try:
-            json = from_json(json)
-        except ValueError:
-            logging.warn('Message is not valid json: %s', json)
-        return json
-
 class RPCException(Exception):
     def __init__(self, result, *args, **kwargs):
         self.result = result
@@ -354,11 +399,13 @@ class RPC(object):
     """
     def __init__(self, socket):
         self._socket = socket
+        self._response = None
 
     def __getattr__(self, name):
         if hasattr(self, name):
             return super(RPC, self).__getattr__(name)
         def api_call(*args, **kwargs):
+            self._response = None
             message = {
                 'action': name,
                 'data': {},
@@ -372,7 +419,52 @@ class RPC(object):
             self._socket.send(message)
             ret = self._socket.recv()
             ret = from_json(ret)
+            self._response = ret
             logging.debug('RPC result %s', ret)
+            if not ret['success']:
+                if 'traceback' in ret and ret['traceback']:
+                    raise RPCException(ret, ret['traceback'])
+                raise RPCException(ret, ret['error'])
+            return ret['data']
+
+        return api_call
+
+class RPCProxy(object):
+    """
+    Удаленное выполнение процедур с помощью промежуточного прокси
+    """
+    def __init__(self, socket, proxy_method):
+        self._socket = socket
+        self._response = None
+        self._proxy_method = proxy_method
+
+    def __getattr__(self, name):
+        if hasattr(self, name):
+            return super(RPCProxy, self).__getattr__(name)
+        def api_call(*args, **kwargs):
+            self._response = None
+            # original message
+            message = {
+                'action': name,
+                'data': {},
+                'args': {
+                    'args': args,
+                    'kwargs': kwargs
+                }
+            }
+            # pack message to envelope
+            message = {
+                'action': self._proxy_method,
+                'data': message
+            }
+            message = to_json(message)
+            logging.debug('RPC Proxy call %s.%s(*%s, **%s)',
+                          self._proxy_method, name, args, kwargs)
+            self._socket.send(message)
+            ret = self._socket.recv()
+            ret = from_json(ret)
+            self._response = ret
+            logging.debug('RPC Proxy result %s', ret)
             if not ret['success']:
                 if 'traceback' in ret and ret['traceback']:
                     raise RPCException(ret, ret['traceback'])
