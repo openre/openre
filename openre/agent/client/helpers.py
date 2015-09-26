@@ -1,51 +1,26 @@
 # -*- coding: utf-8 -*-
 import logging
-from openre.agent.helpers import RPC, RPCProxy
+from openre.agent.helpers import RPC, RPCProxy, Transport
 import uuid
 
-class ConnectionManager(object):
-    """
-    Подключается к серверу. Позволяет посылать запросы и получать ответы.
-    """
-    def __init__(self, host, port):
-        self.host = host
-        self.port = port
-        self.connection = None
-        self.server = RPC(self.connection)
-        self.domain = RPC(self.connection, 'domain')
-
-    def clean(self):
-        """
-        Закрывает соединение.
-        """
-        if self.connection:
-            logging.debug('Close remote connection.')
-            self.connection.close()
-            self.connection = None
-
-class ConnectionPool(object):
-    """
-    Содержит в себе объекты класса ConnectionManager. Занимается опросом всех
-    соединений из объектов ConnectionManager.
-    """
-
-class Domain(object):
+class Domain(Transport):
     """
     Содержит в себе настройки для конкретного домена
     """
     def __init__(self, config, index):
+        super(Domain, self).__init__()
         self.config = config
         self.index = index
         domain_config = self.config['domains'][index]
         self.id = domain_config['id']
         self.proccess_id = uuid.uuid4()
         logging.debug('Create domain %s', self.id)
-        self.connection = ConnectionManager(
+        self.connection = self.connect(
             domain_config.get('host', '127.0.0.1'),
             domain_config.get('port', 8932)
         )
-        self.server = self.connection.server
-        self.domain = self.connection.domain
+        self.server = RPC(self.connection)
+        self.domain = RPCProxy(self.connection, 'domain_proxy')
 
     def create(self):
         """
@@ -80,4 +55,4 @@ class Domain(object):
         Закрывает соединение.
         """
         logging.debug('Clean domain %s', self.id)
-        self.connection.clean()
+        self.clean_sockets()

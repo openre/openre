@@ -20,7 +20,7 @@ class Agent(AgentBase):
         print self.server.domain_start(name='D4')
         #print self.server.domain_stop(name='domain.D2')
         #print self.server.domain_state_dump()
-        print self.server.process_state_dump()
+        #print self.server.process_state_dump()
         return
         if self.config.config and self.config.action == 'run':
             try:
