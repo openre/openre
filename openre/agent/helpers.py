@@ -433,10 +433,12 @@ class RPCProxy(object):
     """
     Удаленное выполнение процедур с помощью промежуточного прокси
     """
-    def __init__(self, socket, proxy_method):
+    def __init__(self, socket, proxy_method, *args, **kwargs):
         self._socket = socket
         self._response = None
         self._proxy_method = proxy_method
+        self._proxy_args = args
+        self._proxy_kwargs = kwargs
 
     def __getattr__(self, name):
         if hasattr(self, name):
@@ -455,7 +457,11 @@ class RPCProxy(object):
             # pack message to envelope
             message = {
                 'action': self._proxy_method,
-                'data': message
+                'data': message,
+                'args': {
+                    'args': self._proxy_args,
+                    'kwargs': self._proxy_kwargs
+                }
             }
             message = to_json(message)
             logging.debug('RPC Proxy call %s.%s(*%s, **%s)',
