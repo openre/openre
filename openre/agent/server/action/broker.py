@@ -46,3 +46,13 @@ def do_broker_start(event, process_id,
 @action()
 def broker_stop(event, name='broker'):
     return stop_process(event, name=name)
+
+@action()
+def broker_proxy(event, *args, **kwargs):
+    """
+    Прокси метод - отправляет входящее сообщение в домен через брокера
+    """
+    agent = event.pool.context['server']
+    # address == proccess_state[i]['id']
+    address = event.message['address']
+    return agent.broker.set_address(address.bytes).domain_proxy(event.data)

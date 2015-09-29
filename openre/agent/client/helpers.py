@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
-from openre.agent.helpers import RPC, RPCProxy, Transport
+from openre.agent.helpers import RPC, RPCBrokerProxy, Transport
 import uuid
 
 class Domain(Transport):
@@ -20,7 +20,8 @@ class Domain(Transport):
             domain_config.get('port', 8932)
         )
         self.server = RPC(self.connection)
-        self.domain = RPCProxy(self.connection, 'domain_proxy')
+        self.domain = RPCBrokerProxy(self.connection, 'domain_broker',
+                                self.proccess_id)
 
     def create(self):
         """

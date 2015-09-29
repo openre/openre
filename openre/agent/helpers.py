@@ -400,15 +400,13 @@ class RPC(object):
     def __init__(self, socket):
         self._socket = socket
         self._response = None
+        super(RPC, self).__init__()
 
     def __getattr__(self, name):
-        if hasattr(self, name):
-            return super(RPC, self).__getattr__(name)
         def api_call(*args, **kwargs):
             self._response = None
             message = {
                 'action': name,
-                'data': {},
                 'args': {
                     'args': args,
                     'kwargs': kwargs
@@ -429,26 +427,25 @@ class RPC(object):
 
         return api_call
 
-class RPCProxy(object):
+class RPCBrokerProxy(object):
     """
     Удаленное выполнение процедур с помощью промежуточного прокси
     """
-    def __init__(self, socket, proxy_method, *args, **kwargs):
+    def __init__(self, socket, proxy_method, broker_address,
+                 *args, **kwargs):
         self._socket = socket
         self._response = None
         self._proxy_method = proxy_method
+        self._proxy_address = broker_address
         self._proxy_args = args
         self._proxy_kwargs = kwargs
 
     def __getattr__(self, name):
-        if hasattr(self, name):
-            return super(RPCProxy, self).__getattr__(name)
         def api_call(*args, **kwargs):
             self._response = None
             # original message
             message = {
                 'action': name,
-                'data': {},
                 'args': {
                     'args': args,
                     'kwargs': kwargs
@@ -457,6 +454,7 @@ class RPCProxy(object):
             # pack message to envelope
             message = {
                 'action': self._proxy_method,
+                'address': self._proxy_address,
                 'data': message,
                 'args': {
                     'args': self._proxy_args,
@@ -464,13 +462,13 @@ class RPCProxy(object):
                 }
             }
             message = to_json(message)
-            logging.debug('RPC Proxy call %s.%s(*%s, **%s)',
+            logging.debug('RPC broker proxy call %s.%s(*%s, **%s)',
                           self._proxy_method, name, args, kwargs)
             self._socket.send(message)
             ret = self._socket.recv()
             ret = from_json(ret)
             self._response = ret
-            logging.debug('RPC Proxy result %s', ret)
+            logging.debug('RPC broker proxy result %s', ret)
             if not ret['success']:
                 if 'traceback' in ret and ret['traceback']:
                     raise RPCException(ret, ret['traceback'])
@@ -478,3 +476,51 @@ class RPCProxy(object):
             return ret['data']
 
         return api_call
+
+class RPCBroker(object):
+    """
+    Позволяет вызывать методы процессов, подключенных к брокеру в качестве
+    воркеров.
+    self.address - это id процесса, подключенного к брокеру.
+    broker.set_address(address).run_remote_method(*args, **kwargs)
+    """
+    def __init__(self, socket):
+        self._socket = socket
+        self._response = None
+        self._address = None
+
+    def set_address(self, address):
+        """
+        Sets address of a broker worker process
+        """
+        self._address = bytes(address)
+        return self
+
+    def __getattr__(self, name):
+        def api_call(*args, **kwargs):
+            assert self._address
+            self._response = None
+            message = {
+                'action': name,
+                'args': {
+                    'args': args,
+                    'kwargs': kwargs
+                }
+            }
+            message = to_json(message)
+            logging.debug('RPCBroker call broker.%s(*%s, **%s)',
+                          name, args, kwargs)
+            self._socket.send_multipart([self._address, message])
+            ret_message = self._socket.recv_multipart()
+            ret = from_json(ret_message[1])
+            self._response = ret
+            logging.debug('RPCBroker result %s', ret)
+            if not ret['success']:
+                if 'traceback' in ret and ret['traceback']:
+                    raise RPCException(ret, ret['traceback'])
+                raise RPCException(ret, ret['error'])
+            return ret['data']
+
+        return api_call
+
+

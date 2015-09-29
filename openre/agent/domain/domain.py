@@ -16,7 +16,7 @@ class Agent(AgentBase):
         ipc_broker_file = os.path.join(
             tempfile.gettempdir(), 'openre-broker-backend')
         self.backend = self.socket(zmq.ROUTER)
-        self.backend.setsockopt(zmq.IDENTITY, self.id.bytes)
+        self.backend.setsockopt(zmq.IDENTITY, bytes(self.id.bytes))
         self.backend.connect("ipc://%s" % ipc_broker_file)
 
         ipc_pub_file = os.path.join(
@@ -56,7 +56,7 @@ class Agent(AgentBase):
                 if socks.get(self.backend) == zmq.POLLIN:
                     data = self.backend.recv_multipart()
                     logging.debug("in: %s", data)
-                    message = [data[0], '', data[2], b'world']
+                    message = [data[0], '', data[2], '"world"']
                     self.backend.send_multipart(message)
                     logging.debug("out: %s", message)
                 if socks.get(self.sub) == zmq.POLLIN:

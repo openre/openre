@@ -4,7 +4,7 @@
 """
 import logging
 import zmq
-from openre.agent.helpers import AgentBase
+from openre.agent.helpers import AgentBase, RPCBroker
 import os
 import importlib
 from openre.agent.event import EventPool, ServerEvent, Event
@@ -30,12 +30,13 @@ class Agent(AgentBase):
 
         ipc_broker_file = os.path.join(
             tempfile.gettempdir(), 'openre-broker-frontend')
-        self.broker = self.socket(zmq.REQ)
-        self.broker.connect("ipc://%s" % ipc_broker_file)
+        self.broker_socket = self.socket(zmq.REQ)
+        self.broker_socket.connect("ipc://%s" % ipc_broker_file)
+        self.broker = RPCBroker(self.broker_socket)
 
         self.poller = zmq.Poller()
         self.poller.register(self.responder, zmq.POLLIN)
-        self.poller.register(self.broker, zmq.POLLIN)
+        self.poller.register(self.broker_socket, zmq.POLLIN)
         self.init_actions()
         self.proxy_id = uuid.uuid4()
         self.broker_id = uuid.uuid4()
@@ -163,7 +164,7 @@ class Agent(AgentBase):
                 break
             time.sleep(1)
         self.responder.close()
-        self.broker.close()
+        self.broker_socket.close()
 
     def init_actions(self):
         # find module by type
