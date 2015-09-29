@@ -7,6 +7,7 @@ import subprocess
 import os
 from openre import BASE_PATH
 import tempfile
+import uuid
 
 @action()
 def broker_start(event, wait=True, exit_on_error=False, id=None, pid=None,
@@ -50,7 +51,31 @@ def broker_stop(event, name='broker'):
 @action()
 def broker_proxy(event, *args, **kwargs):
     """
-    Прокси метод - отправляет входящее сообщение в домен через брокера
+    Прокси метод - отправляет входящее сообщение воркеру через брокера
+    """
+    agent = event.pool.context['server']
+    event.prevent_done()
+    if 'event_id' in event.context:
+        return
+    event.context['event_id'] = uuid.uuid4()
+    event.expire(10)
+    # address == proccess_state[i]['id']
+    address = event.message['address']
+    data = event.data
+    args = [(), {}]
+    if 'args' in data:
+        args = [data['args']['args'], data['args']['kwargs']]
+    return getattr(
+        agent.broker.set_address(address.bytes) \
+            .set_response_address(event.context['event_id']),
+        data['action']
+    )(*args[0], **args[1])
+
+@action()
+def broker_domain_proxy(event, *args, **kwargs):
+    """
+    Прокси метод - отправляет входящее сообщение в домен с учетом domain_index
+    через брокера
     """
     agent = event.pool.context['server']
     # address == proccess_state[i]['id']

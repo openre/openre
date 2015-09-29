@@ -31,6 +31,7 @@ class Agent(AgentBase):
         ipc_broker_file = os.path.join(
             tempfile.gettempdir(), 'openre-broker-frontend')
         self.broker_socket = self.socket(zmq.REQ)
+        self.broker_socket.RCVTIMEO = 10000
         self.broker_socket.connect("ipc://%s" % ipc_broker_file)
         self.broker = RPCBroker(self.broker_socket)
 
@@ -97,6 +98,26 @@ class Agent(AgentBase):
                 event = ServerEvent(data['action'], data, address)
                 event.done_callback(event_done)
                 event_pool.register(event)
+            if socks.get(self.broker_socket) == zmq.POLLIN:
+                message = self.broker_socket.recv_multipart()
+                if len(message) < 3:
+                    logging.warn('Broken broker response message: %s', message)
+                    continue
+                data = self.from_json(message[2])
+                logging.debug('Received response message from broker: %s', data)
+                event_id = uuid.UUID(message[1])
+                if event_id:
+                    for event in event_pool.event_list:
+                        if event.context.get('event_id') == event_id:
+                            if event.is_done:
+                                break
+                            event.success = data['success']
+                            event.result = data['data']
+                            if not data['success']:
+                                event.error = data.get('error')
+                                event.traceback = data.get('traceback')
+                            event.done()
+                            break
             event_pool.tick()
             # if no events - than wait for new events without timeout
             poll_timeout = event_pool.poll_timeout()

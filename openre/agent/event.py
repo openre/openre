@@ -68,7 +68,6 @@ class Event(object):
         self.context = {}
 
     def failed(self, error, traceback=False):
-        self.is_done = True
         self.is_success = False
         self.error = str(error)
         logging.warn('Task failed with error: %s', self.error)
@@ -77,6 +76,7 @@ class Event(object):
             logging.warn(self.traceback)
         else:
             self.traceback = self.error
+        self.done()
 
     def set_pool(self, pool):
         self.pool = pool
@@ -103,6 +103,10 @@ class Event(object):
 
     def done(self):
         self.is_done = True
+        if self.is_success is None:
+            self.is_success = True
+        if self._done_callback:
+            self._done_callback(self)
 
     def done_callback(self, callback):
         self._done_callback = callback
@@ -134,12 +138,6 @@ class Event(object):
             self.is_prevent_done = False
         else:
             self.done()
-        if self.is_done:
-            if self.is_success is None:
-                self.is_success = True
-            if self._done_callback:
-                self._done_callback(self)
-
     @property
     def data(self):
         return self.message

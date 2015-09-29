@@ -8,10 +8,14 @@ import tempfile
 import os
 from openre.agent.helpers import AgentBase
 import logging
+from openre.agent.helpers import do_strict_action
+import importlib
+import traceback
 
 class Agent(AgentBase):
     server_connect = True
     def init(self):
+        self.init_actions()
         # Socket facing services
         ipc_broker_file = os.path.join(
             tempfile.gettempdir(), 'openre-broker-backend')
@@ -54,18 +58,70 @@ class Agent(AgentBase):
                 if not socks:
                     break
                 if socks.get(self.backend) == zmq.POLLIN:
-                    data = self.backend.recv_multipart()
-                    logging.debug("in: %s", data)
-                    message = [data[0], '', data[2], '"world"']
-                    self.backend.send_multipart(message)
-                    logging.debug("out: %s", message)
+                    message = self.backend.recv_multipart()
+                    logging.debug("in: %s", message)
+                    data = self.from_json(message[4])
+                    if not isinstance(data, dict) or 'action' not in data:
+                        logging.warn(
+                            'Malformed data in message ' \
+                            '(should be dict with \'action\' key): %s', data)
+                        ret = {
+                            'success': False,
+                            'data': None,
+                            'error': 'Malformed message: %s' % message,
+                            'traceback': 'Malformed message: %s' % message
+                        }
+                    else:
+                        try:
+                            args = {'args':[], 'kwargs': {}}
+                            if 'args' in data:
+                                args = data['args']
+                            result = do_strict_action(
+                                data['action'], self, *args['args'],
+                                **args['kwargs'])
+                            ret = {
+                                'success': True,
+                                'data': result
+                            }
+                        except Exception as error:
+                            tbm = traceback.format_exc()
+                            logging.warn(tbm)
+                            ret = {
+                                'success': False,
+                                'data': None,
+                                'error': str(error),
+                                'traceback': tbm,
+                            }
+                    reply = [message[0], '', message[2], message[3],
+                             self.to_json(ret)]
+                    self.backend.send_multipart(reply)
+                    logging.debug("out: %s", reply)
                 if socks.get(self.sub) == zmq.POLLIN:
-                    data = self.sub.recv_multipart()
-                    logging.debug("sub in: %s", data)
-                    # TODO: process data
+                    message = self.sub.recv_multipart()
+                    logging.debug("sub in: %s", message)
+                    # TODO: process message
 
     def clean(self):
         self.backend.close()
         self.pub.close()
         self.sub.close()
+
+    def init_actions(self):
+        """
+        Load all domain actions
+        """
+        # find module by type
+        base_dir = os.path.dirname(__file__)
+        base_dir = os.path.join(base_dir, 'action')
+        for action_file in sorted(
+            [file_name for file_name in os.listdir(base_dir) \
+             if os.path.isfile('%s/%s' % (base_dir, file_name))
+                and file_name not in ['__init__.py']]
+        ):
+            action_module_name = action_file.split('.')
+            del action_module_name[-1]
+            action_module_name = '.'.join(action_module_name)
+            importlib.import_module(
+                'openre.agent.domain.action.%s' % action_module_name
+            )
 

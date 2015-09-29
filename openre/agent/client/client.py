@@ -24,7 +24,7 @@ class Agent(AgentBase):
     def run(self):
         import uuid
         #print self.server.domain_start( name='D4', id=uuid.UUID('4d2f95ad-c6e7-4d66-9eb7-27eb93b5421a'))
-        print self.domain.run('test', param='pampam')
+        print self.domain.sleep(2)
         #print self.server.domain_stop(name='domain.D2')
         #print self.server.domain_state_dump()
         #print self.server.process_state_dump()

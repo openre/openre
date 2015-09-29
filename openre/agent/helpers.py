@@ -488,6 +488,7 @@ class RPCBroker(object):
         self._socket = socket
         self._response = None
         self._address = None
+        self._response_address = None
 
     def set_address(self, address):
         """
@@ -496,9 +497,17 @@ class RPCBroker(object):
         self._address = bytes(address)
         return self
 
+    def set_response_address(self, address):
+        """
+        Sets address of a server event id
+        """
+        self._response_address = bytes(address)
+        return self
+
     def __getattr__(self, name):
         def api_call(*args, **kwargs):
             assert self._address
+            assert self._response_address
             self._response = None
             message = {
                 'action': name,
@@ -510,16 +519,18 @@ class RPCBroker(object):
             message = to_json(message)
             logging.debug('RPCBroker call broker.%s(*%s, **%s)',
                           name, args, kwargs)
-            self._socket.send_multipart([self._address, message])
-            ret_message = self._socket.recv_multipart()
-            ret = from_json(ret_message[1])
-            self._response = ret
-            logging.debug('RPCBroker result %s', ret)
-            if not ret['success']:
-                if 'traceback' in ret and ret['traceback']:
-                    raise RPCException(ret, ret['traceback'])
-                raise RPCException(ret, ret['error'])
-            return ret['data']
+            self._socket.send_multipart([self._address, self._response_address,
+                                         message])
+            self._response_address = None
+            #ret_message = self._socket.recv_multipart()
+            #ret = from_json(ret_message[1])
+            #self._response = ret
+            #logging.debug('RPCBroker result %s', ret)
+            #if not ret['success']:
+            #    if 'traceback' in ret and ret['traceback']:
+            #        raise RPCException(ret, ret['traceback'])
+            #    raise RPCException(ret, ret['error'])
+            #return ret['data']
 
         return api_call
 
