@@ -12,26 +12,26 @@ class Domain(Transport):
         self.config = config
         self.index = index
         domain_config = self.config['domains'][index]
-        self.id = domain_config['id']
-        self.proccess_id = uuid.uuid4()
-        logging.debug('Create domain %s', self.id)
+        self.name = domain_config['name']
+        self.id = uuid.uuid4()
+        logging.debug('Create domain %s', self.name)
         self.connection = self.connect(
             domain_config.get('host', '127.0.0.1'),
             domain_config.get('port', 8932)
         )
         self.server = RPC(self.connection)
         self.broker = RPCBrokerProxy(self.connection, 'broker_proxy',
-                                self.proccess_id)
+                                self.id)
         self.domain = RPCBrokerProxy(self.connection, 'broker_domain_proxy',
-                                self.proccess_id, self.index)
+                                self.id, self.index)
 
     def create(self):
         """
         Посылает команду сервреу на создание пустого домена (без нейронов и
         синапсов)
         """
-        self.server.domain_start(name=self.id, id=self.proccess_id)
-        logging.debug('Create remote domain %s', self.id)
+        self.server.domain_start(name=self.name, id=self.id)
+        logging.debug('Create remote domain %s', self.name)
 
     def start(self):
         """
@@ -58,5 +58,5 @@ class Domain(Transport):
         """
         Закрывает соединение.
         """
-        logging.debug('Clean domain %s', self.id)
+        logging.debug('Clean domain %s', self.name)
         self.clean_sockets()
