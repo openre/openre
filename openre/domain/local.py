@@ -28,7 +28,7 @@ class Domain(StatsMixin):
     функционал. В некоторых случаях домен может не содержать синапсов (например,
     если домен является источником данных с сенсоров)
 
-    self.id: types.address - должен быть уникальным для всех доменов
+    self.name: types.address - должен быть уникальным для всех доменов
     self.ticks: types.tick - номер тика с момента запуска. При 32 битах и 1000
                              тиков в секунду переполнение произойдет через 49
                              дней. При 64 битах через 584 млн. лет.
@@ -56,11 +56,11 @@ class Domain(StatsMixin):
     """
     def __init__(self, config, ore):
         super(Domain, self).__init__()
-        logging.debug('Create domain (id: %s)', config['id'])
+        logging.debug('Create domain (name: %s)', config['name'])
         config = deepcopy(config)
         self.config = config
         self.ore = ore
-        self.id = self.config['id']
+        self.name = self.config['name']
         self.index = 0
         self.ticks = 0
         self.synapse_count_by_domain = {}
@@ -115,7 +115,7 @@ class Domain(StatsMixin):
         self.transmitter_index = TransmitterIndex()
         self.receiver_index = ReceiverIndex()
 
-        logging.debug('Domain created (id: %s)', self.id)
+        logging.debug('Domain created (name: %s)', self.name)
 
     def __repr__(self):
         return 'Domain(%s, %s)' % (repr(self.config), repr(self.ore))
@@ -124,7 +124,7 @@ class Domain(StatsMixin):
         """
         Create layers
         """
-        logging.debug('Deploy domain (id: %s)', self.id)
+        logging.debug('Deploy domain (name: %s)', self.name)
         for layer_config in self.layers_config:
             layer = Layer(layer_config)
             self.neurons.add(layer.neurons_metadata)
@@ -143,14 +143,14 @@ class Domain(StatsMixin):
                 connect['domain_layers'] = []
             for layer in self.layers:
                 for connect in layer_config.get('connect', []):
-                    if connect['id'] == layer.id:
+                    if connect['name'] == layer.name:
                         connect['domain_layers'].append(layer)
         logging.debug('Allocate layers vector')
-        for layer_id, layer in enumerate(self.layers):
-            self.layers_vector.threshold[layer_id] = layer.threshold
-            self.layers_vector.relaxation[layer_id] = layer.relaxation
-            self.layers_vector.spike_cost[layer_id] = layer.spike_cost
-            self.layers_vector.max_vitality[layer_id] = layer.max_vitality
+        for layer_name, layer in enumerate(self.layers):
+            self.layers_vector.threshold[layer_name] = layer.threshold
+            self.layers_vector.relaxation[layer_name] = layer.relaxation
+            self.layers_vector.spike_cost[layer_name] = layer.spike_cost
+            self.layers_vector.max_vitality[layer_name] = layer.max_vitality
 
     def deploy_neurons(self):
         """
@@ -176,9 +176,9 @@ class Domain(StatsMixin):
         """
         # Create synapses
         self.create_synapses()
-        domain_total_synapses = self.synapse_count_by_domain.get(self.id, 0)
+        domain_total_synapses = self.synapse_count_by_domain.get(self.name, 0)
         if not domain_total_synapses:
-            logging.warn('No synapses in domain %s', self.id)
+            logging.warn('No synapses in domain %s', self.name)
         logging.debug(
             'Total %s local synapses in domain',
             domain_total_synapses
@@ -195,12 +195,12 @@ class Domain(StatsMixin):
         logging.debug(
             'Total %s neurons in domain %s',
             len(self.neurons),
-            self.id
+            self.name
         )
         logging.debug(
             'Total %s synapses in domain %s',
             len(self.synapses),
-            self.id
+            self.name
         )
 
     def deploy_indexes(self):
@@ -235,7 +235,7 @@ class Domain(StatsMixin):
             self.receiver_index,
         ]:
             vector.create_device_data_pointer(self.device)
-        logging.debug('Domain deployed (id: %s)', self.id)
+        logging.debug('Domain deployed (name: %s)', self.name)
 
     def create_synapses(self):
         """
@@ -250,17 +250,17 @@ class Domain(StatsMixin):
         Реализует непосредственное соединение слоев
         """
         self.random.seed(self.seed)
-        layer_config_by_id = {}
+        layer_config_by_name = {}
         total_synapses = self.synapse_count_by_domain
         # cache
         self_connect_neurons = self.connect_neurons
         for layer_config in self.ore.config['layers']:
-            layer_config_by_id[layer_config['id']] = layer_config
-        domain_index_to_id = []
+            layer_config_by_name[layer_config['name']] = layer_config
+        domain_index_to_name = []
         for domain_index, domain in enumerate(self.ore.config['domains']):
-            domain_index_to_id.append(domain['id'])
-            total_synapses[domain['id']] = 0
-            if domain['id'] == self.id:
+            domain_index_to_name.append(domain['name'])
+            total_synapses[domain['name']] = 0
+            if domain['name'] == self.name:
                 pre_domain_index = domain_index
         # cache neuron -> domain and neuron -> layer in domain
         if 'layer' not in self.cache:
@@ -269,19 +269,19 @@ class Domain(StatsMixin):
                 # heihgt x width x z,
                 # where z == 0 is domain index in ore and
                 #       z == 1 is layer index in domain
-                self.cache['layer'][layer_config['id']] = \
+                self.cache['layer'][layer_config['name']] = \
                     np.zeros(
                         (layer_config['height'], layer_config['width'], 2),
                         dtype=np.int
                     )
-                self.cache['layer'][layer_config['id']] \
+                self.cache['layer'][layer_config['name']] \
                         .fill(np.iinfo(np.int).max)
             for domain_index, domain in enumerate(self.ore.config['domains']):
                 layer_index = -1
                 for layer in domain['layers']:
                     layer_index += 1
                     layer = deepcopy(layer)
-                    layer_config = layer_config_by_id[layer['id']]
+                    layer_config = layer_config_by_name[layer['name']]
                     shape = layer.get(
                         'shape',
                         [0, 0, layer_config['width'], layer_config['height']]
@@ -295,7 +295,7 @@ class Domain(StatsMixin):
                     if shape[1] + shape[3] > layer_config['height']:
                         shape[3] = layer_config['height'] - shape[1]
                     layer_cache = \
-                            self.cache['layer'][layer_config['id']]
+                            self.cache['layer'][layer_config['name']]
                     for y in xrange(shape[1], shape[1] + shape[3]):
                         layer_cache_y = layer_cache[y]
                         for x in xrange(shape[0], shape[0] + shape[2]):
@@ -328,8 +328,8 @@ class Domain(StatsMixin):
                     def shift_y():
                         return shift[1]
 
-                post_layer_config = layer_config_by_id[connect['id']]
-                post_info_cache = self.cache['layer'][post_layer_config['id']]
+                post_layer_config = layer_config_by_name[connect['name']]
+                post_info_cache = self.cache['layer'][post_layer_config['name']]
                 radius = connect.get('radius', max(
                     int(1.0 * layer_config['width'] \
                         / post_layer_config['width'] / 2),
@@ -400,11 +400,11 @@ class Domain(StatsMixin):
                     for post_x, post_y, inf in post_layer_coords():
                         try:
                             # inf[0] - domain index
-                            post_info_domain_id = domain_index_to_id[inf[0]]
+                            post_info_domain_name = domain_index_to_name[inf[0]]
                         except IndexError:
                             continue
                         # actually create connections
-                        if post_info_domain_id == self.id:
+                        if post_info_domain_name == self.name:
                             # inf[1] - post layer index in domain
                             post_layer = self.layers[inf[1]]
                             self.synapse_address += 1
@@ -428,7 +428,7 @@ class Domain(StatsMixin):
                                 post_x,
                                 post_y
                             )
-                        total_synapses[post_info_domain_id] += 1
+                        total_synapses[post_info_domain_name] += 1
 
     def create_neurons(self):
         """

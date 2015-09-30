@@ -18,7 +18,7 @@ class Layer(object):
     """
     def __init__(self, config):
         """
-        id: basestring, int или long - идентификатор слоя. Используется для
+        name: basestring, int или long - идентификатор слоя. Используется для
             возможности ссылаться на слои из доменов (в конфиге).
         layer_address: types.medium_address - номер слоя в domain.layers.
         address: types.address - aдрес первого элемента в векторе нейронов.
@@ -39,10 +39,10 @@ class Layer(object):
                       нейрона (neuron.vitality). Больше этого уровня не
                       увеличивается.
         """
-        logging.debug('Create layer (id: %s)', config['id'])
+        logging.debug('Create layer (name: %s)', config['name'])
         config = deepcopy(config)
         self.config = config
-        self.id = self.config['id']
+        self.name = self.config['name']
         # metadata for current layer (threshold, relaxation, etc.)
         self.layer_metadata = LayersMetadata(1)
         self.address = None
@@ -110,7 +110,7 @@ class LayersMetadata(MultiFieldMetadata):
 
 def test_layer():
     layer_config = {
-        'id': 'V1',
+        'name': 'V1',
         'threshold': 30000,
         'relaxation': 1000,
         'width': 20,
@@ -119,12 +119,12 @@ def test_layer():
         'max_vitality': 21,
     }
     config = {
-        'id': 'V1',
+        'name': 'V1',
         'shape': [0, 0, 30, 10],
     }
     config.update(layer_config)
     layer = Layer(config)
-    assert layer.id == config['id']
+    assert layer.name == config['name']
     assert layer.address == None
     assert layer.threshold == config['threshold']
     assert layer.relaxation == config['relaxation']
@@ -137,10 +137,10 @@ def test_layer():
     assert layer.max_vitality == 21
 
     repr_layer = eval(repr(layer))
-    assert repr_layer.id == layer.id
+    assert repr_layer.name == layer.name
 
     config = {
-        'id': 'V1',
+        'name': 'V1',
     }
     config.update(layer_config)
     layer = Layer(config)

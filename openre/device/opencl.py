@@ -213,7 +213,7 @@ def test_device():
         },
         'layers': [
             {
-                'id': 'V1',
+                'name': 'V1',
                 'threshold': synapse_max_level,
                 'relaxation': 1000,
                 'width': 20,
@@ -221,14 +221,14 @@ def test_device():
                 'is_inhibitory': True,
                 'connect': [
                     {
-                        'id': 'V2',
+                        'name': 'V2',
                         'radius': 1,
                         'shift': [0, 0],
                     },
                 ],
             },
             {
-                'id': 'V2',
+                'name': 'V2',
                 'threshold': synapse_max_level,
                 'relaxation': 1000,
                 'width': 20,
@@ -237,14 +237,14 @@ def test_device():
         ],
         'domains': [
             {
-                'id'        : 'D1',
+                'name'        : 'D1',
                 'device'    : {
                     'type': 'OpenCL',
                 },
                 'stat_size': 1,
                 'layers'    : [
-                    {'id': 'V1'},
-                    {'id': 'V2'},
+                    {'name': 'V1'},
+                    {'name': 'V2'},
                 ],
             },
         ],
@@ -477,7 +477,7 @@ def test_device():
         },
         'layers': [
             {
-                'id': 'V1',
+                'name': 'V1',
                 'threshold': synapse_max_level,
                 'relaxation': 1000,
                 'width': 20,
@@ -485,14 +485,14 @@ def test_device():
                 'is_inhibitory': True,
                 'connect': [
                     {
-                        'id': 'V2',
+                        'name': 'V2',
                         'radius': 1,
                         'shift': [0, 0],
                     },
                 ],
             },
             {
-                'id': 'V2',
+                'name': 'V2',
                 'threshold': synapse_max_level,
                 'relaxation': 1000,
                 'width': 20,
@@ -501,21 +501,21 @@ def test_device():
         ],
         'domains': [
             {
-                'id'        : 'D1',
+                'name'        : 'D1',
                 'device'    : {
                     'type': 'OpenCL',
                 },
                 'layers'    : [
-                    {'id': 'V1'},
+                    {'name': 'V1'},
                 ],
             },
             {
-                'id'        : 'D2',
+                'name'        : 'D2',
                 'device'    : {
                     'type': 'OpenCL',
                 },
                 'layers'    : [
-                    {'id': 'V2'},
+                    {'name': 'V2'},
                 ],
             },
         ],

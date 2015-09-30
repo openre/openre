@@ -20,7 +20,7 @@ class OpenRE(object):
     Пример config:
         {
             'domain': {
-                'id'        : 1,
+                'name'        : 1,
                 'device'    : '0',
                 'layers'    : [
                     {
@@ -47,7 +47,7 @@ class OpenRE(object):
         """
         Создание домена.
         """
-        layer_by_id = {}
+        layer_by_name = {}
         if 'synapse' not in self.config:
             self.config['synapse'] = {}
         if 'max_level' not in self.config['synapse']:
@@ -70,7 +70,7 @@ class OpenRE(object):
                 layer['spike_cost'] = 10
             if 'max_vitality' not in layer:
                 layer['max_vitality'] = types.max(types.vitality)
-            layer_by_id[layer['id']] = layer
+            layer_by_name[layer['name']] = layer
 
         # TODO: - выдавать предупреждение если не весь слой моделируется
         #       - выдавать предупреждение или падать если один и тот же слoй
@@ -87,7 +87,8 @@ class OpenRE(object):
                 # how many ticks collect stats before get them from device
                 domain['stat_size'] = 1000
             for domain_layer in domain['layers']:
-                domain_layer.update(deepcopy(layer_by_id[domain_layer['id']]))
+                domain_layer.update(
+                    deepcopy(layer_by_name[domain_layer['name']]))
             domain = Domain(domain, self)
             domain.index = domain_index
             self.domains.append(domain)
@@ -124,34 +125,34 @@ class OpenRE(object):
             for domain in self.domains:
                 domain.tick()
 
-    def find(self, layer_id, x, y):
+    def find(self, layer_name, x, y):
         """
-        Ищет домен и слой для заданных координат x и y в слое layer_id
+        Ищет домен и слой для заданных координат x и y в слое layer_name
         """
         # precache
         if self._find is None:
             self._find = {}
-            layer_by_id = {}
+            layer_by_name = {}
             for layer in self.config['layers']:
-                layer_by_id[layer['id']] = layer
+                layer_by_name[layer['name']] = layer
 
             for domain in self.config['domains']:
-                domain_id = domain['id']
+                domain_name = domain['name']
                 layer_index = -1
                 for layer in domain['layers']:
                     layer = deepcopy(layer)
                     layer_index += 1
-                    domain_layer_id = layer['id']
-                    if domain_layer_id not in self._find:
-                        self._find[domain_layer_id] = []
-                    layer['domain_id'] = domain_id
+                    domain_layer_name = layer['name']
+                    if domain_layer_name not in self._find:
+                        self._find[domain_layer_name] = []
+                    layer['domain_name'] = domain_name
                     layer['layer_index'] = layer_index
-                    layer['width'] = layer_by_id[domain_layer_id]['width']
-                    layer['height'] = layer_by_id[domain_layer_id]['height']
-                    self._find[domain_layer_id].append(layer)
-        if layer_id not in self._find:
+                    layer['width'] = layer_by_name[domain_layer_name]['width']
+                    layer['height'] = layer_by_name[domain_layer_name]['height']
+                    self._find[domain_layer_name].append(layer)
+        if layer_name not in self._find:
             return None
-        for row in self._find[layer_id]:
+        for row in self._find[layer_name]:
             if 'shape' not in row:
                 if x < 0 or y < 0 \
                    or x >= row['width'] or y >= row['height']:
@@ -167,7 +168,7 @@ class OpenRE(object):
                    or x >= row['width'] or y >= row['height']:
                     continue
             return {
-                'domain_id': row['domain_id'],
+                'domain_name': row['domain_name'],
                 'layer_index': row['layer_index'],
             }
         return None
@@ -189,7 +190,7 @@ def test_openre():
         },
         'layers': [
             {
-                'id': 'V1',
+                'name': 'V1',
                 'threshold': 20000,
                 'relaxation': 1000,
                 'width': 20,
@@ -198,14 +199,14 @@ def test_openre():
                 'max_vitality': types.max(types.vitality) - 1,
                 'connect': [
                     {
-                        'id': 'V2',
+                        'name': 'V2',
                         'radius': 1,
                         'shift': [0, 0],
                     },
                 ],
             },
             {
-                'id': 'V2',
+                'name': 'V2',
                 'threshold': 10000,
                 'relaxation': 2000,
                 'width': 10,
@@ -213,28 +214,28 @@ def test_openre():
                 'is_inhibitory': True,
                 'connect': [
                     {
-                        'id': 'V3',
+                        'name': 'V3',
                         'radius': 1,
                         'shift': [-1, 1],
                     },
                 ],
             },
             {
-                'id': 'V3',
+                'name': 'V3',
                 'threshold': 15000,
                 'relaxation': 3000,
                 'width': 5,
                 'height': 10,
                 'connect': [
                     {
-                        'id': 'V4',
+                        'name': 'V4',
                         'radius': 2,
                         'shift': [0, 0],
                     },
                 ],
             },
             {
-                'id': 'V4',
+                'name': 'V4',
                 'threshold': 25000,
                 'relaxation': 4000,
                 'width': 5,
@@ -243,31 +244,31 @@ def test_openre():
         ],
         'domains': [
             {
-                'id'        : 'D1',
+                'name'        : 'D1',
                 'device': {'type': 'Dummy'},
                 'layers'    : [
                     # 'shape': [x, y, width, height]
-                    {'id': 'V1', 'shape': [0, 0, 10, 10]},
-                    {'id': 'V1', 'shape': [10, 0, 10, 10]},
+                    {'name': 'V1', 'shape': [0, 0, 10, 10]},
+                    {'name': 'V1', 'shape': [10, 0, 10, 10]},
                     # если параметр shape не указан - подразумеваем весь слой
-                    {'id': 'V2'},
+                    {'name': 'V2'},
                 ],
             },
             {
-                'id'        : 'D2',
+                'name'        : 'D2',
                 'device': {'type': 'Dummy'},
                 'layers'    : [
-                    {'id': 'V1', 'shape': [10, 10, 10, 10]},
-                    {'id': 'V1', 'shape': [0, 10, 10, 10]},
-                    {'id': 'V3', 'shape': [-1, -1, 20, 20]},
+                    {'name': 'V1', 'shape': [10, 10, 10, 10]},
+                    {'name': 'V1', 'shape': [0, 10, 10, 10]},
+                    {'name': 'V3', 'shape': [-1, -1, 20, 20]},
                 ],
             },
             {
-                'id'        : 'D3',
+                'name'        : 'D3',
                 'device': {'type': 'Dummy'},
                 'layers'    : [
-                    {'id': 'V4', 'shape': [4, 4, 20, 20]},
-                    {'id': 'V4', 'shape': [5, 10, 20, 20]},
+                    {'name': 'V4', 'shape': [4, 4, 20, 20]},
+                    {'name': 'V4', 'shape': [5, 10, 20, 20]},
                 ],
             },
         ],
@@ -277,11 +278,11 @@ def test_openre():
     assert ore.find('V2', 0, 10) == None
     assert ore.find('V1', 0, 20) == None
     assert ore.find('V1', 1, 1) == {
-        'domain_id': 'D1',
+        'domain_name': 'D1',
         'layer_index': 0
     }
     assert ore.find('V1', 1, 11) == {
-        'domain_id': 'D2',
+        'domain_name': 'D2',
         'layer_index': 1
     }
     assert ore.domains[0].index == 0
@@ -291,10 +292,10 @@ def test_openre():
     # 200 synapses in domain D1
     assert len(ore.domains[0].stat_vector.data) \
             == ore.domains[0].stat_fields
-    assert ore.domains[0].layers[0].id == 'V1'
-    assert ore.domains[0].layers_config[0]['layer'].id == 'V1'
+    assert ore.domains[0].layers[0].name == 'V1'
+    assert ore.domains[0].layers_config[0]['layer'].name == 'V1'
     assert ore.domains[0] \
-            .layers_config[0]['connect'][0]['domain_layers'][0].id == 'V2'
+            .layers_config[0]['connect'][0]['domain_layers'][0].name == 'V2'
     assert ore.domains[0].layers[1].address == 100
     assert ore.domains[0].layers[2].address == 200
     assert not ore.domains[0].layers[0].neurons_metadata.flags[0] \
@@ -399,7 +400,7 @@ def test_openre():
 
     for i, domain_config in enumerate(config['domains']):
         domain = ore.domains[i]
-        assert domain.id == domain_config['id']
+        assert domain.name == domain_config['name']
         assert domain.spike_learn_threshold == \
                 ore.config['synapse']['spike_learn_threshold']
         assert domain.spike_forget_threshold == \
@@ -411,7 +412,7 @@ def test_openre():
         assert domain.ticks == 0
         for j, layer_config in enumerate(domain.config['layers']):
             layer = domain.layers[j]
-            assert layer.id == layer_config['id']
+            assert layer.name == layer_config['name']
             assert layer.address == layer.neurons_metadata.address
             assert layer.threshold == layer_config['threshold']
             assert layer.relaxation == \
