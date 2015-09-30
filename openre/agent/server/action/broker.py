@@ -49,7 +49,7 @@ def broker_stop(event, name='broker'):
     return stop_process(event, name=name)
 
 @action()
-def broker_proxy(event, *args, **kwargs):
+def broker_proxy(event):
     """
     Прокси метод - отправляет входящее сообщение воркеру через брокера.
     Этот метод вызываетя из объекта класса
