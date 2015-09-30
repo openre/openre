@@ -7,6 +7,7 @@ import os
 import logging
 import signal
 from openre.agent.helpers import add_action
+import time
 
 
 def daemonize(pid_file=None, signal_map=None, clean=None, force_daemon=False):
@@ -72,6 +73,24 @@ def action(name=None, priority=50):
         @wraps(f)
         def wrapped(*args, **kwargs):
             return f(*args, **kwargs)
+        return wrapped
+    return wrapper
+
+
+class WaitTimeout(Exception):
+    pass
+
+def wait(timeout=10, period=0.5):
+    def wrapper(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            start_time = time.time()
+            while True:
+                if time.time() - start_time >= timeout:
+                    raise WaitTimeout
+                if f(*args, **kwargs):
+                    return True
+                time.sleep(period)
         return wrapped
     return wrapper
 

@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 import logging
-from openre.agent.helpers import RPC, RPCBrokerProxy, Transport
+from openre.agent.helpers import RPC, RPCBrokerProxy, Transport, RPCException
 import uuid
+
+class DomainError(Exception):
+    pass
 
 class Domain(Transport):
     """
@@ -11,6 +14,8 @@ class Domain(Transport):
         super(Domain, self).__init__()
         self.config = config
         self.index = index
+        self.state = {}
+        self.is_domain_created = False
         domain_config = self.config['domains'][index]
         self.name = domain_config['name']
         self.id = uuid.uuid4()
@@ -25,13 +30,22 @@ class Domain(Transport):
         self.domain = RPCBrokerProxy(self.connection, 'broker_domain_proxy',
                                 self.id, self.index)
 
+    def refresh_state(self):
+        """
+        Обновляет информацию о состоянии удаленного домена
+        """
+        self.state = self.server.domain_state(id=self.id)
+
     def create(self):
         """
-        Посылает команду сервреу на создание пустого домена (без нейронов и
+        Посылает команду серверу на создание пустого домена (без нейронов и
         синапсов)
         """
-        self.server.domain_start(name=self.name, id=self.id)
+        assert not self.is_domain_created
+        self.is_domain_created = True
         logging.debug('Create remote domain %s', self.name)
+        if not self.server.domain_start(name=self.name, id=self.id, wait=False):
+            raise DomainError('Domain "%s" creation failed' % self.name)
 
     def start(self):
         """
@@ -53,6 +67,13 @@ class Domain(Transport):
         """
         Посылает серверу команду на завершение работы домена.
         """
+        if not self.is_domain_created:
+            return
+        try:
+            self.server.domain_stop(id=self.id)
+        except RPCException as error:
+            logging.warning(str(error.result.get('error')))
+        self.is_domain_created = False
 
     def clean(self):
         """

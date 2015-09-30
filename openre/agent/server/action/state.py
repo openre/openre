@@ -21,11 +21,15 @@ def process_state_dump(event):
     return _process_state.values()
 
 @action()
-def domain_state(event):
+def domain_state(event, id=None):
     if event.data and event.id:
         _domain_state[event.id] = event.data
         if _domain_state[event.id]['id'] is None:
             _domain_state[event.id] = {'id': event.id}
+    if id:
+        if id in _domain_state:
+            return _domain_state[id]
+        return {}
     if event.id:
         if event.id in _domain_state:
             return _domain_state[event.id]

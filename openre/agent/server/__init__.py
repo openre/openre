@@ -36,7 +36,7 @@ def run():
         """
         Запуск серера
         """
-        logging.info('Sart OpenRE.Agent server')
+        logging.info('Start OpenRE.Agent server')
         agent = Agent(args)
         agent.run()
 

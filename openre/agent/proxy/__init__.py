@@ -34,7 +34,7 @@ def run():
         """
         Запуск серера
         """
-        logging.info('Sart OpenRE.Agent proxy')
+        logging.info('Start OpenRE.Agent proxy')
         agent = Agent(args)
         agent.run()
 
