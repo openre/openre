@@ -429,7 +429,8 @@ class RPC(object):
 
 class RPCBrokerProxy(object):
     """
-    Удаленное выполнение процедур с помощью промежуточного прокси
+    Удаленное выполнение процедур на брокере с помощью промежуточного прокси на
+    сервере. Используется в клиенте.
     """
     def __init__(self, socket, proxy_method, broker_address,
                  *args, **kwargs):
@@ -525,15 +526,6 @@ class RPCBroker(object):
             self._socket.send_multipart(
                 ['', self._address, message])
             self._response_address = None
-            #ret_message = self._socket.recv_multipart()
-            #ret = from_json(ret_message[1])
-            #self._response = ret
-            #logging.debug('RPCBroker result %s', ret)
-            #if not ret['success']:
-            #    if 'traceback' in ret and ret['traceback']:
-            #        raise RPCException(ret, ret['traceback'])
-            #    raise RPCException(ret, ret['error'])
-            #return ret['data']
 
         return api_call
 

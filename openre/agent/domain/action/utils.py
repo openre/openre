@@ -16,8 +16,8 @@ def check_args(agent, *args, **kwargs):
     return {'args': args, 'kwargs': kwargs}
 
 @action()
-def domain_proxy(agent, *args, **kwargs):
-    return 'not implemented'
+def domain_proxy(agent, message, domain_index):
+    return domain_index
 
 @action()
 def sleep(agent, timeout=10):

@@ -13,17 +13,19 @@ class Agent(AgentBase):
     def init(self):
         self.init_actions()
         self.net_config = None
-        # FIXME: remove this and 4 next lines
+        # FIXME: remove this and next debug code
         self.connect_server(self.config.host, self.config.port)
         import uuid
         from openre.agent.helpers import RPCBrokerProxy
         self.domain = RPCBrokerProxy(
-            self.server_socket, 'broker_proxy',
-            uuid.UUID('4d2f95ad-c6e7-4d66-9eb7-27eb93b5421a'))
+            self.server_socket, 'broker_domain_proxy',
+            uuid.UUID('4d2f95ad-c6e7-4d66-9eb7-27eb93b5421a'),
+            domain_index=0
+        )
 
     def run(self):
         import uuid
-        #print self.server.domain_start( name='D4', id=uuid.UUID('4d2f95ad-c6e7-4d66-9eb7-27eb93b5421a'))
+        #print self.server.domain_start(name='D4', id=uuid.UUID('4d2f95ad-c6e7-4d66-9eb7-27eb93b5421a'))
         print self.domain.sleep(2)
         #print self.server.domain_stop(name='domain.D2')
         #print self.server.domain_state_dump()

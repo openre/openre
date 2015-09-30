@@ -51,7 +51,9 @@ def broker_stop(event, name='broker'):
 @action()
 def broker_proxy(event, *args, **kwargs):
     """
-    Прокси метод - отправляет входящее сообщение воркеру через брокера
+    Прокси метод - отправляет входящее сообщение воркеру через брокера.
+    Этот метод вызываетя из объекта класса
+    RPCBrokerProxy(socket, 'broker_proxy', broker_address)
     """
     agent = event.pool.context['server']
     event.prevent_done()
@@ -72,10 +74,12 @@ def broker_proxy(event, *args, **kwargs):
     )(*args[0], **args[1])
 
 @action()
-def broker_domain_proxy(event, *args, **kwargs):
+def broker_domain_proxy(event, domain_index):
     """
     Прокси метод - отправляет входящее сообщение в домен с учетом domain_index
-    через брокера
+    через брокера.
+    Этот метод вызываетя из объекта класса
+    RPCBrokerProxy(socket, 'broker_domain_proxy', broker_address, domain_index)
     """
     agent = event.pool.context['server']
     event.prevent_done()
@@ -88,4 +92,4 @@ def broker_domain_proxy(event, *args, **kwargs):
     return agent.broker \
             .set_address(address) \
             .set_response_address(event.context['event_id']) \
-            .domain_proxy(event.data)
+            .domain_proxy(event.data, domain_index)
