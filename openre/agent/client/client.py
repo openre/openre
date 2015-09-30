@@ -28,16 +28,6 @@ class Agent(AgentBase):
         )
 
     def run(self):
-        import uuid
-        import time
-        #print self.server.domain_start(name='D4', id=uuid.UUID('4d2f95ad-c6e7-4d66-9eb7-27eb93b5421a'))
-        #time.sleep(2)
-        print self.domain.sleep(2)
-        #print self.domain.check_args(2)
-        #print self.server.domain_stop(name='domain.D2')
-        #print self.server.domain_state_dump()
-        #print self.server.process_state_dump()
-        return
         if self.config.config and self.config.action == 'run':
             try:
                 self.net_config = from_json(self.config.config.read())

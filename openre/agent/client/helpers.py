@@ -20,14 +20,17 @@ class Domain(Transport):
             domain_config.get('port', 8932)
         )
         self.server = RPC(self.connection)
-        self.domain = RPCBrokerProxy(self.connection, 'domain_broker',
+        self.broker = RPCBrokerProxy(self.connection, 'broker_proxy',
                                 self.proccess_id)
+        self.domain = RPCBrokerProxy(self.connection, 'broker_domain_proxy',
+                                self.proccess_id, self.index)
 
     def create(self):
         """
         Посылает команду сервреу на создание пустого домена (без нейронов и
         синапсов)
         """
+        self.server.domain_start(name=self.id, id=self.proccess_id)
         logging.debug('Create remote domain %s', self.id)
 
     def start(self):
