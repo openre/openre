@@ -60,7 +60,7 @@ class Agent(AgentBase):
                 if socks.get(self.backend) == zmq.POLLIN:
                     message = self.backend.recv_multipart()
                     logging.debug("in: %s", message)
-                    data = self.from_json(message[4])
+                    data = self.from_json(message[3])
                     if not isinstance(data, dict) or 'action' not in data:
                         logging.warn(
                             'Malformed data in message ' \
@@ -92,8 +92,9 @@ class Agent(AgentBase):
                                 'error': str(error),
                                 'traceback': tbm,
                             }
-                    reply = [message[0], '', message[2], message[3],
-                             self.to_json(ret)]
+                    if data.get('context'):
+                        ret['context'] = data['context']
+                    reply = [message[0], '', message[2], self.to_json(ret)]
                     self.backend.send_multipart(reply)
                     logging.debug("out: %s", reply)
                 if socks.get(self.sub) == zmq.POLLIN:

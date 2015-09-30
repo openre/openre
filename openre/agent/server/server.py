@@ -100,14 +100,14 @@ class Agent(AgentBase):
                 event_pool.register(event)
             if socks.get(self.broker_socket) == zmq.POLLIN:
                 message = self.broker_socket.recv_multipart()
-                if len(message) < 4:
+                if len(message) < 3:
                     logging.warn('Broken broker response message: %s', message)
                     continue
                 if message[0] != '':
                     continue
-                data = self.from_json(message[3])
+                data = self.from_json(message[2])
                 logging.debug('Received response message from broker: %s', data)
-                event_id = uuid.UUID(message[2])
+                event_id = data['context']
                 if event_id:
                     for event in event_pool.event_list:
                         if event.context.get('event_id') == event_id:

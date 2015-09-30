@@ -66,7 +66,7 @@ def broker_proxy(event, *args, **kwargs):
     if 'args' in data:
         args = [data['args']['args'], data['args']['kwargs']]
     return getattr(
-        agent.broker.set_address(address.bytes) \
+        agent.broker.set_address(address) \
             .set_response_address(event.context['event_id']),
         data['action']
     )(*args[0], **args[1])
@@ -86,6 +86,6 @@ def broker_domain_proxy(event, *args, **kwargs):
     # address == proccess_state[i]['id']
     address = event.message['address']
     return agent.broker \
-            .set_address(address.bytes) \
+            .set_address(address) \
             .set_response_address(event.context['event_id']) \
             .domain_proxy(event.data)

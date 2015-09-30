@@ -494,6 +494,8 @@ class RPCBroker(object):
         """
         Sets address of a broker worker process
         """
+        if isinstance(address, uuid.UUID):
+            address = address.bytes
         self._address = bytes(address)
         return self
 
@@ -501,7 +503,7 @@ class RPCBroker(object):
         """
         Sets address of a server event id
         """
-        self._response_address = bytes(address)
+        self._response_address = address
         return self
 
     def __getattr__(self, name):
@@ -511,6 +513,7 @@ class RPCBroker(object):
             self._response = None
             message = {
                 'action': name,
+                'context': self._response_address,
                 'args': {
                     'args': args,
                     'kwargs': kwargs
@@ -520,7 +523,7 @@ class RPCBroker(object):
             logging.debug('RPCBroker call broker.%s(*%s, **%s)',
                           name, args, kwargs)
             self._socket.send_multipart(
-                ['', self._address, self._response_address, message])
+                ['', self._address, message])
             self._response_address = None
             #ret_message = self._socket.recv_multipart()
             #ret = from_json(ret_message[1])
