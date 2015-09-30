@@ -30,7 +30,7 @@ class Agent(AgentBase):
 
         ipc_broker_file = os.path.join(
             tempfile.gettempdir(), 'openre-broker-frontend')
-        self.broker_socket = self.socket(zmq.REQ)
+        self.broker_socket = self.socket(zmq.DEALER)
         self.broker_socket.RCVTIMEO = 10000
         self.broker_socket.connect("ipc://%s" % ipc_broker_file)
         self.broker = RPCBroker(self.broker_socket)
@@ -100,12 +100,14 @@ class Agent(AgentBase):
                 event_pool.register(event)
             if socks.get(self.broker_socket) == zmq.POLLIN:
                 message = self.broker_socket.recv_multipart()
-                if len(message) < 3:
+                if len(message) < 4:
                     logging.warn('Broken broker response message: %s', message)
                     continue
-                data = self.from_json(message[2])
+                if message[0] != '':
+                    continue
+                data = self.from_json(message[3])
                 logging.debug('Received response message from broker: %s', data)
-                event_id = uuid.UUID(message[1])
+                event_id = uuid.UUID(message[2])
                 if event_id:
                     for event in event_pool.event_list:
                         if event.context.get('event_id') == event_id:

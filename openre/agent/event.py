@@ -134,7 +134,7 @@ class Event(object):
                 **args['kwargs'])
         except Exception as error:
             self.failed(error, traceback=True)
-        if self.is_prevent_done:
+        if self.is_prevent_done and not self.is_done:
             self.is_prevent_done = False
         else:
             self.done()

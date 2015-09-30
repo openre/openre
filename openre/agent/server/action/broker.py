@@ -78,6 +78,14 @@ def broker_domain_proxy(event, *args, **kwargs):
     через брокера
     """
     agent = event.pool.context['server']
+    event.prevent_done()
+    if 'event_id' in event.context:
+        return
+    event.context['event_id'] = uuid.uuid4()
+    event.expire(10)
     # address == proccess_state[i]['id']
     address = event.message['address']
-    return agent.broker.set_address(address.bytes).domain_proxy(event.data)
+    return agent.broker \
+            .set_address(address.bytes) \
+            .set_response_address(event.context['event_id']) \
+            .domain_proxy(event.data)

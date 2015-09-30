@@ -519,8 +519,8 @@ class RPCBroker(object):
             message = to_json(message)
             logging.debug('RPCBroker call broker.%s(*%s, **%s)',
                           name, args, kwargs)
-            self._socket.send_multipart([self._address, self._response_address,
-                                         message])
+            self._socket.send_multipart(
+                ['', self._address, self._response_address, message])
             self._response_address = None
             #ret_message = self._socket.recv_multipart()
             #ret = from_json(ret_message[1])
