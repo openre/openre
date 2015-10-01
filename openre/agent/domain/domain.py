@@ -11,6 +11,7 @@ import logging
 from openre.agent.helpers import do_strict_action
 import importlib
 import traceback
+from openre.agent.event import EventPool, DomainEvent
 
 class Agent(AgentBase):
     server_connect = True
@@ -38,6 +39,28 @@ class Agent(AgentBase):
         self.context = {}
 
     def run(self):
+        def event_done(event):
+            if event.is_success:
+                ret = {
+                    'success': event.is_success,
+                    'data': event.result
+                }
+            else:
+                logging.warn(event.traceback)
+                ret = {
+                    'success': event.is_success,
+                    'data': event.result,
+                    'error': event.error,
+                    'traceback': event.traceback
+                }
+
+            if event.data.get('context'):
+                ret['context'] = data['context']
+            self.reply(event.address, ret)
+        poll_timeout = 0
+        event_pool = EventPool()
+        event_pool.context['agent'] = self
+
         self.send_server('domain_state', {
             'state': 'blank',
             'status': 'done',
@@ -56,13 +79,14 @@ class Agent(AgentBase):
         while True:
             # receive all messages in while loop
             while True:
-                socks = dict(self.poller.poll())
+                socks = dict(self.poller.poll(poll_timeout))
                 if not socks:
                     break
                 if socks.get(self.backend) == zmq.POLLIN:
                     message = self.backend.recv_multipart()
                     logging.debug("in: %s", message)
                     data = self.from_json(message[3])
+                    address = [message[0], '', message[2]]
                     if not isinstance(data, dict) or 'action' not in data:
                         logging.warn(
                             'Malformed data in message ' \
@@ -73,36 +97,25 @@ class Agent(AgentBase):
                             'error': 'Malformed message: %s' % message,
                             'traceback': 'Malformed message: %s' % message
                         }
+                        self.reply(address, ret)
                     else:
-                        try:
-                            args = {'args':[], 'kwargs': {}}
-                            if 'args' in data:
-                                args = data['args']
-                            result = do_strict_action(
-                                data['action'], self, *args['args'],
-                                **args['kwargs'])
-                            ret = {
-                                'success': True,
-                                'data': result
-                            }
-                        except Exception as error:
-                            tbm = traceback.format_exc()
-                            logging.warn(tbm)
-                            ret = {
-                                'success': False,
-                                'data': None,
-                                'error': str(error),
-                                'traceback': tbm,
-                            }
-                    if data.get('context'):
-                        ret['context'] = data['context']
-                    reply = [message[0], '', message[2], self.to_json(ret)]
-                    self.backend.send_multipart(reply)
-                    logging.debug("out: %s", reply)
+                        event = DomainEvent(data['action'], data, address)
+                        event.done_callback(event_done)
+                        event_pool.register(event)
                 if socks.get(self.sub) == zmq.POLLIN:
                     message = self.sub.recv_multipart()
                     logging.debug("sub in: %s", message)
                     # TODO: process message
+                event_pool.tick()
+                # if no events - than wait for new events without timeout
+                poll_timeout = event_pool.poll_timeout()
+                if poll_timeout >= 0 and poll_timeout < 100:
+                    poll_timeout = 100
+
+    def reply(self, address, data):
+        reply = address + [self.to_json(data)]
+        self.backend.send_multipart(reply)
+        logging.debug('Reply with message: %s', reply)
 
     def clean(self):
         self.backend.close()

@@ -9,14 +9,15 @@ def state(name):
     """
     def wrapper(f):
         @wraps(f)
-        def wrapped(agent, *args, **kwargs):
+        def wrapped(event, *args, **kwargs):
+            agent = event.pool.context['agent']
             agent.send_server('domain_state', {
                 'state': name,
                 'status': 'running',
             })
 
             try:
-                ret = f(agent, *args, **kwargs)
+                ret = f(event, *args, **kwargs)
             except Exception:
                 agent.send_server('domain_state', {
                     'state': name,

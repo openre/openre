@@ -143,6 +143,11 @@ class Event(object):
         return self.message
 
 
+class DomainEvent(Event):
+    def __init__(self, action, message, address=None):
+        self.address = address
+        super(DomainEvent, self).__init__(action, message)
+
 
 class ServerEvent(Event):
     def __init__(self, action, message, address=None):

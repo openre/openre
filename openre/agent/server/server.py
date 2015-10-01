@@ -113,7 +113,7 @@ class Agent(AgentBase):
                         if event.context.get('event_id') == event_id:
                             if event.is_done:
                                 break
-                            event.success = data['success']
+                            event.is_success = data['success']
                             event.result = data['data']
                             if not data['success']:
                                 event.error = data.get('error')
