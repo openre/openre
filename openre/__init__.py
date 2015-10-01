@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from openre.domain import Domain
+from openre.domain import Domain, RemoteDomain
 from copy import deepcopy
 from time import time
 import logging
@@ -11,11 +11,15 @@ BASE_PATH = os.path.dirname(os.path.realpath(__file__))
 
 class OpenRE(object):
     """
-    Основной класс. Пример работы:
+    Основной класс.
+        config - настройки сети
+        local_domains - один или несколько domain.name которые нужно создать
+            локально
+    Пример работы:
         from openre import OpenRE
         ore = OpenRE(config)
         ore.run()
-    config - содержит в себе настройки для домена включая оборудование, на
+    config - содержит в себе настройки для сети включая оборудование, на
              котором будут проходить вычисления.
     Пример config:
         {
@@ -34,9 +38,14 @@ class OpenRE(object):
             },
         }
     """
-    def __init__(self, config):
+    def __init__(self, config, local_domains=None):
         self.config = deepcopy(config)
         self.domains = []
+        if local_domains is None:
+            local_domains = []
+        if not isinstance(local_domains, list):
+            local_domains = [local_domains]
+        self.local_domains = deepcopy(local_domains)
         self._find = None
         self.deploy()
 
@@ -89,7 +98,11 @@ class OpenRE(object):
             for domain_layer in domain['layers']:
                 domain_layer.update(
                     deepcopy(layer_by_name[domain_layer['name']]))
-            domain = Domain(domain, self)
+            if not self.local_domains \
+               or (self.local_domains and domain['name'] in self.local_domains):
+                domain = Domain(domain, self)
+            else:
+                domain = RemoteDomain(domain, self)
             domain.index = domain_index
             self.domains.append(domain)
         for domain in self.domains:

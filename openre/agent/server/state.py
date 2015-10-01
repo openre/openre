@@ -71,7 +71,8 @@ class DomainState(State):
         state:
             unknown - нет статуса
             blank - только запустился, ожидает команду
-            config - загружен конфиг
+            config - загружен конфиг и создан эксземпляр класса OpenRE с
+                локальными пустыми доменами
             create_layers - создание слоев
             count_synapses - подсчет синапсов
             create_neurons - создание нейронов

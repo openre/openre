@@ -49,7 +49,7 @@ def broker_stop(event, name='broker'):
     return stop_process(event, name=name)
 
 @action()
-def broker_proxy(event):
+def broker_proxy(event, expire=10):
     """
     Прокси метод - отправляет входящее сообщение воркеру через брокера.
     Этот метод вызываетя из объекта класса
@@ -60,7 +60,7 @@ def broker_proxy(event):
     if 'event_id' in event.context:
         return
     event.context['event_id'] = uuid.uuid4()
-    event.expire(10)
+    event.expire(expire)
     # address == proccess_state[i]['id']
     address = event.message['address']
     data = event.data

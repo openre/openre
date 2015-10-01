@@ -47,6 +47,13 @@ class Domain(Transport):
         if not self.server.domain_start(name=self.name, id=self.id, wait=False):
             raise DomainError('Domain "%s" creation failed' % self.name)
 
+    def upload_config(self):
+        """
+        Загружает конфиг и указывает какие домены будут локальными
+        """
+        logging.debug('Upload config to remote domain %s', self.name)
+        self.broker.config(self.config, [self.name])
+
     def start(self):
         """
         Запускает симуляцию на домене

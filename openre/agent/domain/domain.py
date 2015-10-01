@@ -35,6 +35,8 @@ class Agent(AgentBase):
         self.poller.register(self.backend, zmq.POLLIN)
         self.poller.register(self.sub, zmq.POLLIN)
 
+        self.context = {}
+
     def run(self):
         self.send_server('domain_state', {
             'state': 'blank',
