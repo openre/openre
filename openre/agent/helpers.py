@@ -517,6 +517,7 @@ class RPCBroker(object):
         self._response = None
         self._address = None
         self._response_address = None
+        self._wait = False
 
     def set_address(self, address):
         """
@@ -534,6 +535,13 @@ class RPCBroker(object):
         self._response_address = address
         return self
 
+    def set_wait(self, wait):
+        """
+        Sets flag if we need to wait the result
+        """
+        self._wait = wait
+        return self
+
     def __getattr__(self, name):
         def api_call(*args, **kwargs):
             assert self._address
@@ -541,6 +549,7 @@ class RPCBroker(object):
             self._response = None
             message = {
                 'action': name,
+                'wait': self._wait,
                 'context': self._response_address,
                 'args': {
                     'args': args,
