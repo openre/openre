@@ -81,12 +81,21 @@ class WaitTimeout(Exception):
     pass
 
 def wait(timeout=10, period=0.5):
+    """
+    Ждем в течение timeout секунд, когда декорируемая функция вернет True или
+    любое другое истинное значение.
+    Если timeout = 0, то ждем бесконечно.
+    С частотой не чаще period секунд опрашиваем декорируемую функцию на предмет
+    удачного завершения.
+    Если за timeout времени не полчилось дождаться удачного ответа генерируется
+    исключение WaitTimeout.
+    """
     def wrapper(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
             start_time = time.time()
             while True:
-                if time.time() - start_time >= timeout:
+                if timeout and time.time() - start_time >= timeout:
                     raise WaitTimeout
                 if f(*args, **kwargs):
                     return True

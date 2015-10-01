@@ -142,18 +142,15 @@ class Event(object):
     def data(self):
         return self.message
 
-
-class DomainEvent(Event):
+class AddressEvent(Event):
     def __init__(self, action, message, address=None):
         self.address = address
-        super(DomainEvent, self).__init__(action, message)
+        super(AddressEvent, self).__init__(action, message)
 
+class DomainEvent(AddressEvent):
+    pass
 
-class ServerEvent(Event):
-    def __init__(self, action, message, address=None):
-        self.address = address
-        super(ServerEvent, self).__init__(action, message)
-
+class ServerEvent(AddressEvent):
     @property
     def id(self):
         return self.message.get('id')

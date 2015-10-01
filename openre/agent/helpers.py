@@ -427,6 +427,67 @@ class RPC(object):
 
         return api_call
 
+class RPCBrokerProxyCall(object):
+    """
+    Возвращается как функция в RPCBrokerProxy, которой передадутся параметры
+    для вызова удаленного метода. Нужна для того, что бы можно было задавать
+    дополнительные параметры при вызове, например:
+        broker = RPCBrokerProxy(socket, proxy_method, broker_address)
+        # вызов при котором не ждем результата выполнения функции.
+        # Вернется event_id.
+        brocker.some_remote_method(arguments)
+        # тут дожидаемся результата выполнения удаленного метода.
+        brocker.some_remote_method.wait(arguments)
+    """
+    def __init__(self, proxy, name):
+        self.proxy = proxy
+        self.name = name
+        self._wait = False
+
+    def __call__(self, *args, **kwargs):
+        self._response = None
+        # original message
+        message = {
+            'action': self.name,
+            'wait': self._wait,
+            'args': {
+                'args': args,
+                'kwargs': kwargs
+            }
+        }
+        # pack message to envelope
+        message = {
+            'action': self.proxy._proxy_method,
+            'address': self.proxy._proxy_address,
+            'data': message,
+            'args': {
+                'args': self.proxy._proxy_args,
+                'kwargs': self.proxy._proxy_kwargs
+            }
+        }
+        message = to_json(message)
+        logging.debug('RPC broker proxy call %s.%s(*%s, **%s)',
+                      self.proxy._proxy_method, self.name, args, kwargs)
+        self.proxy._socket.send(message)
+        ret = self.proxy._socket.recv()
+        ret = from_json(ret)
+        self.proxy._response = ret
+        logging.debug('RPC broker proxy result %s', ret)
+        if not ret['success']:
+            if 'traceback' in ret and ret['traceback']:
+                raise RPCException(ret, ret['traceback'])
+            raise RPCException(ret, ret['error'])
+        return ret['data']
+
+    @property
+    def wait(self):
+        """
+        Указывает на то, что нужно подождать результата выполнения команды
+        """
+        self._wait = True
+        return self
+
+
 class RPCBrokerProxy(object):
     """
     Удаленное выполнение процедур на брокере с помощью промежуточного прокси на
@@ -442,41 +503,7 @@ class RPCBrokerProxy(object):
         self._proxy_kwargs = kwargs
 
     def __getattr__(self, name):
-        def api_call(*args, **kwargs):
-            self._response = None
-            # original message
-            message = {
-                'action': name,
-                'args': {
-                    'args': args,
-                    'kwargs': kwargs
-                }
-            }
-            # pack message to envelope
-            message = {
-                'action': self._proxy_method,
-                'address': self._proxy_address,
-                'data': message,
-                'args': {
-                    'args': self._proxy_args,
-                    'kwargs': self._proxy_kwargs
-                }
-            }
-            message = to_json(message)
-            logging.debug('RPC broker proxy call %s.%s(*%s, **%s)',
-                          self._proxy_method, name, args, kwargs)
-            self._socket.send(message)
-            ret = self._socket.recv()
-            ret = from_json(ret)
-            self._response = ret
-            logging.debug('RPC broker proxy result %s', ret)
-            if not ret['success']:
-                if 'traceback' in ret and ret['traceback']:
-                    raise RPCException(ret, ret['traceback'])
-                raise RPCException(ret, ret['error'])
-            return ret['data']
-
-        return api_call
+        return RPCBrokerProxyCall(self, name)
 
 class RPCBroker(object):
     """

@@ -40,6 +40,9 @@ class Agent(AgentBase):
 
     def run(self):
         def event_done(event):
+            # if we don't need the result of the event
+            if not event.data.get('wait'):
+                return
             if event.is_success:
                 ret = {
                     'success': event.is_success,
@@ -102,6 +105,16 @@ class Agent(AgentBase):
                         event = DomainEvent(data['action'], data, address)
                         event.done_callback(event_done)
                         event_pool.register(event)
+                        # send response immediately
+                        if not data.get('wait'):
+                            ret = {
+                                'success': True,
+                                'data': None,
+                            }
+                            if event.data.get('context'):
+                                ret['context'] = data['context']
+                            self.reply(address, ret)
+
                 if socks.get(self.sub) == zmq.POLLIN:
                     message = self.sub.recv_multipart()
                     logging.debug("sub in: %s", message)
