@@ -54,14 +54,14 @@ class Domain(StatsMixin):
     Жеательно что бы выполнялось условие:
         0 <= spike_learn_threshold <= spike_forget_threshold <= types.tick.max
     """
-    def __init__(self, config, ore):
+    def __init__(self, config, ore, domain_index):
         super(Domain, self).__init__()
         logging.debug('Create domain (name: %s)', config['name'])
         config = deepcopy(config)
         self.config = config
         self.ore = ore
         self.name = self.config['name']
-        self.index = 0
+        self.index = domain_index
         self.ticks = 0
         self.synapse_count_by_domain = {}
         self.spike_learn_threshold \

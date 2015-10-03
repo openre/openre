@@ -85,25 +85,25 @@ class OpenRE(object):
         #       - выдавать предупреждение или падать если один и тот же слoй
         #           частично или полностью моделируется дважды
         domain_index = -1
-        for domain in self.config['domains']:
+        for domain_config in self.config['domains']:
             domain_index += 1
-            domain = deepcopy(domain)
-            if 'device' not in domain:
-                domain['device'] = {
+            domain_config = deepcopy(domain_config)
+            if 'device' not in domain_config:
+                domain_config['device'] = {
                     'type': 'OpenCL'
                 }
-            if 'stat_size' not in domain:
+            if 'stat_size' not in domain_config:
                 # how many ticks collect stats before get them from device
-                domain['stat_size'] = 1000
-            for domain_layer in domain['layers']:
+                domain_config['stat_size'] = 1000
+            for domain_layer in domain_config['layers']:
                 domain_layer.update(
                     deepcopy(layer_by_name[domain_layer['name']]))
             if not self.local_domains \
-               or (self.local_domains and domain['name'] in self.local_domains):
-                domain = Domain(domain, self)
+               or (self.local_domains \
+                   and domain_config['name'] in self.local_domains):
+                domain = Domain(domain_config, self, domain_index)
             else:
-                domain = RemoteDomain(domain, self)
-            domain.index = domain_index
+                domain = RemoteDomain(domain_config, self, domain_index)
             self.domains.append(domain)
         for domain in self.domains:
             domain.deploy_layers()
