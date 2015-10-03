@@ -8,9 +8,7 @@ import tempfile
 import os
 from openre.agent.helpers import AgentBase
 import logging
-from openre.agent.helpers import do_strict_action
 import importlib
-import traceback
 from openre.agent.event import EventPool, DomainEvent
 
 class Agent(AgentBase):

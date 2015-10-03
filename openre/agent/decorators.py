@@ -67,9 +67,9 @@ def daemonize(pid_file=None, signal_map=None, clean=None, force_daemon=False):
     return wrapper
 
 
-def action(name=None, priority=50):
+def action(name=None, priority=50, namespace='default'):
     def wrapper(f):
-        add_action(name or f.__name__, f, priority)
+        add_action(name or f.__name__, f, priority, namespace)
         @wraps(f)
         def wrapped(*args, **kwargs):
             return f(*args, **kwargs)

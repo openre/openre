@@ -130,7 +130,7 @@ class Event(object):
             if 'args' in self.message:
                 args = self.message['args']
             self.result = do_strict_action(
-                self.action, self, *args['args'],
+                self.action, 'default', self, *args['args'],
                 **args['kwargs'])
         except Exception as error:
             self.failed(error, traceback=True)

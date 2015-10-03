@@ -159,26 +159,32 @@ class Hooks(object):
     _was = None
 
     @classmethod
-    def add_action(cls, action, callback, priority):
-        if action not in cls._was:
-            cls._was[action] = []
-        if action not in cls._callbacks:
-            cls._callbacks[action] = []
-        if callback not in cls._was[action]:
+    def add_action(cls, action, callback, priority, namespace='default'):
+        if namespace not in cls._was:
+            cls._was[namespace] = {}
+        if namespace not in cls._callbacks:
+            cls._callbacks[namespace] = {}
+        if action not in cls._was[namespace]:
+            cls._was[namespace][action] = []
+        if action not in cls._callbacks[namespace]:
+            cls._callbacks[namespace][action] = []
+        if callback not in cls._was[namespace][action]:
             row = {
                 'callback': callback,
                 'priority': priority,
             }
-            cls._callbacks[action].append(row)
-            cls._was[action].append(row)
+            cls._callbacks[namespace][action].append(row)
+            cls._was[namespace][action].append(row)
 
     @classmethod
-    def registered_action(cls, action):
-        return action in cls._callbacks
+    def registered_action(cls, action, namespace='default'):
+        if namespace not in cls._callbacks:
+            return False
+        return action in cls._callbacks[namespace]
 
     @classmethod
-    def do_action(cls, action, *args, **kwargs):
-        rows = cls._callbacks.get(action, [])
+    def do_action(cls, action, namespace, *args, **kwargs):
+        rows = cls._callbacks.get(namespace, {}).get(action, [])
         rows = sorted(rows, key=priority_func)
         ret = None
         for row in rows:
@@ -194,29 +200,29 @@ class FilterHooks(Hooks):
     _was = {}
 
     @classmethod
-    def do_action(cls, action, value):
-        rows = cls._callbacks.get(action, [])
-        rows = sorted(rows, key = priority_func)
+    def do_action(cls, action, value, namespace='default'):
+        rows = cls._callbacks.get(namespace, {}).get(action, [])
+        rows = sorted(rows, key=priority_func)
         for row in rows:
             value = row['callback'](value)
         return value
 
-def add_action(action, callback, priority=50):
-    ActionHooks.add_action(action, callback, priority)
+def add_action(action, callback, priority=50, namespace='default'):
+    ActionHooks.add_action(action, callback, priority, namespace)
 
-def do_action(action, *args, **kwargs):
-    return ActionHooks.do_action(action, *args, **kwargs)
+def do_action(action, namespace, *args, **kwargs):
+    return ActionHooks.do_action(action, namespace, *args, **kwargs)
 
-def do_strict_action(action, *args, **kwargs):
-    if not ActionHooks.registered_action(action):
+def do_strict_action(action, namespace, *args, **kwargs):
+    if not ActionHooks.registered_action(action, namespace):
         raise ValueError('Action "%s" in not registered' % action)
-    return ActionHooks.do_action(action, *args, **kwargs)
+    return ActionHooks.do_action(action, namespace, *args, **kwargs)
 
-def add_filter(action, callback, priority=50):
-    FilterHooks.add_action(action, callback, priority)
+def add_filter(action, callback, priority=50, namespace='default'):
+    FilterHooks.add_action(action, callback, priority, namespace)
 
-def do_filter(action, value):
-    return FilterHooks.do_action(action, value)
+def do_filter(action, value, namespace='default'):
+    return FilterHooks.do_action(action, value, namespace)
 
 class Transport(object):
     def __init__(self, *args, **kwargs):

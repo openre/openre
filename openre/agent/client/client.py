@@ -34,7 +34,7 @@ class Agent(AgentBase):
             except ValueError as error:
                 self.die('JSON is invalid: %s', error)
 
-        result = do_strict_action(self.config.action, self)
+        result = do_strict_action(self.config.action, 'default', self)
         print result
         """
         result = self.send_server(
