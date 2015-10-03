@@ -27,3 +27,43 @@ def run():
     else:
         logging.error('Module not found')
 
+
+def test_agents():
+    import zmq
+    from openre.agent.helpers import RPCBroker, Transport, RPC, AgentBase, \
+            from_json
+    from openre.agent.server import Agent as OriginalServerAgent
+    transport = Transport()
+    class ServerAgent(OriginalServerAgent):
+        def init(self):
+            self.responder = transport.socket(zmq.ROUTER)
+            self.responder.bind("inproc://server-responder")
+            self.broker_socket = transport.socket(zmq.DEALER)
+            self.broker_socket.RCVTIMEO = 10000
+            self.broker_socket.connect("inproc://server-broker")
+            self.broker = RPCBroker(self.broker_socket)
+
+    class ClientAgent(AgentBase):
+        def init(self):
+            self.server_socket = transport.socket(zmq.REQ)
+            self.server_socket.connect("inproc://server-responder")
+            self.server = RPC(self.server_socket)
+    # server
+    server_agent = ServerAgent({})
+    # client
+    client_agent = ClientAgent({})
+
+    # client -> server -> client
+    client_agent.send_server('ping', {'test': 'ok'}, skip_recv=True)
+    message = server_agent.responder.recv_multipart()
+    assert len(message) == 3
+    assert message[1] == ''
+    assert 'action' in message[2]
+    data = from_json(message[2])
+    assert data['action'] == 'ping'
+    assert data['data']['test'] == 'ok'
+    address = message[0]
+    server_agent.reply(address, 'pong')
+    reply_message = client_agent.server_socket.recv()
+    reply_data = from_json(reply_message)
+    assert reply_data == 'pong'

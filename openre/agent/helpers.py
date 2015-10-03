@@ -288,7 +288,7 @@ class AgentBase(Transport):
     broker_connect = False
     def __init__(self, config):
         self.config = config
-        self.id = config.id or uuid.uuid4()
+        self.id = config.get('id') or uuid.uuid4()
         self.__run_user = self.run
         self.run = self.__run
         self.__clean_user = self.clean
