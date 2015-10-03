@@ -4,7 +4,7 @@ from openre.agent.decorators import action
 from openre.agent.server.state import process_state as _process_state
 from openre.agent.server.state import domain_state as _domain_state
 
-@action()
+@action(namespace='server')
 def process_state(event):
     if event.data and event.id:
         _process_state[event.id] = event.data
@@ -16,11 +16,11 @@ def process_state(event):
         return event.failed('No such agent id')
     return process_state_dump(event)
 
-@action()
+@action(namespace='server')
 def process_state_dump(event):
     return _process_state.values()
 
-@action()
+@action(namespace='server')
 def domain_state(event, id=None):
     if event.data and event.id:
         _domain_state[event.id] = event.data
@@ -36,7 +36,7 @@ def domain_state(event, id=None):
         return event.failed('No such agent id')
     return domain_state_dump(event)
 
-@action()
+@action(namespace='server')
 def domain_state_dump(event):
     return _domain_state.values()
 

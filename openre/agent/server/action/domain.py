@@ -11,7 +11,7 @@ from openre import BASE_PATH
 import uuid
 import re
 
-@action()
+@action(namespace='server')
 def domain_start(
     event, name=None, id=None, wait=True, exit_on_error=False,
     server_host=None, server_port=None
@@ -58,7 +58,7 @@ def do_domain_start(event, proccess_id,
         ])
     return subprocess.Popen(params)
 
-@action()
+@action(namespace='server')
 def domain_stop(event, name='domain', id=None):
     if name:
         if not re.search(r'^domain\.', name):

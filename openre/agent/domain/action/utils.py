@@ -3,23 +3,23 @@
 from openre.agent.decorators import action
 import time
 
-@action()
+@action(namespace='domain')
 def ping(event):
     return 'pong'
 
-@action()
+@action(namespace='domain')
 def exception(event):
     raise Exception('Test exception')
 
-@action()
+@action(namespace='domain')
 def check_args(event, *args, **kwargs):
     return {'args': args, 'kwargs': kwargs}
 
-@action()
+@action(namespace='domain')
 def domain_proxy(event, message, domain_index):
     return domain_index
 
-@action()
+@action(namespace='domain')
 def sleep(event, timeout=10):
     time.sleep(timeout)
     return timeout

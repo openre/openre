@@ -9,7 +9,7 @@ import os
 from openre import BASE_PATH
 import tempfile
 
-@action()
+@action(namespace='server')
 def proxy_start(event, wait=True, exit_on_error=False, id=None,
                 host=None, port=None,
                 server_host=None, server_port=None,
@@ -51,6 +51,6 @@ def do_proxy_start(event, proccess_id,
         '--pid', pid,
     ])
 
-@action()
+@action(namespace='server')
 def proxy_stop(event):
     return stop_process(event, name='proxy')

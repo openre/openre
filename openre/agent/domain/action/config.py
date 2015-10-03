@@ -7,7 +7,7 @@ from openre.agent.decorators import action
 from openre.agent.domain.decorators import state
 from openre import OpenRE
 
-@action()
+@action(namespace='domain')
 @state('config')
 def config(event, net_config, local_domains=None):
     """

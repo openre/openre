@@ -2,15 +2,15 @@
 
 from openre.agent.decorators import action
 
-@action()
+@action(namespace='server')
 def ping(event):
     return 'pong'
 
-@action()
+@action(namespace='server')
 def exception(event):
     raise Exception('Test exception')
 
-@action()
+@action(namespace='server')
 def check_args(event, *args, **kwargs):
     return {'args': args, 'kwargs': kwargs}
 

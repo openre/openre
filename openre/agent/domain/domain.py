@@ -100,7 +100,8 @@ class Agent(AgentBase):
                         }
                         self.reply(address, ret)
                     else:
-                        event = DomainEvent(data['action'], data, address)
+                        event = DomainEvent(data['action'], 'domain', data,
+                                            address)
                         event.done_callback(event_done)
                         event_pool.register(event)
                         # send response immediately

@@ -49,7 +49,7 @@ class EventPool(object):
 
 
 class Event(object):
-    def __init__(self, action, message=None):
+    def __init__(self, action, namespace='default', message=None):
         self.message = message
         self.is_done = False
         self.is_prevent_done = False
@@ -65,6 +65,7 @@ class Event(object):
         self.is_success = None
         self._done_callback = None
         self.action = action
+        self.namespace = namespace
         self.context = {}
 
     def failed(self, error, traceback=False):
@@ -130,7 +131,7 @@ class Event(object):
             if 'args' in self.message:
                 args = self.message['args']
             self.result = do_strict_action(
-                self.action, 'default', self, *args['args'],
+                self.action, self.namespace, self, *args['args'],
                 **args['kwargs'])
         except Exception as error:
             self.failed(error, traceback=True)
@@ -143,9 +144,9 @@ class Event(object):
         return self.message
 
 class AddressEvent(Event):
-    def __init__(self, action, message, address=None):
+    def __init__(self, action, namespace, message, address=None):
         self.address = address
-        super(AddressEvent, self).__init__(action, message)
+        super(AddressEvent, self).__init__(action, namespace, message)
 
 class DomainEvent(AddressEvent):
     pass

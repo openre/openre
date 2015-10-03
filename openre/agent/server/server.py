@@ -65,10 +65,12 @@ class Agent(AgentBase):
         event_pool.context['server'] = self
         # init tasks
         # run proxy and broker
-        run_proxy_event = Event('proxy_start', {'exit_on_error': True})
+        run_proxy_event = Event('proxy_start', 'server',
+                                {'exit_on_error': True})
         event_pool.register(run_proxy_event)
 
-        run_broker_event = Event('broker_start', {'exit_on_error': True})
+        run_broker_event = Event('broker_start', 'server',
+                                 {'exit_on_error': True})
         event_pool.register(run_broker_event)
 
         while True:
@@ -95,7 +97,7 @@ class Agent(AgentBase):
                     self.reply(address, ret)
                     continue
 
-                event = ServerEvent(data['action'], data, address)
+                event = ServerEvent(data['action'], 'server', data, address)
                 event.done_callback(event_done)
                 event_pool.register(event)
             if socks.get(self.broker_socket) == zmq.POLLIN:

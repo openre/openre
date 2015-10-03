@@ -9,7 +9,7 @@ from openre import BASE_PATH
 import tempfile
 import uuid
 
-@action()
+@action(namespace='server')
 def broker_start(event, wait=True, exit_on_error=False, id=None, pid=None,
                  server_host=None, server_port=None,
                 ):
@@ -44,11 +44,11 @@ def do_broker_start(event, process_id,
         '--server-port', server_port or server.config.port,
     ])
 
-@action()
+@action(namespace='server')
 def broker_stop(event, name='broker'):
     return stop_process(event, name=name)
 
-@action()
+@action(namespace='server')
 def broker_proxy(event, expire=10):
     """
     Прокси метод - отправляет входящее сообщение воркеру через брокера.
@@ -74,7 +74,7 @@ def broker_proxy(event, expire=10):
         data['action']
     )(*args[0], **args[1])
 
-@action()
+@action(namespace='server')
 def broker_domain_proxy(event, domain_index):
     """
     Прокси метод - отправляет входящее сообщение в домен с учетом domain_index
