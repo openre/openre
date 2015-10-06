@@ -9,23 +9,25 @@ import os
 import importlib
 from openre.agent.event import EventPool, ServerEvent, Event
 import uuid
-from openre.agent.server.state import process_state
+from openre.agent.server.state import ProcessState, DomainState
 import signal
 import time
 import tempfile
 
 class Agent(AgentBase):
     def init(self):
+        self.process_state = ProcessState()
+        self.domain_state = DomainState()
         self.responder = self.socket(zmq.ROUTER)
         try:
             self.responder.bind(
-                "tcp://%s:%s" % (self.config.host, self.config.port))
+                "tcp://%s:%s" % (self.config['host'], self.config['port']))
         except zmq.error.ZMQError as error:
             if error.errno == 98: # Address already in use
                 logging.warn(
                     "Address tcp://%s:%s already in use. Server is already " \
                     "runnning?",
-                    self.config.host, self.config.port)
+                    self.config['host'], self.config['port'])
             raise
 
         ipc_broker_file = os.path.join(
@@ -154,10 +156,10 @@ class Agent(AgentBase):
                 was_message = True
 
     def clean(self):
-        for state in process_state.values():
+        for state in self.process_state.values():
             if state['status'] not in ['exit', 'error', 'kill', 'clean'] \
                and state['pid']:
-                process_state[str(state['id'])] = {
+                self.process_state[str(state['id'])] = {
                     'status': 'kill',
                 }
                 pid_num = state['pid']
@@ -171,7 +173,7 @@ class Agent(AgentBase):
             tries -= 1
             success = True
             self.shutdown_mode()
-            for state in process_state.values():
+            for state in self.process_state.values():
                 if state['status'] not in ['kill', 'clean']:
                     continue
                 pid_num = state['pid']
@@ -179,7 +181,7 @@ class Agent(AgentBase):
                     os.kill(pid_num, 0)
                     success = False
                 except OSError:  #No process with locked PID
-                    process_state[str(state['id'])] = {
+                    self.process_state[str(state['id'])] = {
                         'status': 'exit',
                         'pid': 0,
                     }

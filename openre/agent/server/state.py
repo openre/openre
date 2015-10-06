@@ -4,17 +4,6 @@ import datetime
 import os
 
 class State(dict):
-    _instance = None
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super(State, cls).__new__(cls)
-        return cls._instance
-
-    def __init__(self):
-        if hasattr(self, 'is_loaded'):
-            return
-        self.is_loaded = True
-
     def default(self):
         return {}
 
@@ -95,7 +84,3 @@ class DomainState(State):
             'message': '',
             'synapses_count': None,
         }
-
-
-process_state = ProcessState()
-domain_state = DomainState()

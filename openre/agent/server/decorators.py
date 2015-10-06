@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 import logging
 from functools import wraps
-from openre.agent.server.state import process_state, is_running
+from openre.agent.server.state import is_running
 
 def start_process(name='process'):
     def wrapper(f):
         @wraps(f)
         def wrapped(event, process_id, wait=True, exit_on_error=False,
                     *args, **kwargs):
+            process_state = event.pool.context['server'].process_state
             if process_id in process_state:
                 state = process_state[process_id]
                 if is_running(state):

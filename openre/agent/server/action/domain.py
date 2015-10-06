@@ -3,7 +3,7 @@
 from openre.agent.decorators import action
 from openre.agent.server.decorators import start_process
 from openre.agent.server.helpers import stop_process
-from openre.agent.server.state import process_state, is_running
+from openre.agent.server.state import is_running
 import sys
 import subprocess
 import os
@@ -20,6 +20,7 @@ def domain_start(
         id = uuid.uuid4()
     # deny run two domains with the same name
     if False:
+        process_state = event.pool.context['server'].process_state
         for stt in process_state.values():
             if name == stt['name'] and is_running(stt):
                 return event.failed(
@@ -47,8 +48,8 @@ def do_domain_start(event, proccess_id,
         os.path.realpath(os.path.join(BASE_PATH, '../openre-agent')),
         'domain',
         'start',
-        '--server-host', server_host or server.config.host,
-        '--server-port', server_port or server.config.port,
+        '--server-host', server_host or server.config['host'],
+        '--server-port', server_port or server.config['port'],
         '--id', proccess_id,
         '--pid', '-',
     ]

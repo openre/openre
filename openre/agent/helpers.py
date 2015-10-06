@@ -298,19 +298,19 @@ class AgentBase(Transport):
         super(AgentBase, self).__init__()
         if self.__class__.server_connect:
             self.connect_server(
-                self.config.server_host,
-                self.config.server_port
+                self.config['server_host'],
+                self.config['server_port']
             )
         if self.__class__.server_connect:
             self.send_server('process_state', {
                 'status': 'init',
                 'pid': os.getpid(),
-                'name': self.config.type,
+                'name': self.config['type'],
             })
-        if 'log_level' in self.config and self.config.log_level:
+        if 'log_level' in self.config and self.config['log_level']:
             logging.basicConfig(
                 format='%(levelname)s:%(message)s',
-                level=getattr(logging, self.config.log_level)
+                level=getattr(logging, self.config['log_level'])
             )
 
 

@@ -40,8 +40,8 @@ def do_broker_start(event, process_id,
         'start',
         '--id', process_id,
         '--pid', pid,
-        '--server-host', server_host or server.config.host,
-        '--server-port', server_port or server.config.port,
+        '--server-host', server_host or server.config['host'],
+        '--server-port', server_port or server.config['port'],
     ])
 
 @action(namespace='server')

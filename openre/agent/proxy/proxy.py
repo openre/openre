@@ -15,14 +15,14 @@ class Agent(AgentBase):
         self.frontend = self.socket(zmq.PUB)
         try:
             self.frontend.bind(
-                "tcp://%s:%s" % (self.config.host, self.config.port)
+                "tcp://%s:%s" % (self.config['host'], self.config['port'])
             )
         except zmq.error.ZMQError as error:
             if error.errno == 98: # Address already in use
                 logging.warn(
                     "Address tcp://%s:%s already in use. Proxy is already " \
                     "runnning?",
-                    self.config.host, self.config.port)
+                    self.config['host'], self.config['port'])
             raise
 
 

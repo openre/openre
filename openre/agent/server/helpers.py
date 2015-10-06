@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-from openre.agent.server.state import process_state, is_running
+from openre.agent.server.state import is_running
 import uuid
 import signal
 import logging
@@ -12,6 +12,7 @@ def stop_process(event, name=None, id=None):
     # on the second run pid is already in event.context['id']
     pid = event.context.get('id', id)
     state = None
+    process_state = event.pool.context['server'].process_state
     def is_proper_name(name, state_name):
         if not name:
             return False

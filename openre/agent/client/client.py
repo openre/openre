@@ -14,7 +14,7 @@ class Agent(AgentBase):
         self.init_actions()
         self.net_config = None
         # FIXME: remove this and next debug code
-        self.connect_server(self.config.host, self.config.port)
+        self.connect_server(self.config['host'], self.config['port'])
         import uuid
         from openre.agent.helpers import RPCBrokerProxy
         #self.domain = RPCBrokerProxy(
@@ -28,23 +28,23 @@ class Agent(AgentBase):
         )
 
     def run(self):
-        if self.config.config and self.config.action == 'run':
+        if self.config['config'] and self.config['action'] == 'run':
             try:
-                self.net_config = from_json(self.config.config.read())
+                self.net_config = from_json(self.config['config'].read())
             except ValueError as error:
                 self.die('JSON is invalid: %s', error)
 
-        result = do_strict_action(self.config.action, 'client', self)
+        result = do_strict_action(self.config['action'], 'client', self)
         print result
         """
         result = self.send_server(
-            self.config.action,
-            self.from_json(self.config.data)
+            self.config['action'],
+            self.from_json(self.config['data'])
         )
         if result['success']:
             if result['data'] is None:
                 print 'Done.'
-            elif self.config.pretty:
+            elif self.config['pretty']:
                 pp = pprint.PrettyPrinter(indent=4)
                 pp.pprint(result['data'])
             else:

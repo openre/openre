@@ -65,14 +65,14 @@ class Agent(AgentBase):
         self.send_server('domain_state', {
             'state': 'blank',
             'status': 'done',
-            'name': self.config.name
+            'name': self.config['name']
         })
 
-        process_name = self.config.name
+        process_name = self.config['name']
         if not process_name:
             process_name = 'domain'
         if process_name != 'domain':
-            process_name = 'domain.%s' % self.config.name
+            process_name = 'domain.%s' % self.config['name']
         self.send_server('process_state', {
             'name':  process_name
         })

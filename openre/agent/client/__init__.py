@@ -8,6 +8,6 @@ from openre.agent.args import parse_args
 
 def run():
     args = parse_args(parser)
-    agent =Agent(args)
+    agent =Agent(vars(args))
     agent.run()
 

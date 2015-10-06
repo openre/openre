@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from openre.agent.decorators import action
-from openre.agent.server.state import process_state as _process_state
-from openre.agent.server.state import domain_state as _domain_state
 
 @action(namespace='server')
 def process_state(event):
+    _process_state = event.pool.context['server'].process_state
     if event.data and event.id:
         _process_state[event.id] = event.data
         if _process_state[event.id]['id'] is None:
@@ -18,10 +17,12 @@ def process_state(event):
 
 @action(namespace='server')
 def process_state_dump(event):
+    _process_state = event.pool.context['server'].process_state
     return _process_state.values()
 
 @action(namespace='server')
 def domain_state(event, id=None):
+    _domain_state = event.pool.context['server'].domain_state
     if event.data and event.id:
         _domain_state[event.id] = event.data
         if _domain_state[event.id]['id'] is None:
@@ -38,5 +39,6 @@ def domain_state(event, id=None):
 
 @action(namespace='server')
 def domain_state_dump(event):
+    _domain_state = event.pool.context['server'].domain_state
     return _domain_state.values()
 
