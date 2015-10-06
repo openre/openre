@@ -34,7 +34,7 @@ class RemoteDomain(StatsMixin):
 
 def test_remote_domain():
     from openre import OpenRE
-    from openre.domain import Domain
+    from openre.domain import create_domain_factory, Domain
     config = {
         'layers': [
             {
@@ -78,7 +78,8 @@ def test_remote_domain():
             },
         ],
     }
-    ore = OpenRE(config, local_domains=['D1'])
+    ore = OpenRE(config)
+    ore.deploy(create_domain_factory(Domain, RemoteDomain, ['D1']))
     local = ore.domains[0]
     remote = ore.domains[1]
     assert local.name == 'D1'

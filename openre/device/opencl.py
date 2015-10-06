@@ -250,6 +250,7 @@ def test_device():
         ],
     }
     ore = OpenRE(config)
+    ore.deploy()
     assert isinstance(ore.domains[0].device, OpenCL)
     assert ore.domains[0].neurons.level.device_data_pointer
     assert ore.domains[0].layers_vector.threshold.device_data_pointer
@@ -521,6 +522,7 @@ def test_device():
         ],
     }
     ore = OpenRE(config)
+    ore.deploy()
     d1 = ore.domains[0]
     d2 = ore.domains[1]
     v1 = d1.layers[0]

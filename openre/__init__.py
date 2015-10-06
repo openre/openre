@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from openre.domain import Domain, RemoteDomain
 from copy import deepcopy
 from time import time
 import logging
 from openre.data_types import types
+from openre.domain import create_domain_factory
 import os.path
 
 __version__ = '0.0.1'
@@ -38,24 +38,20 @@ class OpenRE(object):
             },
         }
     """
-    def __init__(self, config, local_domains=None):
+    def __init__(self, config):
         self.config = deepcopy(config)
         self.domains = []
-        if local_domains is None:
-            local_domains = []
-        if not isinstance(local_domains, list):
-            local_domains = [local_domains]
-        self.local_domains = deepcopy(local_domains)
         self._find = None
-        self.deploy()
 
     def __repr__(self):
         return 'OpenRE(%s)' % repr(self.config)
 
-    def deploy(self):
+    def deploy(self, domain_factory=None):
         """
         Создание домена.
         """
+        if domain_factory is None:
+            domain_factory = create_domain_factory()
         layer_by_name = {}
         if 'synapse' not in self.config:
             self.config['synapse'] = {}
@@ -98,12 +94,8 @@ class OpenRE(object):
             for domain_layer in domain_config['layers']:
                 domain_layer.update(
                     deepcopy(layer_by_name[domain_layer['name']]))
-            if not self.local_domains \
-               or (self.local_domains \
-                   and domain_config['name'] in self.local_domains):
-                domain = Domain(domain_config, self, domain_index)
-            else:
-                domain = RemoteDomain(domain_config, self, domain_index)
+            domain_class = domain_factory(domain_config['name'])
+            domain = domain_class(domain_config, self, domain_index)
             self.domains.append(domain)
         for domain in self.domains:
             domain.deploy_layers()
@@ -191,6 +183,7 @@ def test_openre():
     from openre.neurons import IS_INHIBITORY, IS_TRANSMITTER, IS_RECEIVER
     from openre.data_types import null
     from openre.device import Dummy
+    from openre.domain import create_domain_factory
     from pytest import raises
     synapse_max_level = 30000
     config = {
@@ -287,6 +280,7 @@ def test_openre():
         ],
     }
     ore = OpenRE(config)
+    ore.deploy(create_domain_factory())
     assert ore
     assert ore.find('V2', 0, 10) == None
     assert ore.find('V1', 0, 20) == None
