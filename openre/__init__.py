@@ -391,8 +391,8 @@ def test_openre():
     assert d2.transmitter_index.address_to_key_index[218] == 200
     assert d2.neurons.flags.data[218] & IS_TRANSMITTER
     assert d3.neurons.flags.data[6] & IS_RECEIVER
-    assert len(d2.transmitter_index.key.data) == 207
-    assert len(d2.transmitter_index.value.data) == 207
+    assert len(d2.transmitter_index.key.data) == 214
+    assert len(d2.transmitter_index.value.data) == 214
     assert d1.stat('transmitter_index_again') is None
     assert d2.stat('transmitter_index_again') is None
     assert d3.stat('transmitter_index_again') is None

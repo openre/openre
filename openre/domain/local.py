@@ -372,7 +372,7 @@ class Domain(StatsMixin):
                     if post_to_range_x < 0:
                         continue
                     if post_to_range_x > post_layer_config['width']:
-                        post_to_range_x = post_layer_config['width'] - 1
+                        post_to_range_x = post_layer_config['width']
 
                     post_from_range_y = central_post_y - (radius - 1)
                     post_to_range_y = central_post_y + (radius - 1) + 1
@@ -383,7 +383,7 @@ class Domain(StatsMixin):
                     if post_to_range_y < 0:
                         continue
                     if post_to_range_y > post_layer_config['height']:
-                        post_to_range_y = post_layer_config['height'] - 1
+                        post_to_range_y = post_layer_config['height']
                     def post_layer_coords():
                         # for neurons in post layer
                         for post_y in xrange(
