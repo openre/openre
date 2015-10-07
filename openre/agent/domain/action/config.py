@@ -9,15 +9,11 @@ from openre import OpenRE
 
 @action(namespace='domain')
 @state('config')
-def config(event, net_config, local_domains=None):
+def config(event, net_config):
     """
-    Создаем пустой объект класса OpenRE и указываем какие домены будут
-    локальными.
-    net_config - конфиг сети
-    local_domains - список имен доменов в конфиге, которые будут моделироваться
-        локально
+    Создаем пустой объект класса OpenRE
     """
     agent = event.pool.context['agent']
     assert 'net' not in agent.context
-    agent.context['net'] = OpenRE(net_config, local_domains=local_domains)
+    agent.context['net'] = OpenRE(net_config)
 

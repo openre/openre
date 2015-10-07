@@ -227,7 +227,7 @@ def do_filter(action, value, namespace='default'):
 class Transport(object):
     def __init__(self, *args, **kwargs):
         super(Transport, self).__init__()
-        self.context = get_zmq_context()
+        self._context = get_zmq_context()
         self._connection_pool = []
 
     def clean_sockets(self):
@@ -235,7 +235,7 @@ class Transport(object):
             self.disconnect(socket)
 
     def socket(self, *args, **kwargs):
-        socket = self.context.socket(*args, **kwargs)
+        socket = self._context.socket(*args, **kwargs)
         # The value of 0 specifies no linger period. Pending messages shall be
         # discarded immediately when the socket is closed with zmq_close().
         socket.setsockopt(zmq.LINGER, 0)

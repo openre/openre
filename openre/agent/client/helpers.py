@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
 from openre.agent.helpers import RPC, RPCBrokerProxy, Transport, RPCException
-import uuid
 
 class DomainError(Exception):
     pass
@@ -18,7 +17,7 @@ class Domain(Transport):
         self.is_domain_created = False
         domain_config = self.config['domains'][index]
         self.name = domain_config['name']
-        self.id = uuid.uuid4()
+        self.id = domain_config['id']
         logging.debug('Create domain %s', self.name)
         self.connection = self.connect(
             domain_config.get('host', '127.0.0.1'),
@@ -49,10 +48,18 @@ class Domain(Transport):
 
     def upload_config(self):
         """
-        Загружает конфиг и указывает какие домены будут локальными
+        Загружает конфиг
         """
         logging.debug('Upload config to remote domain %s', self.name)
-        self.broker.config(self.config, [self.name])
+        self.broker.config(self.config)
+
+    def deploy_domains(self):
+        """
+        Создает удаленные домены указывая какие из них будут локальными, а какие
+        глобальными
+        """
+        logging.debug('Deploy domains on %s', self.name)
+        self.broker.deploy_domains([self.name])
 
     def start(self):
         """

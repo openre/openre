@@ -54,24 +54,24 @@ class Domain(StatsMixin):
     Жеательно что бы выполнялось условие:
         0 <= spike_learn_threshold <= spike_forget_threshold <= types.tick.max
     """
-    def __init__(self, config, ore, domain_index):
+    def __init__(self, config, net, domain_index):
         super(Domain, self).__init__()
         logging.debug('Create domain (name: %s)', config['name'])
         config = deepcopy(config)
         self.config = config
-        self.ore = ore
+        self.net = net
         self.name = self.config['name']
         self.index = domain_index
         self.ticks = 0
         self.synapse_count_by_domain = {}
         self.spike_learn_threshold \
-                = self.ore.config['synapse'].get('spike_learn_threshold', 0)
+                = self.net.config['synapse'].get('spike_learn_threshold', 0)
         self.spike_forget_threshold \
-                = self.ore.config['synapse'].get('spike_forget_threshold', 0)
+                = self.net.config['synapse'].get('spike_forget_threshold', 0)
         self.learn_rate \
-                = self.ore.config['synapse'].get('learn_rate', 0)
+                = self.net.config['synapse'].get('learn_rate', 0)
         self.learn_threshold \
-                = self.ore.config['synapse'].get('learn_threshold', 0)
+                = self.net.config['synapse'].get('learn_threshold', 0)
         self.layers = []
         self.layers_vector = LayersVector()
         # domain layers config
@@ -84,7 +84,7 @@ class Domain(StatsMixin):
         # synapses vector
         self.synapse_address = -1
         self.synapses = SynapsesVector(
-            0, self.ore.config['synapse']['max_level'])
+            0, self.net.config['synapse']['max_level'])
         self.synapses_metadata = None
         self.random = random.Random()
         self.seed = uuid.uuid4().hex
@@ -118,7 +118,7 @@ class Domain(StatsMixin):
         logging.debug('Domain created (name: %s)', self.name)
 
     def __repr__(self):
-        return 'Domain(%s, %s)' % (repr(self.config), repr(self.ore))
+        return 'Domain(%s, %s)' % (repr(self.config), repr(self.net))
 
     def deploy_layers(self):
         """
@@ -254,10 +254,10 @@ class Domain(StatsMixin):
         total_synapses = self.synapse_count_by_domain
         # cache
         self_connect_neurons = self.connect_neurons
-        for layer_config in self.ore.config['layers']:
+        for layer_config in self.net.config['layers']:
             layer_config_by_name[layer_config['name']] = layer_config
         domain_index_to_name = []
-        for domain_index, domain in enumerate(self.ore.config['domains']):
+        for domain_index, domain in enumerate(self.net.config['domains']):
             domain_index_to_name.append(domain['name'])
             total_synapses[domain['name']] = 0
             if domain['name'] == self.name:
@@ -265,9 +265,9 @@ class Domain(StatsMixin):
         # cache neuron -> domain and neuron -> layer in domain
         if 'layer' not in self.cache:
             self.cache['layer'] = {}
-            for layer_config in self.ore.config['layers']:
+            for layer_config in self.net.config['layers']:
                 # heihgt x width x z,
-                # where z == 0 is domain index in ore and
+                # where z == 0 is domain index in net and
                 #       z == 1 is layer index in domain
                 self.cache['layer'][layer_config['name']] = \
                     np.zeros(
@@ -276,7 +276,7 @@ class Domain(StatsMixin):
                     )
                 self.cache['layer'][layer_config['name']] \
                         .fill(np.iinfo(np.int).max)
-            for domain_index, domain in enumerate(self.ore.config['domains']):
+            for domain_index, domain in enumerate(self.net.config['domains']):
                 layer_index = -1
                 for layer in domain['layers']:
                     layer_index += 1
@@ -466,7 +466,7 @@ class Domain(StatsMixin):
         # local pre neuron is transmitter
         self.neurons.flags[pre_neuron_address] |= IS_TRANSMITTER
         # get post_neuron_domain
-        domain = self.ore.domains[post_domain_index]
+        domain = self.net.domains[post_domain_index]
         # connect pre neuron with post neuron in post_neuron_domain
         domain.send_synapse(
             pre_domain_index, pre_layer_index, pre_neuron_address,
@@ -480,7 +480,7 @@ class Domain(StatsMixin):
         Обрабатываем информацию о синапсе из другого домена
         self == post_domain
         """
-        pre_domain = self.ore.domains[pre_domain_index]
+        pre_domain = self.net.domains[pre_domain_index]
         pre_layer = pre_domain.layers[pre_layer_index]
         post_layer = self.layers[post_layer_index]
         local_pre_neuron_address \
@@ -553,7 +553,7 @@ class Domain(StatsMixin):
         for (i,), flag in np.ndenumerate(index.flags.data):
             if not flag & IS_SPIKED or flag & IS_DEAD:
                 continue
-            post_domain = self.ore.domains[index.remote_domain[i]]
+            post_domain = self.net.domains[index.remote_domain[i]]
             receiver_neuron_index = index.remote_receiver_index.data[i]
             post_domain.register_spike(receiver_neuron_index)
 

@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from openre.domain.local import Domain
-from openre.domain.remote import RemoteDomain
+from openre.domain.remote import RemoteDomainDummy
 
 def create_domain_factory(
     local_domain_class=Domain,
-    remote_domain_class=RemoteDomain,
+    remote_domain_class=RemoteDomainDummy,
     local_domains=None
 ):
     """

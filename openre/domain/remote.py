@@ -7,29 +7,26 @@ from openre.helpers import StatsMixin
 import logging
 
 class RemoteDomainBase(StatsMixin):
-    def __init__(self, config, ore, domain_index):
+    def __init__(self, config, net, domain_index):
         super(RemoteDomainBase, self).__init__()
         self.config = config
-        self.ore = ore
+        self.net = net
         self.name = self.config['name']
         logging.debug('Create remote domain (name: %s)', config['name'])
-        self.transport = None
         self.index = domain_index
 
     def __getattr__(self, name):
         raise NotImplementedError
 
-class RemoteDomain(RemoteDomainBase):
+class RemoteDomainDummy(RemoteDomainBase):
     """
-    Прокси к удаленному домену.
+    Do nothing
     """
     # FIXME: optimize send_synapse (collect portion of data and send it in one
     # request)
     def __getattr__(self, name):
         def api_call(*args, **kwargs):
-            if name != 'send_synapse':
-                print "%s(*%s, **%s)" % (name, args, kwargs)
-            return
+            pass
         return api_call
 
 def test_remote_domain():
