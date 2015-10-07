@@ -148,7 +148,7 @@ def test_remote_domain():
     }
     ore = OpenRE(config)
     ore.deploy(create_domain_factory(Domain, RemoteDomainTest, ['D1']))
+    local = ore.domains[0]
     remote = ore.domains[1]
     # 4 neurons in V1 connects to 4 neurons in V2 with radius 2
     assert remote.stat('send_synapse') == 4*4
-

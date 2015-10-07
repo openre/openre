@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
-from openre.agent.helpers import RPC, RPCBrokerProxy, Transport, RPCException
+from openre.agent.helpers import RPC, RPCBrokerProxy, Transport, RPCException, \
+        pretty_func_str
 
 class DomainError(Exception):
     pass
@@ -58,50 +59,16 @@ class Domain(Transport):
         Создает удаленные домены указывая какие из них будут локальными, а какие
         глобальными
         """
-        logging.debug('Deploy domains on %s', self.name)
+        logging.debug('%s.deploy_domains()', self.name)
         self.broker.deploy_domains([self.name])
 
-    def deploy_layers(self):
-        """
-        Создает слои на удаленном домене.
-        """
-        logging.debug('Deploy layers on %s', self.name)
-        self.broker.deploy_layers()
-
-    def deploy_neurons(self):
-        """
-        Создает нейроны на удаленном домене.
-        """
-        logging.debug('Deploy neurons on %s', self.name)
-        self.broker.deploy_neurons()
-
-    def pre_deploy_synapses(self):
-        """
-        Инициализируется вектор синапсов.
-        """
-        logging.debug('Pre-deploy synapses on %s', self.name)
-        self.broker.pre_deploy_synapses()
-
-    def deploy_synapses(self):
-        """
-        Создание синапсов и нейронов в домене.
-        """
-        logging.debug('Deploy synapses on %s', self.name)
-        self.broker.deploy_synapses()
-
-    def post_deploy_synapses(self):
-        """
-        Удаляется неиспользуемое место в векторе синапсов.
-        """
-        logging.debug('Post-deploy synapses on %s', self.name)
-        self.broker.post_deploy_synapses()
-
-    def post_deploy(self):
-        """
-        Создаются индексы и данные загружаются на устройство.
-        """
-        logging.debug('Post-deploy on %s', self.name)
-        self.broker.post_deploy()
+    def __getattr__(self, name):
+        def api_call(*args, **kwargs):
+            logging.debug(
+                pretty_func_str('%s.%s' % (self.name, name), *args, **kwargs)
+            )
+            return getattr(self.broker, name)(*args, **kwargs)
+        return api_call
 
     def start(self):
         """

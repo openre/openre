@@ -4,6 +4,7 @@ Helper functions and decorators
 """
 import cProfile
 from functools import wraps
+from copy import deepcopy
 
 def profileit(func):
     @wraps(func)
@@ -299,10 +300,12 @@ class StatsMixin(object):
         """
         self._stats[name] = value
 
-    def stat(self, name):
+    def stat(self, name=None):
         """
         Получает значение name
         """
+        if name is None:
+            return deepcopy(self._stats)
         return self._stats.get(name)
 
 def merge(source, destination):

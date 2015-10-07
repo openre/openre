@@ -26,10 +26,17 @@ def run(agent):
         logging.info('Start creating neurons and synapses.' \
                      ' This may take a while.')
         net.deploy_synapses()
-        logging.info('Upload data to devices.')
+        logging.info('Upload data to devices')
         net.post_deploy_synapses()
         net.post_deploy()
-        logging.info('Deploy done.')
+        logging.info('Deploy done')
+        # debug code:
+        for domain in net.domains:
+            stats = domain.domain.stat.wait() or {}
+            print '%s:' % domain.name
+            for key in sorted(stats.keys()):
+                print '    %s %s' % (key, stats[key])
+
     finally:
         if net:
             logging.info('Destroying Net')

@@ -17,7 +17,15 @@ def check_args(event, *args, **kwargs):
 
 @action(namespace='domain')
 def domain_proxy(event, message, domain_index):
-    return domain_index
+    agent = event.pool.context['agent']
+    net = agent.context['net']
+    domain = net.domains[domain_index]
+    args = ()
+    kwargs = {}
+    if message.get('args'):
+        args = message['args']['args']
+        kwargs = message['args']['kwargs']
+    return getattr(domain, message['action'])(*args, **kwargs)
 
 @action(namespace='domain')
 def sleep(event, timeout=10):

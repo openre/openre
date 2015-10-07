@@ -93,4 +93,5 @@ def broker_domain_proxy(event, domain_index):
     return agent.broker \
             .set_address(address) \
             .set_response_address(event.context['event_id']) \
+            .set_wait(event.data.get('wait', False)) \
             .domain_proxy(event.data, domain_index)

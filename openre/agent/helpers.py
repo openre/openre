@@ -246,7 +246,7 @@ class Transport(object):
 
     def disconnect(self, socket):
         if socket in self._connection_pool:
-            logging.debug('agent.disconnect(%s)', socket)
+            logging.debug('agent.disconnect(%s)', repr(socket))
             self._connection_pool.remove(socket)
             socket.close()
             socket = None
@@ -422,12 +422,13 @@ class RPC(object):
                 }
             }
             message = to_json(message)
-            logging.debug('RPC call server.%s(*%s, **%s)', name, args, kwargs)
+            logging.debug('RPC >>> server.%s',
+                          pretty_func_str(name, *args, **kwargs))
             self._socket.send(message)
             ret = self._socket.recv()
             ret = from_json(ret)
             self._response = ret
-            logging.debug('RPC result %s', ret)
+            logging.debug('RPC %s', ret)
             if not ret['success']:
                 if 'traceback' in ret and ret['traceback']:
                     raise RPCException(ret, ret['traceback'])
@@ -475,13 +476,16 @@ class RPCBrokerProxyCall(object):
             }
         }
         message = to_json(message)
-        logging.debug('RPC broker proxy call %s.%s(*%s, **%s)',
-                      self.proxy._proxy_method, self.name, args, kwargs)
+        logging.debug('RPC broker proxy >>> %s',
+                      pretty_func_str('%s.%s' % (
+                          self.proxy._proxy_method, self.name),
+                          *args, **kwargs)
+                     )
         self.proxy._socket.send(message)
         ret = self.proxy._socket.recv()
         ret = from_json(ret)
         self.proxy._response = ret
-        logging.debug('RPC broker proxy result %s', ret)
+        logging.debug('RPC broker proxy %s', ret)
         if not ret['success']:
             if 'traceback' in ret and ret['traceback']:
                 raise RPCException(ret, ret['traceback'])
@@ -570,11 +574,26 @@ class RPCBroker(object):
                 }
             }
             message = to_json(message)
-            logging.debug('RPCBroker call broker.%s(*%s, **%s)',
-                          name, args, kwargs)
+            logging.debug('RPCBroker >>> broker.%s',
+                          pretty_func_str(name, *args, **kwargs))
             self._socket.send_multipart(
                 ['', self._address, message])
             self._response_address = None
 
         return api_call
+
+def pretty_func_str(__name, *args, **kwargs):
+    """
+    Возвращает строчку в виде: 'name(func_arguments)'
+    """
+    pretty_args = []
+    if args:
+        pretty_args.append(', '.join([repr(x) for x in args]))
+    if kwargs:
+        pretty_args.append(
+            ', '.join(['%s=%s' % (k, repr(v))
+                       for k, v in kwargs.items()])
+        )
+    pretty_args = ', '.join(pretty_args)
+    return '%s(%s)' % (__name, pretty_args)
 
