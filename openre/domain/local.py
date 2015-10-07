@@ -503,7 +503,7 @@ class Domain(StatsMixin):
                 pre_domain_index,
                 pre_neuron_address
             ):
-                pre_domain.stat_inc('receiver_index_again')
+                self.stat_inc('receiver_index_again')
             local_pre_neuron_receiver_index = self.receiver_index.pos
             # set IS_RECEIVER flag to pre_neuron
             self.remote_neurons_metadata.flags[self.remote_neuron_address] \
@@ -512,7 +512,7 @@ class Domain(StatsMixin):
             pre_domain.send_receiver_index(self.index, pre_neuron_address,
                                            local_pre_neuron_address,
                                            local_pre_neuron_receiver_index)
-            pre_domain.stat_inc('total_transmitter_neurons_sended')
+            self.stat_inc('total_receiver_neurons')
         # get synapse_address
         self.synapse_address += 1
         self.connect_neurons(
@@ -538,8 +538,7 @@ class Domain(StatsMixin):
             remote_pre_neuron_receiver_index
         ):
             pre_domain.stat_inc('transmitter_index_again')
-        # should be equal to pre_domain.stat('total_transmitter_neurons_sended')
-        pre_domain.stat_inc('total_receiver_neurons_received')
+        pre_domain.stat_inc('total_transmitter_neurons')
 
     def send_spikes(self):
         """
