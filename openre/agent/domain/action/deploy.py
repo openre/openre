@@ -7,7 +7,7 @@ from openre.agent.decorators import action
 from openre.agent.domain.decorators import state
 from openre.domain import create_domain_factory
 from openre.domain.remote import RemoteDomainBase
-from openre.agent.helpers import RPCBrokerProxy
+from openre.agent.helpers import RPCBrokerProxy, pretty_func_str
 
 def remote_domain_factory(agent):
     class RemoteDomain(RemoteDomainBase):
@@ -34,9 +34,9 @@ def remote_domain_factory(agent):
         # one request)
         def __getattr__(self, name):
             def api_call(*args, **kwargs):
-                if name != 'send_synapse':
-                    print "%s(*%s, **%s)" % (name, args, kwargs)
-                return
+                #with open('/home/baraban/work-home/openre/log%s' % self.name, 'a') as file:
+                #    file.write(pretty_func_str(name, *args, **kwargs))
+                return getattr(self.transport, name)(*args, **kwargs)
             return api_call
     return RemoteDomain
 
