@@ -5,6 +5,7 @@ import logging
 from openre.data_types import types
 from openre.domain import create_domain_factory
 import os.path
+from openre.helpers import set_default
 
 __version__ = '0.0.1'
 BASE_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -48,33 +49,44 @@ class OpenRE(object):
 
     def deploy(self, domain_factory=None):
         """
-        Создание домена.
+        Создание сети.
+        """
+        self.deploy_domains(domain_factory)
+        self.deploy_layers()
+        self.deploy_neurons()
+        self.pre_deploy_synapses()
+        # here wait for all domains is synced
+        self.deploy_synapses()
+        # here wait for all domains is synced
+        self.post_deploy_synapses()
+        self.post_deploy()
+
+    def deploy_domains(self, domain_factory=None):
+        """
+        Создание пустых доменов
         """
         if domain_factory is None:
             domain_factory = create_domain_factory()
         layer_by_name = {}
-        if 'synapse' not in self.config:
-            self.config['synapse'] = {}
-        if 'max_level' not in self.config['synapse']:
-            self.config['synapse']['max_level'] = 30000
-        if 'learn_rate' not in self.config['synapse']:
-            self.config['synapse']['learn_rate'] = 10
-        if 'learn_threshold' not in self.config['synapse']:
-            self.config['synapse']['learn_threshold'] = 9000
-        if 'spike_learn_threshold' not in self.config['synapse']:
-            self.config['synapse']['spike_learn_threshold'] = 0
-        if 'spike_forget_threshold' not in self.config['synapse']:
-            self.config['synapse']['spike_forget_threshold'] = 0
+        defaults = {
+            'synapse': {
+                'max_level': 30000,
+                'learn_rate': 10,
+                'learn_threshold': 9000,
+                'spike_learn_threshold': 0,
+                'spike_forget_threshold': 0,
+            }
+        }
+        set_default(self.config, defaults)
+        layer_defaults = {
+            'threshold': self.config['synapse']['max_level'],
+            'is_inhibitory': False,
+            # we want one spike per 10 ticks
+            'spike_cost': 10,
+            'max_vitality': types.max(types.vitality)
+        }
         for layer in self.config['layers']:
-            if 'threshold' not in layer:
-                layer['threshold'] = self.config['synapse']['max_level']
-            if 'is_inhibitory' not in layer:
-                layer['is_inhibitory'] = False
-            if 'spike_cost' not in layer:
-                # target is one spike per 10 ticks
-                layer['spike_cost'] = 10
-            if 'max_vitality' not in layer:
-                layer['max_vitality'] = types.max(types.vitality)
+            set_default(layer, layer_defaults)
             layer_by_name[layer['name']] = layer
 
         # TODO: - выдавать предупреждение если не весь слой моделируется
@@ -97,17 +109,29 @@ class OpenRE(object):
             domain_class = domain_factory(domain_config['name'])
             domain = domain_class(domain_config, self, domain_index)
             self.domains.append(domain)
+
+    def deploy_layers(self):
         for domain in self.domains:
             domain.deploy_layers()
+
+    def deploy_neurons(self):
         for domain in self.domains:
             domain.deploy_neurons()
+
+    def pre_deploy_synapses(self):
+        for domain in self.domains:
             domain.pre_deploy_synapses()
-        # here wait for all domains is synced
+
+    def deploy_synapses(self):
         for domain in self.domains:
             domain.deploy_synapses()
-        # here wait for all domains is synced
+
+    def post_deploy_synapses(self):
         for domain in self.domains:
             domain.post_deploy_synapses()
+
+    def post_deploy(self):
+        for domain in self.domains:
             domain.deploy_indexes()
             domain.deploy_device()
 

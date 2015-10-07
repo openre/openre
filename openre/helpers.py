@@ -305,3 +305,55 @@ class StatsMixin(object):
         """
         return self._stats.get(name)
 
+def merge(source, destination):
+    """
+    Deep merge source dictionary to destination
+    """
+    for key, value in source.items():
+        if isinstance(value, dict):
+            # get node or create one
+            node = destination.setdefault(key, {})
+            merge(value, node)
+        else:
+            destination[key] = value
+
+    return destination
+
+def set_default(source, defaults):
+    """
+    Recursively updates source from data if no source
+    """
+    for key, value in defaults.items():
+        if isinstance(value, dict):
+            if key not in source:
+                source[key] = {}
+            set_default(source[key], value)
+        elif key not in source:
+            source[key] = value
+
+    return defaults
+
+
+def test_helpers():
+    defaults = {'first': {'all_rows': {'pass': 'dog', 'number': '1'}}}
+    data = {'first': {'all_rows': {'fail': 'cat', 'number': '5'}}}
+    assert merge(data, defaults) == {'first': {'all_rows': \
+            {'pass': 'dog', 'fail': 'cat', 'number': '5'}}}
+    defaults = {'first': {'all_rows': {'pass': 'dog', 'number': '1'}},
+                'second' :[1, 2], 'none':{1:2}}
+    data = {'first': {'all_rows': {'fail': 'cat', 'number': '5'}},
+            'second': '3'}
+    before_id = id(data)
+    def_before_id = id(defaults)
+    set_default(data, defaults)
+    assert id(data) == before_id
+    assert id(defaults) == def_before_id
+    assert data == {
+        'first': {'all_rows': {'pass': 'dog', 'fail': 'cat', 'number': '5'}},
+        'second': '3',
+        'none': {1:2}
+    }
+    # check not changed
+    assert defaults == {'first': {'all_rows': {'pass': 'dog', 'number': '1'}},
+                'second' :[1, 2], 'none':{1:2}}
+
