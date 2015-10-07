@@ -213,8 +213,11 @@ def add_action(action, callback, priority=50, namespace='default'):
 def do_action(action, namespace, *args, **kwargs):
     return ActionHooks.do_action(action, namespace, *args, **kwargs)
 
+def is_registered_action(action, namespace):
+    return ActionHooks.registered_action(action, namespace)
+
 def do_strict_action(action, namespace, *args, **kwargs):
-    if not ActionHooks.registered_action(action, namespace):
+    if not is_registered_action(action, namespace):
         raise ValueError('Action "%s" in not registered' % action)
     return ActionHooks.do_action(action, namespace, *args, **kwargs)
 
@@ -509,6 +512,10 @@ class RPCBrokerProxy(object):
         self._proxy_kwargs = kwargs
 
     def __getattr__(self, name):
+        # lazy socket
+        if callable(self._socket):
+            # actual connect
+            self._socket = self._socket()
         return RPCBrokerProxyCall(self, name)
 
 class RPCBroker(object):

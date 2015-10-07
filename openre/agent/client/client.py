@@ -35,7 +35,6 @@ class Agent(AgentBase):
                 self.die('JSON is invalid: %s', error)
 
         result = do_strict_action(self.config['action'], 'client', self)
-        print result
         """
         result = self.send_server(
             self.config['action'],

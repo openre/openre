@@ -16,8 +16,13 @@ def remote_domain_factory(agent):
         """
         def __init__(self, config, net, domain_index):
             super(RemoteDomain, self).__init__(config, net, domain_index)
-            self.server_socket = agent.connect(config.get('host', '127.0.0.1'),
-                                               config.get('port', 8934))
+            def lazy_socket():
+                """Отложенное создание сокета"""
+                self.server_socket = agent.connect(
+                    config.get('host', '127.0.0.1'),
+                    config.get('port', 8934))
+                return self.server_socket
+            self.server_socket = lazy_socket
             self.transport = RPCBrokerProxy(
                 self.server_socket,
                 'broker_domain_proxy',
@@ -50,3 +55,65 @@ def deploy_domains(event, local_domains=None):
         remote_domain_class=remote_domain_class,
         local_domains=local_domains
     ))
+
+@action(namespace='domain')
+@state('deploy_layers')
+def deploy_layers(event):
+    """
+    Создание слоев.
+    """
+    agent = event.pool.context['agent']
+    net = agent.context['net']
+    net.deploy_layers()
+
+@action(namespace='domain')
+@state('deploy_neurons')
+def deploy_neurons(event):
+    """
+    Создание пустых векторов нейронов.
+    """
+    agent = event.pool.context['agent']
+    net = agent.context['net']
+    net.deploy_neurons()
+
+@action(namespace='domain')
+@state('pre_deploy_synapses')
+def pre_deploy_synapses(event):
+    """
+    Создание пустого вектора нейронов.
+    """
+    agent = event.pool.context['agent']
+    net = agent.context['net']
+    net.pre_deploy_synapses()
+
+@action(namespace='domain')
+@state('deploy_synapses')
+def deploy_synapses(event):
+    """
+    Создание нейронов и синапсов.
+    """
+    agent = event.pool.context['agent']
+    net = agent.context['net']
+    net.deploy_synapses()
+
+@action(namespace='domain')
+@state('post_deploy_synapses')
+def post_deploy_synapses(event):
+    """
+    Удаление пустого места с конца вектора синапсов.
+    """
+    agent = event.pool.context['agent']
+    net = agent.context['net']
+    net.post_deploy_synapses()
+
+@action(namespace='domain')
+@state('post_deploy')
+def post_deploy(event):
+    """
+    Создание дополнительных индексов и загрузка данных на устройство.
+    """
+    agent = event.pool.context['agent']
+    net = agent.context['net']
+    net.post_deploy()
+
+

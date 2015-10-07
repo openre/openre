@@ -61,6 +61,48 @@ class Domain(Transport):
         logging.debug('Deploy domains on %s', self.name)
         self.broker.deploy_domains([self.name])
 
+    def deploy_layers(self):
+        """
+        Создает слои на удаленном домене.
+        """
+        logging.debug('Deploy layers on %s', self.name)
+        self.broker.deploy_layers()
+
+    def deploy_neurons(self):
+        """
+        Создает нейроны на удаленном домене.
+        """
+        logging.debug('Deploy neurons on %s', self.name)
+        self.broker.deploy_neurons()
+
+    def pre_deploy_synapses(self):
+        """
+        Инициализируется вектор синапсов.
+        """
+        logging.debug('Pre-deploy synapses on %s', self.name)
+        self.broker.pre_deploy_synapses()
+
+    def deploy_synapses(self):
+        """
+        Создание синапсов и нейронов в домене.
+        """
+        logging.debug('Deploy synapses on %s', self.name)
+        self.broker.deploy_synapses()
+
+    def post_deploy_synapses(self):
+        """
+        Удаляется неиспользуемое место в векторе синапсов.
+        """
+        logging.debug('Post-deploy synapses on %s', self.name)
+        self.broker.post_deploy_synapses()
+
+    def post_deploy(self):
+        """
+        Создаются индексы и данные загружаются на устройство.
+        """
+        logging.debug('Post-deploy on %s', self.name)
+        self.broker.post_deploy()
+
     def start(self):
         """
         Запускает симуляцию на домене

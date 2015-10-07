@@ -6,7 +6,7 @@
 import zmq
 import tempfile
 import os
-from openre.agent.helpers import AgentBase
+from openre.agent.helpers import AgentBase, is_registered_action
 import logging
 import importlib
 from openre.agent.event import EventPool, DomainEvent
@@ -106,10 +106,20 @@ class Agent(AgentBase):
                         event_pool.register(event)
                         # send response immediately
                         if not data.get('wait'):
-                            ret = {
-                                'success': True,
-                                'data': None,
-                            }
+                            if is_registered_action(data['action'], 'domain'):
+                                ret = {
+                                    'success': True,
+                                    'data': None,
+                                }
+                            else:
+                                ret = {
+                                    'success': False,
+                                    'data': None,
+                                    'error': 'Action "%s" in not registered'
+                                        % data['action'],
+                                    'traceback': 'Action "%s" in not registered'
+                                        % data['action'],
+                                }
                             if event.data.get('context'):
                                 ret['context'] = data['context']
                             self.reply(address, ret)
