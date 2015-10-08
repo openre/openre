@@ -442,17 +442,20 @@ class RPCBrokerProxyCall(object):
     Возвращается как функция в RPCBrokerProxy, которой передадутся параметры
     для вызова удаленного метода. Нужна для того, что бы можно было задавать
     дополнительные параметры при вызове, например:
-        broker = RPCBrokerProxy(socket, proxy_method, broker_address)
+        >>> broker = RPCBrokerProxy(socket, proxy_method, broker_address)
         # вызов при котором не ждем результата выполнения функции.
-        # Вернется event_id.
-        brocker.some_remote_method(arguments)
+        # Вернется event_id после регистрации события на сервере.
+        >>> broker.some_remote_method(arguments)
         # тут дожидаемся результата выполнения удаленного метода.
-        brocker.some_remote_method.wait(arguments)
+        >>> broker.some_remote_method.wait(arguments)
+        # вообще не ждем никакого ответа
+        >>> broker.some_remote_method.no_reply(arguments)
     """
     def __init__(self, proxy, name):
         self.proxy = proxy
         self.name = name
         self._wait = False
+        self._no_reply = False
 
     def __call__(self, *args, **kwargs):
         self._response = None
@@ -460,6 +463,7 @@ class RPCBrokerProxyCall(object):
         message = {
             'action': self.name,
             'wait': self._wait,
+            'no_reply': self._no_reply,
             'args': {
                 'args': args,
                 'kwargs': kwargs
@@ -482,8 +486,10 @@ class RPCBrokerProxyCall(object):
                           *args, **kwargs)
                      )
         self.proxy._socket.send(message)
-        ret = self.proxy._socket.recv()
-        ret = from_json(ret)
+        ret = {'success': True, 'data': None}
+        if not self._no_reply:
+            ret = self.proxy._socket.recv()
+            ret = from_json(ret)
         self.proxy._response = ret
         logging.debug('RPC broker proxy %s', ret)
         if not ret['success']:
@@ -500,6 +506,14 @@ class RPCBrokerProxyCall(object):
         self._wait = True
         return self
 
+    @property
+    def no_reply(self):
+        """
+        Указывает на то, что ответ с результатом выполнения команды посылать
+        не нужно
+        """
+        self._no_reply = True
+        return self
 
 class RPCBrokerProxy(object):
     """
@@ -535,6 +549,7 @@ class RPCBroker(object):
         self._address = None
         self._response_address = None
         self._wait = False
+        self._no_reply = False
 
     def set_address(self, address):
         """
@@ -559,6 +574,13 @@ class RPCBroker(object):
         self._wait = wait
         return self
 
+    def set_no_reply(self, no_reply):
+        """
+        Sets flag if we need to wait the result
+        """
+        self._no_reply = no_reply
+        return self
+
     def __getattr__(self, name):
         def api_call(*args, **kwargs):
             assert self._address
@@ -567,6 +589,7 @@ class RPCBroker(object):
             message = {
                 'action': name,
                 'wait': self._wait,
+                'no_reply': self._no_reply,
                 'context': self._response_address,
                 'args': {
                     'args': args,

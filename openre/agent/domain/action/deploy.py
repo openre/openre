@@ -7,7 +7,7 @@ from openre.agent.decorators import action
 from openre.agent.domain.decorators import state
 from openre.domain import create_domain_factory
 from openre.domain.remote import RemoteDomainBase
-from openre.agent.helpers import RPCBrokerProxy, pretty_func_str
+from openre.agent.helpers import RPCBrokerProxy
 
 def remote_domain_factory(agent):
     class RemoteDomain(RemoteDomainBase):
@@ -30,14 +30,34 @@ def remote_domain_factory(agent):
                 domain_index
             )
 
-        # FIXME: optimize send_synapse (collect portion of data and send it in
-        # one request)
+        def send_synapse(self,
+            pre_domain_index, pre_layer_index, pre_neuron_address,
+            post_layer_index, post_x, post_y):
+            """
+            Обрабатываем информацию о синапсе из другого домена
+            self == post_domain
+            """
+            # FIXME: optimize send_synapse (collect portion of data and send
+            # it in one request)
+            return self.__getattr__('send_synapse').no_reply(
+                pre_domain_index, pre_layer_index, pre_neuron_address,
+                post_layer_index, post_x, post_y)
+
+        def send_receiver_index(self, post_domain_index, pre_neuron_address,
+                                remote_pre_neuron_address,
+                                remote_pre_neuron_receiver_index):
+            """
+            Запоминаем remote_neuron_address (IS_RECEIVER) для
+            pre_neuron_address (IS_TRANSMITTER)
+            self == pre_domain
+            """
+            return self.__getattr__('send_receiver_index').no_reply(
+                post_domain_index, pre_neuron_address,
+                remote_pre_neuron_address,
+                remote_pre_neuron_receiver_index)
+
         def __getattr__(self, name):
-            def api_call(*args, **kwargs):
-                #with open('/home/baraban/work-home/openre/log%s' % self.name, 'a') as file:
-                #    file.write(pretty_func_str(name, *args, **kwargs))
-                return getattr(self.transport, name)(*args, **kwargs)
-            return api_call
+            return getattr(self.transport, name)
     return RemoteDomain
 
 @action(namespace='domain')

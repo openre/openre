@@ -2,7 +2,7 @@
 """
 Содержит в себе слои и синапсы. Запускается в текущем процессе.
 """
-from openre.helpers import StatsMixin
+from openre.domain.base import DomainBase
 from openre.vector import Vector
 from openre.metadata import Metadata
 from openre.data_types import types
@@ -20,7 +20,7 @@ from openre import device
 import numpy as np
 
 
-class Domain(StatsMixin):
+class Domain(DomainBase):
     """
     Домен (Domain) - содержит один и более слоев состоящих из нейронов,
     связанных друг с другом синапсами. Домен можно воспринимать как один процесс
@@ -55,13 +55,8 @@ class Domain(StatsMixin):
         0 <= spike_learn_threshold <= spike_forget_threshold <= types.tick.max
     """
     def __init__(self, config, net, domain_index):
-        super(Domain, self).__init__()
-        logging.debug('Create domain (name: %s)', config['name'])
-        config = deepcopy(config)
-        self.config = config
-        self.net = net
-        self.name = self.config['name']
-        self.index = domain_index
+        super(Domain, self).__init__(config, net, domain_index)
+
         self.ticks = 0
         self.synapse_count_by_domain = {}
         self.spike_learn_threshold \
@@ -116,9 +111,6 @@ class Domain(StatsMixin):
         self.receiver_index = ReceiverIndex()
 
         logging.debug('Domain created (name: %s)', self.name)
-
-    def __repr__(self):
-        return 'Domain(%s, %s)' % (repr(self.config), repr(self.net))
 
     def deploy_layers(self):
         """
@@ -423,8 +415,8 @@ class Domain(StatsMixin):
                                 pre_domain_index,
                                 pre_layer_index,
                                 pre_neuron_address,
-                                inf[0], # post domain index
-                                inf[1], # post layer index
+                                int(inf[0]), # post domain index
+                                int(inf[1]), # post layer index
                                 post_x,
                                 post_y
                             )

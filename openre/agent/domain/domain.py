@@ -39,7 +39,7 @@ class Agent(AgentBase):
     def run(self):
         def event_done(event):
             # if we don't need the result of the event
-            if not event.data.get('wait'):
+            if not event.data.get('wait') or event.data.get('no_reply'):
                 return
             if event.is_success:
                 ret = {
@@ -105,7 +105,7 @@ class Agent(AgentBase):
                         event.done_callback(event_done)
                         event_pool.register(event)
                         # send response immediately
-                        if not data.get('wait'):
+                        if not data.get('wait') and not data.get('no_reply'):
                             if is_registered_action(data['action'], 'domain'):
                                 ret = {
                                     'success': True,

@@ -10,7 +10,7 @@ from openre.vector import MultiFieldVector
 from openre.data_types import types
 
 
-class Layer(object):
+class BaseLayer(object):
     """
     Слой (Layer) - набор однотипных нейронов, организованных в двухмерный
     массив.  Количество рядов и столбцов может быть разным, слой не обязательно
@@ -21,7 +21,6 @@ class Layer(object):
         name: basestring, int или long - идентификатор слоя. Используется для
             возможности ссылаться на слои из доменов (в конфиге).
         layer_address: types.medium_address - номер слоя в domain.layers.
-        address: types.address - aдрес первого элемента в векторе нейронов.
         threshold: types.threshold - если neuron.level больше layer.threshold,
                    то происходит спайк. Не должен быть больше чем максимум у
                    синапса.
@@ -43,9 +42,6 @@ class Layer(object):
         config = deepcopy(config)
         self.config = config
         self.name = self.config['name']
-        # metadata for current layer (threshold, relaxation, etc.)
-        self.layer_metadata = LayersMetadata(1)
-        self.address = None
         self.threshold = self.config['threshold']
         self.is_inhibitory = self.config.get('is_inhibitory', False)
         self.relaxation = self.config.get('relaxation', 0)
@@ -70,13 +66,11 @@ class Layer(object):
         if self.width == 0 or self.height == 0:
             logging.warn('Layer zero width or height, shape = %s', self.shape)
         self.length = self.width * self.height
-        # metadata for current layer neurons
-        self.neurons_metadata = NeuronsMetadata((self.width, self.height))
         self.spike_cost = self.config['spike_cost']
         self.max_vitality = self.config['max_vitality']
 
     def __repr__(self):
-        return 'Layer(%s)' % repr(self.config)
+        return '%s(%s)' % (self.__class__.__name__, repr(self.config))
 
     def __len__(self):
         return self.length
@@ -85,9 +79,36 @@ class Layer(object):
         """
         Создание слоя нейронов в ранее выделенном для этого векторе
         """
+        raise NotImplementedError
+
+class Layer(BaseLayer):
+    """
+    Локальный слой. Поддерживает устройства.
+        address: types.address - aдрес первого элемента в векторе нейронов.
+    """
+    def __init__(self, config):
+        super(Layer, self).__init__(config)
+        self.address = None
+        # metadata for current layer (threshold, relaxation, etc.)
+        self.layer_metadata = LayersMetadata(1)
+        # metadata for current layer neurons
+        self.neurons_metadata = NeuronsMetadata((self.width, self.height))
+
+    def create_neurons(self):
+        """
+        Создание слоя нейронов в ранее выделенном для этого векторе
+        """
         for i in xrange(self.length):
             create_neuron(i, self.neurons_metadata, self,
                           self.layer_metadata.address)
+
+
+class RemoteLayer(BaseLayer):
+    """
+    Удаленный нейрон. Хранит только конфиг.
+    """
+    def create_neurons(self):
+        pass
 
 class LayersVector(MultiFieldVector):
     """
