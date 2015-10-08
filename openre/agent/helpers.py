@@ -255,7 +255,7 @@ class Transport(object):
 
     def connect(self, host, port):
         logging.debug('agent.connect(%s, %s)', repr(host), repr(port))
-        socket = self.socket(zmq.REQ)
+        socket = self.socket(zmq.DEALER)
         self._connection_pool.append(socket)
         socket.connect('tcp://%s:%s' % (
             host == '*' and '127.0.0.1' or host,
@@ -389,11 +389,12 @@ class AgentBase(Transport):
         }
         message = self.to_json(message)
         logging.debug('Agent->Server: %s', message)
-        self.server_socket.send(message)
+        self.server_socket.send_multipart(['', message])
         ret = None
         if not skip_recv:
-            ret = self.server_socket.recv()
-            ret = self.from_json(ret)
+            ret = self.server_socket.recv_multipart()
+            assert ret[0] == ''
+            ret = self.from_json(ret[1])
             logging.debug('Server->Agent: %s', ret)
         return ret
 
@@ -424,9 +425,10 @@ class RPC(object):
             message = to_json(message)
             logging.debug('RPC >>> server.%s',
                           pretty_func_str(name, *args, **kwargs))
-            self._socket.send(message)
-            ret = self._socket.recv()
-            ret = from_json(ret)
+            self._socket.send_multipart(['', message])
+            ret = self._socket.recv_multipart()
+            assert ret[0] == ''
+            ret = from_json(ret[1])
             self._response = ret
             logging.debug('RPC %s', ret)
             if not ret['success']:
@@ -474,6 +476,8 @@ class RPCBrokerProxyCall(object):
             'action': self.proxy._proxy_method,
             'address': self.proxy._proxy_address,
             'data': message,
+            'wait': self._wait,
+            'no_reply': self._no_reply,
             'args': {
                 'args': self.proxy._proxy_args,
                 'kwargs': self.proxy._proxy_kwargs
@@ -485,11 +489,12 @@ class RPCBrokerProxyCall(object):
                           self.proxy._proxy_method, self.name),
                           *args, **kwargs)
                      )
-        self.proxy._socket.send(message)
+        self.proxy._socket.send_multipart(['', message])
         ret = {'success': True, 'data': None}
         if not self._no_reply:
-            ret = self.proxy._socket.recv()
-            ret = from_json(ret)
+            ret = self.proxy._socket.recv_multipart()
+            assert ret[0] == ''
+            ret = from_json(ret[1])
         self.proxy._response = ret
         logging.debug('RPC broker proxy %s', ret)
         if not ret['success']:

@@ -103,6 +103,8 @@ class Event(object):
         self.is_prevent_done = True
 
     def done(self):
+        if self.is_done:
+            return
         self.is_done = True
         if self.is_success is None:
             self.is_success = True
@@ -115,7 +117,8 @@ class Event(object):
     def run(self):
         if self.expire_value \
            and time.time() - self.expire_start >= self.expire_value:
-            self.failed('Event expired', traceback=False)
+            self.failed('Event(%s) expired' % repr(self.action),
+                        traceback=False)
             return
         if self.timeout_value \
            and time.time() - self.timeout_start < self.timeout_value:
@@ -135,9 +138,11 @@ class Event(object):
                 **args['kwargs'])
         except Exception as error:
             self.failed(error, traceback=True)
-        if self.is_prevent_done and not self.is_done:
+        if self.message.get('no_reply'):
+            self.done()
+        elif self.is_prevent_done and not self.is_done:
             self.is_prevent_done = False
-        else:
+        elif not self.is_done:
             self.done()
     @property
     def data(self):
@@ -184,4 +189,4 @@ def test_event():
     pool.tick()
     assert not pool.event_list
     assert event.is_success is False
-    assert event.error == 'Event expired'
+    assert event.error == "Event('process_state') expired"

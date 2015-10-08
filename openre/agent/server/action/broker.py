@@ -70,7 +70,8 @@ def broker_proxy(event, expire=10):
     return getattr(
         agent.broker.set_address(address) \
             .set_response_address(event.context['event_id'])
-            .set_wait(event.message.get('wait', False)),
+            .set_no_reply(event.data.get('no_reply', False)) \
+            .set_wait(event.data.get('wait', False)),
         data['action']
     )(*args[0], **args[1])
 

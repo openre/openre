@@ -62,12 +62,6 @@ class Agent(AgentBase):
         event_pool = EventPool()
         event_pool.context['agent'] = self
 
-        self.send_server('domain_state', {
-            'state': 'blank',
-            'status': 'done',
-            'name': self.config['name']
-        })
-
         process_name = self.config['name']
         if not process_name:
             process_name = 'domain'
@@ -76,6 +70,12 @@ class Agent(AgentBase):
         self.send_server('process_state', {
             'name':  process_name
         })
+        self.send_server('domain_state', {
+            'state': 'blank',
+            'status': 'done',
+            'name': self.config['name']
+        })
+
         # main loop
         while True:
             # receive all messages in while loop
@@ -140,6 +140,10 @@ class Agent(AgentBase):
         logging.debug('Reply with message: %s', reply)
 
     def clean(self):
+        self.send_server('domain_state', {
+            'state': 'exit',
+            'status': 'done',
+        })
         self.backend.close()
         self.pub.close()
         self.sub.close()

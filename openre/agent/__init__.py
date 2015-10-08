@@ -32,9 +32,9 @@ def test_agents():
     import zmq
     from openre.agent.helpers import RPCBroker, Transport, RPC, AgentBase, \
             from_json
-    from openre.agent.server import Agent as OriginalServerAgent
+    from openre.agent.server import Agent as ServerAgent
     transport = Transport()
-    class ServerAgent(OriginalServerAgent):
+    class ServerAgentTest(ServerAgent):
         def init(self):
             self.responder = transport.socket(zmq.ROUTER)
             self.responder.bind("inproc://server-responder")
@@ -49,17 +49,19 @@ def test_agents():
             self.server_socket.connect("inproc://server-responder")
             self.server = RPC(self.server_socket)
     # server
-    server_agent = ServerAgent({})
+    server_agent = ServerAgentTest({})
     # client
     client_agent = ClientAgent({})
 
     # client -> server -> client
     client_agent.send_server('ping', {'test': 'ok'}, skip_recv=True)
     message = server_agent.responder.recv_multipart()
-    assert len(message) == 3
+    assert len(message) == 4
+    print message
     assert message[1] == ''
-    assert 'action' in message[2]
-    data = from_json(message[2])
+    assert message[2] == ''
+    assert 'action' in message[3]
+    data = from_json(message[3])
     assert data['action'] == 'ping'
     assert data['data']['test'] == 'ok'
     address = message[0]

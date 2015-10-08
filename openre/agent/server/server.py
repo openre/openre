@@ -48,6 +48,8 @@ class Agent(AgentBase):
         def event_done(event):
             if not event.address:
                 return
+            if event.message.get('no_reply'):
+                return
             if event.is_success:
                 ret = {
                     'success': event.is_success,

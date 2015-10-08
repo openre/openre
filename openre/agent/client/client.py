@@ -13,20 +13,6 @@ class Agent(AgentBase):
     def init(self):
         self.init_actions()
         self.net_config = None
-        # FIXME: remove this and next debug code
-        self.connect_server(self.config['host'], self.config['port'])
-        import uuid
-        from openre.agent.helpers import RPCBrokerProxy
-        #self.domain = RPCBrokerProxy(
-        #    self.server_socket, 'broker_domain_proxy',
-        #    uuid.UUID('4d2f95ad-c6e7-4d66-9eb7-27eb93b5421a'),
-        #    domain_index=0
-        #)
-        self.domain = RPCBrokerProxy(
-            self.server_socket, 'broker_proxy',
-            uuid.UUID('4d2f95ad-c6e7-4d66-9eb7-27eb93b5421a')
-        )
-
     def run(self):
         if self.config['config'] and self.config['action'] == 'run':
             try:
