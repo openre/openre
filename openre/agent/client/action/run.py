@@ -31,11 +31,14 @@ def run(agent):
         net.post_deploy()
         logging.info('Deploy done')
         # debug code:
-        for domain in net.domains:
-            stats = domain.domain.stat.wait() or {}
-            print '%s:' % domain.name
-            for key in sorted(stats.keys()):
-                print '    %s %s' % (key, stats[key])
+        import time
+        for _ in range(10):
+            for domain in net.domains:
+                stats = domain.domain.stat.wait() or {}
+                print '%s:' % domain.name
+                for key in sorted(stats.keys()):
+                    print '    %s %s' % (key, stats[key])
+            time.sleep(5)
 
     finally:
         if net:
