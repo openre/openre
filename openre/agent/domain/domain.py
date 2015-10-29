@@ -100,8 +100,11 @@ class Agent(AgentBase):
                         }
                         self.reply(address, ret)
                     else:
+                        bytes = None
+                        if data.get('bytes'):
+                            bytes = message[-data['bytes']:]
                         event = DomainEvent(data['action'], 'domain', data,
-                                            address)
+                                            bytes, address)
                         event.done_callback(event_done)
                         event_pool.register(event)
                         # send response immediately

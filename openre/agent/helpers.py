@@ -458,6 +458,7 @@ class RPCBrokerProxyCall(object):
         self.name = name
         self._wait = False
         self._no_reply = False
+        self._bytes = []
 
     def __call__(self, *args, **kwargs):
         self._response = None
@@ -466,6 +467,7 @@ class RPCBrokerProxyCall(object):
             'action': self.name,
             'wait': self._wait,
             'no_reply': self._no_reply,
+            'bytes': len(self._bytes),
             'args': {
                 'args': args,
                 'kwargs': kwargs
@@ -478,6 +480,7 @@ class RPCBrokerProxyCall(object):
             'data': message,
             'wait': self._wait,
             'no_reply': self._no_reply,
+            'bytes': len(self._bytes),
             'args': {
                 'args': self.proxy._proxy_args,
                 'kwargs': self.proxy._proxy_kwargs
@@ -489,7 +492,10 @@ class RPCBrokerProxyCall(object):
                           self.proxy._proxy_method, self.name),
                           *args, **kwargs)
                      )
-        self.proxy._socket.send_multipart(['', message])
+        packet = ['', message]
+        if self._bytes:
+            packet.extend(self._bytes)
+        self.proxy._socket.send_multipart(packet)
         ret = {'success': True, 'data': None}
         if not self._no_reply:
             ret = self.proxy._socket.recv_multipart()
@@ -518,6 +524,17 @@ class RPCBrokerProxyCall(object):
         не нужно
         """
         self._no_reply = True
+        return self
+
+    def set_bytes(self, value):
+        """
+        Указывает на то, что нужно переслать список из строк в бинарном виде
+        """
+        if value is None:
+            return
+        if not isinstance(value, list):
+            value = [value]
+        self._bytes = value
         return self
 
 class RPCBrokerProxy(object):
@@ -555,6 +572,7 @@ class RPCBroker(object):
         self._response_address = None
         self._wait = False
         self._no_reply = False
+        self._bytes = []
 
     def set_address(self, address):
         """
@@ -586,6 +604,17 @@ class RPCBroker(object):
         self._no_reply = no_reply
         return self
 
+    def set_bytes(self, value):
+        """
+        Указывает на то, что нужно переслать список из строк в бинарном виде
+        """
+        if value is None:
+            return
+        if not isinstance(value, list):
+            value = [value]
+        self._bytes = value
+        return self
+
     def __getattr__(self, name):
         def api_call(*args, **kwargs):
             assert self._address
@@ -595,6 +624,7 @@ class RPCBroker(object):
                 'action': name,
                 'wait': self._wait,
                 'no_reply': self._no_reply,
+                'bytes': len(self._bytes),
                 'context': self._response_address,
                 'args': {
                     'args': args,
@@ -604,9 +634,12 @@ class RPCBroker(object):
             message = to_json(message)
             logging.debug('RPCBroker >>> broker.%s',
                           pretty_func_str(name, *args, **kwargs))
-            self._socket.send_multipart(
-                ['', self._address, message])
+            packet = ['', self._address, message]
+            if self._bytes:
+                packet.extend(self._bytes)
+            self._socket.send_multipart(packet)
             self._response_address = None
+            self._bytes = None
 
         return api_call
 

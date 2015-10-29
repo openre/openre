@@ -49,7 +49,7 @@ class EventPool(object):
 
 
 class Event(object):
-    def __init__(self, action, namespace='default', message=None):
+    def __init__(self, action, namespace='default', message=None, bytes=None):
         self.message = message
         self.is_done = False
         self.is_prevent_done = False
@@ -67,6 +67,11 @@ class Event(object):
         self.action = action
         self.namespace = namespace
         self.context = {}
+        if bytes is None:
+            bytes = []
+        if not isinstance(bytes, list):
+            bytes = [bytes]
+        self.bytes = bytes
 
     def failed(self, error, traceback=False):
         self.is_success = False
@@ -149,9 +154,9 @@ class Event(object):
         return self.message
 
 class AddressEvent(Event):
-    def __init__(self, action, namespace, message, address=None):
+    def __init__(self, action, namespace, message, bytes=None, address=None):
         self.address = address
-        super(AddressEvent, self).__init__(action, namespace, message)
+        super(AddressEvent, self).__init__(action, namespace, message, bytes)
 
 class DomainEvent(AddressEvent):
     pass

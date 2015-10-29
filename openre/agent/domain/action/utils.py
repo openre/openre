@@ -25,6 +25,9 @@ def domain_proxy(event, message, domain_index):
     if message.get('args'):
         args = message['args']['args']
         kwargs = message['args']['kwargs']
+    if event.bytes:
+        return getattr(domain, message['action'])(*args,
+                                                  bytes=event.bytes, **kwargs)
     return getattr(domain, message['action'])(*args, **kwargs)
 
 @action(namespace='domain')

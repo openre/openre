@@ -18,6 +18,8 @@ import math
 from openre.index import SynapsesIndex, TransmitterIndex, ReceiverIndex
 from openre import device
 import numpy as np
+from openre.domain.packets import TransmitterVector, ReceiverVector
+from openre.domain.remote import RemoteDomainBase
 
 
 class Domain(DomainBase):
@@ -464,6 +466,25 @@ class Domain(DomainBase):
             pre_domain_index, pre_layer_index, pre_neuron_address,
             post_layer_index, post_x, post_y)
 
+    def send_synapse_pack(self, bytes=None):
+        if not bytes:
+            return
+        packet = TransmitterVector()
+        packet.from_bytes(bytes)
+        for pos in range(packet.length):
+            self.send_synapse(
+                packet.pre_domain_index.data[pos],
+                packet.pre_layer_index.data[pos],
+                packet.pre_neuron_address.data[pos],
+                packet.post_layer_index.data[pos],
+                packet.post_x.data[pos],
+                packet.post_y.data[pos]
+            )
+        # досылаем остатки
+        for domain in self.net.domains:
+            if isinstance(domain, RemoteDomainBase):
+                domain.send_receiver_index_pack()
+
     def send_synapse(
         self,
         pre_domain_index, pre_layer_index, pre_neuron_address,
@@ -515,6 +536,19 @@ class Domain(DomainBase):
             ),
             self.synapse_address
         )
+
+    def send_receiver_index_pack(self, bytes=None):
+        if not bytes:
+            return
+        packet = ReceiverVector()
+        packet.from_bytes(bytes)
+        for pos in range(packet.length):
+            self.send_receiver_index(
+                packet.post_domain_index.data[pos],
+                packet.pre_neuron_address.data[pos],
+                packet.remote_pre_neuron_address.data[pos],
+                packet.remote_pre_neuron_receiver_index.data[pos]
+            )
 
     def send_receiver_index(self, post_domain_index, pre_neuron_address,
                             remote_pre_neuron_address,

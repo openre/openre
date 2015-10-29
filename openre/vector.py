@@ -5,6 +5,7 @@
 import numpy as np
 from openre.errors import OreError
 from openre.metadata import ExtendableMetadata
+import StringIO
 
 class Vector(object):
     """
@@ -113,6 +114,26 @@ class Vector(object):
         """
         return self.data.fill(value)
 
+    def bytes(self):
+        """
+        Vector to string
+        """
+        output = StringIO.StringIO()
+        np.save(output, self.data)
+        output.seek(0)
+        return output.read()
+
+    def from_bytes(self, value):
+        """
+        String to vector
+        """
+        input = StringIO.StringIO()
+        input.write(value)
+        input.seek(0)
+        self.data = np.load(input)
+        self.length = len(self.data)
+
+
 class RandomIntVector(Vector):
     """
     При создании указывается диапазон случайных значений, которыми будет
@@ -201,6 +222,28 @@ class MultiFieldVector(object):
         """
         for field, _ in self.__class__.fields:
             getattr(self, field).from_device(device)
+
+    def bytes(self):
+        """
+        MultiFieldVector to array of strings
+        """
+        ret = []
+        for field, _ in self.__class__.fields:
+            ret.append(getattr(self, field).bytes())
+        return ret
+
+    def from_bytes(self, value):
+        """
+        Array of strings to MultiFieldVector
+        """
+        if value is None:
+            value = []
+        if not isinstance(value, list):
+            value = [value]
+        pos = -1
+        for field, _ in self.__class__.fields:
+            pos += 1
+            getattr(self, field).from_bytes(value[pos])
 
 
 def test_vector():
@@ -344,4 +387,13 @@ def test_vector():
     assert vector.length == 3*4
     assert meta0.length == 3*4
 
-
+    # binary
+    string = vector.bytes()
+    v2 = Vector()
+    v2.from_bytes(string)
+    assert [_ for _ in v2.data] == [1, 0, 2,
+                                    0, 0, 0,
+                                    0, 0, 0,
+                                    3, 0, 0,
+                                   ]
+    assert v2.length == 3*4

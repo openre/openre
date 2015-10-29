@@ -101,7 +101,11 @@ class Agent(AgentBase):
                     self.reply(address, ret)
                     continue
 
-                event = ServerEvent(data['action'], 'server', data, address)
+                bytes = None
+                if data.get('bytes'):
+                    bytes = message[-data['bytes']:]
+                event = ServerEvent(data['action'], 'server', data, bytes,
+                                    address)
                 event.done_callback(event_done)
                 event_pool.register(event)
             if socks.get(self.broker_socket) == zmq.POLLIN:

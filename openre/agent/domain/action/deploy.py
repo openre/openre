@@ -6,8 +6,11 @@
 from openre.agent.decorators import action
 from openre.agent.domain.decorators import state
 from openre.domain import create_domain_factory
+from openre.domain.packets import TransmitterVector, TransmitterMetadata, \
+        ReceiverVector, ReceiverMetadata
 from openre.domain.remote import RemoteDomainBase
 from openre.agent.helpers import RPCBrokerProxy
+
 
 def remote_domain_factory(agent):
     class RemoteDomain(RemoteDomainBase):
@@ -29,6 +32,16 @@ def remote_domain_factory(agent):
                 config['id'],
                 domain_index
             )
+            self.transmitter_pos = -1
+            self.transmitter_vector = TransmitterVector()
+            self.transmitter_metadata = TransmitterMetadata(0)
+            self.transmitter_vector.add(self.transmitter_metadata)
+
+            self.receiver_pos = -1
+            self.receiver_vector = ReceiverVector()
+            self.receiver_metadata = ReceiverMetadata(0)
+            self.receiver_vector.add(self.receiver_metadata)
+
 
         def send_synapse(self,
             pre_domain_index, pre_layer_index, pre_neuron_address,
@@ -39,9 +52,31 @@ def remote_domain_factory(agent):
             """
             # FIXME: optimize send_synapse (collect portion of data and send
             # it in one request)
-            return self.__getattr__('send_synapse').no_reply(
-                pre_domain_index, pre_layer_index, pre_neuron_address,
-                post_layer_index, post_x, post_y)
+            self.transmitter_pos += 1
+            pos = self.transmitter_pos
+            self.transmitter_metadata.pre_domain_index[pos] = pre_domain_index
+            self.transmitter_metadata.pre_layer_index[pos] = pre_layer_index
+            self.transmitter_metadata.pre_neuron_address[pos] \
+                    = pre_neuron_address
+            self.transmitter_metadata.post_layer_index[pos] = post_layer_index
+            self.transmitter_metadata.post_x[pos] = post_x
+            self.transmitter_metadata.post_y[pos] = post_y
+            if self.transmitter_pos >= 999:
+                self.send_synapse_pack()
+#            return self.__getattr__('send_synapse').no_reply(
+#                pre_domain_index, pre_layer_index, pre_neuron_address,
+#                post_layer_index, post_x, post_y)
+
+        def send_synapse_pack(self):
+            if self.transmitter_pos == -1:
+                return
+            self.transmitter_vector.shrink()
+            pack = self.transmitter_vector.bytes()
+            self.transmitter_metadata.resize(length=0)
+            self.transmitter_pos = -1
+            return self.__getattr__('send_synapse_pack') \
+                .set_bytes(pack) \
+                .no_reply()
 
         def send_receiver_index(self, post_domain_index, pre_neuron_address,
                                 remote_pre_neuron_address,
@@ -51,10 +86,35 @@ def remote_domain_factory(agent):
             pre_neuron_address (IS_TRANSMITTER)
             self == pre_domain
             """
-            return self.__getattr__('send_receiver_index').no_reply(
-                post_domain_index, pre_neuron_address,
-                remote_pre_neuron_address,
-                remote_pre_neuron_receiver_index)
+            self.receiver_pos += 1
+            pos = self.receiver_pos
+            self.receiver_metadata.post_domain_index[pos] = post_domain_index
+            self.receiver_metadata.pre_neuron_address[pos] = pre_neuron_address
+            self.receiver_metadata.remote_pre_neuron_address[pos] \
+                    = remote_pre_neuron_address
+            self.receiver_metadata.remote_pre_neuron_receiver_index[pos] \
+                    = remote_pre_neuron_receiver_index
+            if self.receiver_pos >= 999:
+                self.send_receiver_index_pack()
+#            return self.__getattr__('send_receiver_index').no_reply(
+#                post_domain_index, pre_neuron_address,
+#                remote_pre_neuron_address,
+#                remote_pre_neuron_receiver_index)
+
+        def send_receiver_index_pack(self):
+            if self.receiver_pos == -1:
+                return
+            self.receiver_vector.shrink()
+            pack = self.receiver_vector.bytes()
+            self.receiver_metadata.resize(length=0)
+            self.receiver_pos = -1
+            return self.__getattr__('send_receiver_index_pack') \
+                .set_bytes(pack) \
+                .no_reply()
+
+        def post_deploy_synapses(self):
+            self.send_synapse_pack()
+            self.send_receiver_index_pack()
 
         def __getattr__(self, name):
             return getattr(self.transport, name)

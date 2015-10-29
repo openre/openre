@@ -162,4 +162,8 @@ class MultiFieldMetadata(object):
 
 class MultiFieldExtendableMetadata(MultiFieldMetadata):
     _metadata_class = ExtendableMetadata
+    def resize(self, portion=None, length=None):
+        for field, field_type in self.__class__.fields:
+            metadata = getattr(self, field)
+            metadata.resize(portion=portion, length=length)
 

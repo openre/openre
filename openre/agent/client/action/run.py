@@ -31,14 +31,11 @@ def run(agent):
         net.post_deploy()
         logging.info('Deploy done')
         # debug code:
-        import time
-        for _ in range(10):
-            for domain in net.domains:
-                stats = domain.domain.stat.wait() or {}
-                print '%s:' % domain.name
-                for key in sorted(stats.keys()):
-                    print '    %s %s' % (key, stats[key])
-            time.sleep(5)
+        for domain in net.domains:
+            stats = domain.domain.stat.wait() or {}
+            print '%s:' % domain.name
+            for key in sorted(stats.keys()):
+                print '    %s %s' % (key, stats[key])
 
     finally:
         if net:
@@ -162,7 +159,7 @@ class Net(object):
         """
         Создает нейроны. Можно не ждать окончания задачи.
         """
-        self.ensure_domain_state('deploy_neurons')
+        self.ensure_domain_state_infinite('deploy_neurons')
 
     @proxy_call_to_domains
     def pre_deploy_synapses(self):
@@ -186,7 +183,7 @@ class Net(object):
         """
         Удаляем неиспользованную часть вектора синапсов.
         """
-        self.ensure_domain_state('post_deploy_synapses')
+        self.ensure_domain_state_infinite('post_deploy_synapses')
 
     @proxy_call_to_domains
     def post_deploy(self):

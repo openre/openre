@@ -17,7 +17,7 @@ def proxy_call_to_domains(f):
             net.set_task(name, state='error')
             raise
         # wait for proper domain state from server
-        net.set_task('config', state='success')
+        net.set_task(name, state='success')
     return wrapped
 
 
