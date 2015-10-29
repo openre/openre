@@ -5,6 +5,7 @@
 from openre.domain.base import DomainBase
 from openre.vector import Vector
 from openre.metadata import Metadata
+from types import GeneratorType
 from openre.data_types import types
 from openre.layer import Layer, LayersVector
 from openre.neurons import NeuronsVector, IS_TRANSMITTER, create_neuron, \
@@ -20,6 +21,7 @@ from openre import device
 import numpy as np
 from openre.domain.packets import TransmitterVector, ReceiverVector
 from openre.domain.remote import RemoteDomainBase
+import time
 
 
 class Domain(DomainBase):
@@ -164,12 +166,16 @@ class Domain(DomainBase):
         self.synapses_metadata = SynapsesMetadata(0)
         self.synapses.add(self.synapses_metadata)
 
-    def deploy_synapses(self):
+    def deploy_synapses_async(self):
         """
-        Create synapses
+        Async version of deploy_synapses
         """
+        ret = self.create_synapses()
         # Create synapses
-        self.create_synapses()
+        if isinstance(ret, GeneratorType):
+            for res in ret:
+                yield res
+
         domain_total_synapses = self.synapse_count_by_domain.get(self.name, 0)
         if not domain_total_synapses:
             logging.warn('No synapses in domain %s', self.name)
@@ -177,6 +183,12 @@ class Domain(DomainBase):
             'Total %s local synapses in domain',
             domain_total_synapses
         )
+
+    def deploy_synapses(self):
+        """
+        Create synapses
+        """
+        list(self.deploy_synapses_async())
 
     def post_deploy_synapses(self):
         """
@@ -237,7 +249,7 @@ class Domain(DomainBase):
         """
         logging.debug('Create synapses')
         # Domains synapses
-        self.connect_layers()
+        return self.connect_layers()
 
     def connect_layers(self):
         """
@@ -298,6 +310,7 @@ class Domain(DomainBase):
 
         # start connecting
         pre_layer_index = -1
+        async_time = time.time()
         for layer_config in self.layers_config:
             pre_layer_index += 1
             # no connections with other layers
@@ -338,6 +351,9 @@ class Domain(DomainBase):
                     # Determine post x coordinate of neuron in post layer.
                     # Should be recalculated for every y because of possible
                     # random shift
+                    if time.time() - async_time > 0.1:
+                        async_time = time.time()
+                        yield (pre_y, layer.width)
                     pre_neuron_address = layer_to_address(
                         pre_x - layer.x,
                         pre_y - layer.y

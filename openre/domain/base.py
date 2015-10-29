@@ -40,6 +40,13 @@ class DomainBase(StatsMixin):
         # allocate synapses buffer in memory
         raise NotImplementedError
 
+    def deploy_synapses_async(self):
+        """
+        Async version of create synapses
+        """
+        # Create synapses
+        raise NotImplementedError
+
     def deploy_synapses(self):
         """
         Create synapses

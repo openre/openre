@@ -81,8 +81,6 @@ class Agent(AgentBase):
             # receive all messages in while loop
             while True:
                 socks = dict(self.poller.poll(poll_timeout))
-                if not socks:
-                    break
                 if socks.get(self.backend) == zmq.POLLIN:
                     message = self.backend.recv_multipart()
                     logging.debug("in: %s", message)
@@ -134,8 +132,6 @@ class Agent(AgentBase):
                 event_pool.tick()
                 # if no events - than wait for new events without timeout
                 poll_timeout = event_pool.poll_timeout()
-                if poll_timeout >= 0 and poll_timeout < 100:
-                    poll_timeout = 100
 
     def reply(self, address, data):
         reply = address + [self.to_json(data)]

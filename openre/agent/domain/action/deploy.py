@@ -10,6 +10,7 @@ from openre.domain.packets import TransmitterVector, TransmitterMetadata, \
         ReceiverVector, ReceiverMetadata
 from openre.domain.remote import RemoteDomainBase
 from openre.agent.helpers import RPCBrokerProxy
+import types
 
 
 def remote_domain_factory(agent):
@@ -168,9 +169,25 @@ def deploy_synapses(event):
     """
     Создание нейронов и синапсов.
     """
+    def tick():
+        try:
+            event.context['generator'].next()
+            event.prevent_done()
+        except StopIteration:
+            return False
+        return True
+    if 'generator' in event.context:
+        tick()
+        return
     agent = event.pool.context['agent']
     net = agent.context['net']
-    net.deploy_synapses()
+    ret = net.deploy_synapses_async()
+    if isinstance(ret, types.GeneratorType):
+        event.context['generator'] = ret
+        tick()
+        return
+    else:
+        return ret
 
 @action(namespace='domain')
 @state('post_deploy_synapses')

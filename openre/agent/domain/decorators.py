@@ -11,10 +11,11 @@ def state(name):
         @wraps(f)
         def wrapped(event, *args, **kwargs):
             agent = event.pool.context['agent']
-            agent.send_server('domain_state', {
-                'state': name,
-                'status': 'running',
-            })
+            if event.is_first_run:
+                agent.send_server('domain_state', {
+                    'state': name,
+                    'status': 'running',
+                })
 
             try:
                 ret = f(event, *args, **kwargs)
@@ -26,10 +27,11 @@ def state(name):
                 })
                 raise
 
-            agent.send_server('domain_state', {
-                'state': name,
-                'status': 'done',
-            })
+            if not event.is_prevent_done:
+                agent.send_server('domain_state', {
+                    'state': name,
+                    'status': 'done',
+                })
             return ret
         return wrapped
     return wrapper

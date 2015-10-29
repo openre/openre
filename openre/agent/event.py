@@ -67,6 +67,7 @@ class Event(object):
         self.action = action
         self.namespace = namespace
         self.context = {}
+        self.is_first_run = True
         if bytes is None:
             bytes = []
         if not isinstance(bytes, list):
@@ -141,6 +142,7 @@ class Event(object):
             self.result = do_strict_action(
                 self.action, self.namespace, self, *args['args'],
                 **args['kwargs'])
+            self.is_first_run = False
         except Exception as error:
             self.failed(error, traceback=True)
         if self.message.get('no_reply'):

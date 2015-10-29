@@ -2,6 +2,7 @@
 from copy import deepcopy
 from time import time
 import logging
+from types import GeneratorType
 from openre.data_types import types
 from openre.domain import create_domain_factory
 import os.path
@@ -56,7 +57,9 @@ class OpenRE(object):
         self.deploy_neurons()
         self.pre_deploy_synapses()
         # here wait for all domains is synced
-        self.deploy_synapses()
+        res = self.deploy_synapses()
+        if isinstance(res, GeneratorType):
+            list(res)
         # here wait for all domains is synced
         self.post_deploy_synapses()
         self.post_deploy()
@@ -122,13 +125,20 @@ class OpenRE(object):
         for domain in self.domains:
             domain.pre_deploy_synapses()
 
-    def deploy_synapses(self):
+    def deploy_synapses_async(self):
         for domain in self.domains:
-            domain.deploy_synapses()
+            ret = domain.deploy_synapses_async()
+            if isinstance(ret, GeneratorType):
+                for res in ret:
+                    yield res
         # send the rest
         for domain in self.domains:
             domain.send_synapse_pack()
             domain.send_receiver_index_pack()
+
+    def deploy_synapses(self):
+        ret = self.deploy_synapses_async()
+        list(ret)
 
     def post_deploy_synapses(self):
         for domain in self.domains:

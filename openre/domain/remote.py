@@ -39,6 +39,9 @@ class RemoteDomainBase(DomainBase):
     def pre_deploy_synapses(self):
         pass
 
+    def deploy_synapses_async(self):
+        pass
+
     def deploy_synapses(self):
         pass
 
