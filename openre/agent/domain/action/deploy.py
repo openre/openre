@@ -112,10 +112,6 @@ def remote_domain_factory(agent):
                 .set_bytes(pack) \
                 .no_reply()
 
-        def post_deploy_synapses(self):
-            self.send_synapse_pack()
-            self.send_receiver_index_pack()
-
         def __getattr__(self, name):
             return getattr(self.transport, name)
     return RemoteDomain

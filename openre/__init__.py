@@ -125,6 +125,10 @@ class OpenRE(object):
     def deploy_synapses(self):
         for domain in self.domains:
             domain.deploy_synapses()
+        # send the rest
+        for domain in self.domains:
+            domain.send_synapse_pack()
+            domain.send_receiver_index_pack()
 
     def post_deploy_synapses(self):
         for domain in self.domains:
