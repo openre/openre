@@ -459,6 +459,7 @@ class RPCBrokerProxyCall(object):
         self._wait = False
         self._no_reply = False
         self._bytes = []
+        self._priority = 0
 
     def __call__(self, *args, **kwargs):
         self._response = None
@@ -468,6 +469,7 @@ class RPCBrokerProxyCall(object):
             'wait': self._wait,
             'no_reply': self._no_reply,
             'bytes': len(self._bytes),
+            'priority': int(self._priority),
             'args': {
                 'args': args,
                 'kwargs': kwargs
@@ -481,6 +483,7 @@ class RPCBrokerProxyCall(object):
             'wait': self._wait,
             'no_reply': self._no_reply,
             'bytes': len(self._bytes),
+            'priority': int(self._priority),
             'args': {
                 'args': self.proxy._proxy_args,
                 'kwargs': self.proxy._proxy_kwargs
@@ -515,6 +518,29 @@ class RPCBrokerProxyCall(object):
         Указывает на то, что нужно подождать результата выполнения команды
         """
         self._wait = True
+        return self
+
+    def set_priority(self, priority=0):
+        """
+        Устанавливает приоритет команды
+        """
+        self._priority = priority
+        return self
+
+    @property
+    def inc_priority(self):
+        """
+        Увеличивает приоритет команды
+        """
+        self._priority += 1
+        return self
+
+    @property
+    def dec_priority(self):
+        """
+        Уменьшает приоритет команды
+        """
+        self._priority -= 1
         return self
 
     @property
@@ -573,6 +599,7 @@ class RPCBroker(object):
         self._wait = False
         self._no_reply = False
         self._bytes = []
+        self._priority = 0
 
     def set_address(self, address):
         """
@@ -615,6 +642,30 @@ class RPCBroker(object):
         self._bytes = value
         return self
 
+    def set_priority(self, priority=0):
+        """
+        Устанавливает приоритет команды
+        """
+        self._priority = priority
+        return self
+
+    @property
+    def inc_priority(self):
+        """
+        Увеличивает приоритет команды
+        """
+        self._priority += 1
+        return self
+
+    @property
+    def dec_priority(self):
+        """
+        Уменьшает приоритет команды
+        """
+        self._priority -= 1
+        return self
+
+
     def __getattr__(self, name):
         def api_call(*args, **kwargs):
             assert self._address
@@ -625,6 +676,7 @@ class RPCBroker(object):
                 'wait': self._wait,
                 'no_reply': self._no_reply,
                 'bytes': len(self._bytes),
+                'priority': int(self._priority),
                 'context': self._response_address,
                 'args': {
                     'args': args,
@@ -640,6 +692,7 @@ class RPCBroker(object):
             self._socket.send_multipart(packet)
             self._response_address = None
             self._bytes = None
+            self._priority = 0
 
         return api_call
 

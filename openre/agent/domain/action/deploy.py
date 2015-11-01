@@ -77,6 +77,7 @@ def remote_domain_factory(agent):
             self.transmitter_pos = -1
             return self.__getattr__('send_synapse_pack') \
                 .set_bytes(pack) \
+                .inc_priority \
                 .no_reply()
 
         def send_receiver_index(self, post_domain_index, pre_neuron_address,
@@ -111,6 +112,7 @@ def remote_domain_factory(agent):
             self.receiver_pos = -1
             return self.__getattr__('send_receiver_index_pack') \
                 .set_bytes(pack) \
+                .inc_priority \
                 .no_reply()
 
         def __getattr__(self, name):

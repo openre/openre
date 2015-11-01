@@ -80,8 +80,10 @@ class Agent(AgentBase):
         while True:
             # receive all messages in while loop
             while True:
+                was_message = False
                 socks = dict(self.poller.poll(poll_timeout))
                 if socks.get(self.backend) == zmq.POLLIN:
+                    was_message = True
                     message = self.backend.recv_multipart()
                     logging.debug("in: %s", message)
                     data = self.from_json(message[3])
@@ -103,6 +105,7 @@ class Agent(AgentBase):
                             bytes = message[-data['bytes']:]
                         event = DomainEvent(data['action'], 'domain', data,
                                             bytes, address)
+                        event.set_priority(data.get('priority', 0))
                         event.done_callback(event_done)
                         event_pool.register(event)
                         # send response immediately
@@ -126,11 +129,16 @@ class Agent(AgentBase):
                             self.reply(address, ret)
 
                 if socks.get(self.sub) == zmq.POLLIN:
+                    was_message = True
                     message = self.sub.recv_multipart()
                     logging.debug("sub in: %s", message)
                     # TODO: process message
+                # first - receive all messages, then process them
+                if was_message:
+                    poll_timeout = 0
+                    continue
                 event_pool.tick()
-                # if no events - than wait for new events without timeout
+                # if no events - then wait for new events without timeout
                 poll_timeout = event_pool.poll_timeout()
 
     def reply(self, address, data):

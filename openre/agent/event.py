@@ -81,12 +81,14 @@ class Event(object):
 
     def set_priority(self, priority=0):
         assert not self.pool
-        self._priority = priority
+        self._priority = int(priority or 0)
 
+    @property
     def inc_priority(self):
         assert not self.pool
         self._priority += 1
 
+    @property
     def dec_priority(self):
         assert not self.pool
         self._priority -= 1
@@ -220,10 +222,13 @@ def test_event():
 
     # priority
     ev0 = Event('priority0')
+    assert ev0.priority == 0
     evm1 = Event('priority-1')
     evm1.set_priority(-1)
+    assert evm1.priority == -1
     ev1 = Event('priority1')
-    ev1.inc_priority()
+    ev1.inc_priority
+    assert ev1.priority == 1
     pool.register(ev0)
     pool.register(evm1)
     pool.register(ev1)

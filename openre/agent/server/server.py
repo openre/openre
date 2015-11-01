@@ -78,8 +78,10 @@ class Agent(AgentBase):
         event_pool.register(run_broker_event)
 
         while True:
+            was_message = False
             socks = dict(self.poller.poll(poll_timeout))
             if socks.get(self.responder) == zmq.POLLIN:
+                was_message = True
                 message = self.responder.recv_multipart()
                 if len(message) < 3:
                     logging.warn('Broken message: %s', message)
@@ -106,9 +108,11 @@ class Agent(AgentBase):
                     bytes = message[-data['bytes']:]
                 event = ServerEvent(data['action'], 'server', data, bytes,
                                     address)
+                event.set_priority(data.get('priority', 0))
                 event.done_callback(event_done)
                 event_pool.register(event)
             if socks.get(self.broker_socket) == zmq.POLLIN:
+                was_message = True
                 message = self.broker_socket.recv_multipart()
                 if len(message) < 3:
                     logging.warn('Broken broker response message: %s', message)
@@ -130,11 +134,13 @@ class Agent(AgentBase):
                                 event.traceback = data.get('traceback')
                             event.done()
                             break
+            # get all messages, then proceed
+            if was_message:
+                poll_timeout = 0
+                continue
             event_pool.tick()
-            # if no events - than wait for new events without timeout
+            # if no events - then wait for new events without timeout
             poll_timeout = event_pool.poll_timeout()
-            if poll_timeout >= 0 and poll_timeout < 100:
-                poll_timeout = 100
 
     def reply(self, address, data):
         message = [address, '', self.to_json(data)]
