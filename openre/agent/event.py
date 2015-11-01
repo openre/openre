@@ -8,7 +8,6 @@ import time
 import traceback as _traceback
 import logging
 
-
 class EventPool(object):
     def __init__(self):
         self.event_list = []
@@ -18,6 +17,7 @@ class EventPool(object):
         if event.is_done:
             return
         self.event_list.append(event)
+        self.event_list.sort(key=lambda x: -x.priority)
         event.set_pool(self)
 
     def poll_timeout(self):
@@ -68,11 +68,28 @@ class Event(object):
         self.namespace = namespace
         self.context = {}
         self.is_first_run = True
+        self._priority = 0
         if bytes is None:
             bytes = []
         if not isinstance(bytes, list):
             bytes = [bytes]
         self.bytes = bytes
+
+    @property
+    def priority(self):
+        return self._priority
+
+    def set_priority(self, priority=0):
+        assert not self.pool
+        self._priority = priority
+
+    def inc_priority(self):
+        assert not self.pool
+        self._priority += 1
+
+    def dec_priority(self):
+        assert not self.pool
+        self._priority -= 1
 
     def failed(self, error, traceback=False):
         self.is_success = False
@@ -156,7 +173,8 @@ class Event(object):
         return self.message
 
 class AddressEvent(Event):
-    def __init__(self, action, namespace, message, bytes=None, address=None):
+    def __init__(self, action, namespace='default', message=None, bytes=None,
+                 address=None):
         self.address = address
         super(AddressEvent, self).__init__(action, namespace, message, bytes)
 
@@ -177,14 +195,16 @@ def test_event():
     pool = EventPool()
     event = ServerEvent(
         'process_state',
-        {
+        message={
             'action': 'process_state',
             'id': 'uuid_id',
             'data': {}
         },
-        'socket_address'
+        address='socket_address'
     )
     assert pool.poll_timeout() == -1
+    assert event.message['action'] == 'process_state'
+    assert id(event.message['data']) == id(event.data)
     pool.register(event)
     assert pool.poll_timeout() == 0
     assert event.wait_seconds() == 0
@@ -197,3 +217,14 @@ def test_event():
     assert not pool.event_list
     assert event.is_success is False
     assert event.error == "Event('process_state') expired"
+
+    # priority
+    ev0 = Event('priority0')
+    evm1 = Event('priority-1')
+    evm1.set_priority(-1)
+    ev1 = Event('priority1')
+    ev1.inc_priority()
+    pool.register(ev0)
+    pool.register(evm1)
+    pool.register(ev1)
+    assert pool.event_list == [ev1, ev0, evm1]
