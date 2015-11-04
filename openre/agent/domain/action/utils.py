@@ -38,4 +38,8 @@ def sleep(event, timeout=10):
     time.sleep(timeout)
     return timeout
 
+@action(namespace='domain')
+def events(event):
+    return len(event.pool)
+
 

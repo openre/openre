@@ -22,6 +22,7 @@ import numpy as np
 from openre.domain.packets import TransmitterVector, ReceiverVector
 from openre.domain.remote import RemoteDomainBase
 import time
+import datetime
 
 
 class Domain(DomainBase):
@@ -542,6 +543,7 @@ class Domain(DomainBase):
                                            local_pre_neuron_address,
                                            local_pre_neuron_receiver_index)
             self.stat_inc('total_receiver_neurons')
+            self.stat_set('send_synapse_time', datetime.datetime.utcnow())
         # get synapse_address
         self.synapse_address += 1
         self.connect_neurons(
@@ -581,6 +583,8 @@ class Domain(DomainBase):
         ):
             pre_domain.stat_inc('transmitter_index_again')
         pre_domain.stat_inc('total_transmitter_neurons')
+        pre_domain.stat_set('send_receiver_index_time',
+                            datetime.datetime.utcnow())
 
     def send_spikes(self):
         """

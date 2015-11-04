@@ -20,6 +20,9 @@ class EventPool(object):
         self.event_list.sort(key=lambda x: -x.priority)
         event.set_pool(self)
 
+    def __len__(self):
+        return len(self.event_list)
+
     def poll_timeout(self):
         """
         returns value in milliseconds

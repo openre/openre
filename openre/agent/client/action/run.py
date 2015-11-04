@@ -6,6 +6,7 @@ from openre.agent.client.decorators import proxy_call_to_domains
 import logging
 from openre.agent.decorators import wait
 import uuid
+import datetime
 
 @action(namespace='client')
 def run(agent):
@@ -36,6 +37,7 @@ def run(agent):
             print '%s:' % domain.name
             for key in sorted(stats.keys()):
                 print '    %s %s' % (key, stats[key])
+            print "# of events: %s" % domain.broker.events.set_priority(2000000).wait()
 
     finally:
         if net:
@@ -75,6 +77,42 @@ class Net(object):
             self.domains.append(domain)
         self.set_task(state='success')
 
+    @wait(timeout=0, period=2)
+    def ensure_domain_time_infinite(self, *args, **kwargs):
+
+        """
+        Ждем пока время последней отправки синапса к удаленному нейрону
+            domain.stat('send_synapse_time') и
+            время отправки информации об удаленном нейроне обратно
+            domain.stat(''send_receiver_index_time') было больше или равно двум
+            секундам.
+        """
+        # FIXME: async call to domains
+        now = datetime.datetime.utcnow()
+        for domain in self.domains:
+            stats = domain.domain.stat.set_priority(2000000).wait() or {}
+            for stat_field in ['send_synapse_time', 'send_receiver_index_time']:
+                if stats.get(stat_field) \
+                   and stats.get(stat_field) \
+                   > now - datetime.timedelta(seconds=2):
+                    return False
+        return True
+
+    @wait(timeout=0, period=2)
+    def ensure_domain_idle_infinite(self, *args, **kwargs):
+
+        """
+        Ждем пока у домена не закончатся таски. Опрашиваемшиваем все домены раз
+        в 2 секунды.
+        """
+        # FIXME: async call to domains
+        for domain in self.domains:
+            number_of_events = domain.broker.events \
+                    .set_priority(2000000).wait()
+            if number_of_events > 1: # have unfinished tasks
+                return False
+        return True
+
     @wait(timeout=10, period=0.5)
     def ensure_domain_state(self, *args, **kwargs):
         """
@@ -94,6 +132,7 @@ class Net(object):
         Ждем подтверждения от сервера, что у всех доменов появилось нужное
         состояние и статус.
         """
+        # FIXME: async call to domains
         if not isinstance(expected_state, list):
             expected_state = [expected_state]
         if not isinstance(expected_status, list):
@@ -177,6 +216,8 @@ class Net(object):
         домене ему могут поступать синапсы из других доменов.
         """
         self.ensure_domain_state_infinite('deploy_synapses')
+        self.ensure_domain_time_infinite()
+        self.ensure_domain_idle_infinite()
 
     @proxy_call_to_domains
     def post_deploy_synapses(self):
