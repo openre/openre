@@ -44,6 +44,8 @@ class OpenRE(object):
         self.config = deepcopy(config)
         self.domains = []
         self._find = None
+        self.is_pause = False
+        self.is_stop = False
 
     def __repr__(self):
         return 'OpenRE(%s)' % repr(self.config)
@@ -138,7 +140,8 @@ class OpenRE(object):
 
     def deploy_synapses(self):
         ret = self.deploy_synapses_async()
-        list(ret)
+        for _ in ret:
+            pass
 
     def post_deploy_synapses(self):
         for domain in self.domains:
@@ -148,6 +151,15 @@ class OpenRE(object):
         for domain in self.domains:
             domain.deploy_indexes()
             domain.deploy_device()
+
+    def tick(self):
+        """
+        Один шаг моделирования.
+        """
+        if self.is_pause or self.is_stop:
+            return
+        for domain in self.domains:
+            domain.tick()
 
     def run(self):
         """
@@ -165,8 +177,10 @@ class OpenRE(object):
                     logging.debug('Ticks/sec: %s', tick_per_sec)
                     tick_per_sec = 0
                 tick_per_sec += 1
-            for domain in self.domains:
-                domain.tick()
+            if self.is_stop:
+                self.is_stop = False
+                break
+            self.tick()
 
     def find(self, layer_name, x, y):
         """
@@ -215,6 +229,25 @@ class OpenRE(object):
                 'layer_index': row['layer_index'],
             }
         return None
+
+    def start(self):
+        """
+        Снимаем с паузы.
+        Ставим флаг self.is_pause = False
+        """
+        self.is_pause = False
+
+    def stop(self):
+        """
+        Ставим флаг self.is_stop = True
+        """
+        self.is_stop = True
+
+    def pause(self):
+        """
+        Ставим флаг self.is_pause = True
+        """
+        self.is_pause = True
 
 
 def test_openre():

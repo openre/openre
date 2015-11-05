@@ -6,6 +6,29 @@ from openre.agent.helpers import RPC, RPCBrokerProxy, Transport, RPCException, \
 class DomainError(Exception):
     pass
 
+class SimpleRCPCall(object):
+    def __init__(self, proxy, name, domain_name):
+        self.proxy = proxy
+        self.name = name
+        self.domain_name = domain_name
+        self._priority = 0
+
+    def set_priority(self, priority=0):
+        """
+        Устанавливает приоритет команды
+        """
+        self._priority = priority
+        return self
+
+    def __call__(self, *args, **kwargs):
+        logging.debug(
+            pretty_func_str(
+                '%s.%s' % (self.domain_name, self.name), *args, **kwargs
+            )
+        )
+        return getattr(self.proxy, self.name)(*args, **kwargs)
+
+
 class Domain(Transport):
     """
     Содержит в себе настройки для конкретного домена
@@ -63,28 +86,7 @@ class Domain(Transport):
         self.broker.deploy_domains([self.name])
 
     def __getattr__(self, name):
-        def api_call(*args, **kwargs):
-            logging.debug(
-                pretty_func_str('%s.%s' % (self.name, name), *args, **kwargs)
-            )
-            return getattr(self.broker, name)(*args, **kwargs)
-        return api_call
-
-    def start(self):
-        """
-        Запускает симуляцию на домене
-        """
-
-    def pause(self):
-        """
-        Ставит на паузу симуляцию (без завершения основного цикла)
-        """
-
-    def stop(self):
-        """
-        Останавливает симуляцию, получает все данные с устройства, завершает
-        основной цикл.
-        """
+        return SimpleRCPCall(self.broker, name, self.name)
 
     def destroy(self):
         """

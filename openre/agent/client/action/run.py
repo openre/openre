@@ -31,6 +31,9 @@ def run(agent):
         net.post_deploy_synapses()
         net.post_deploy()
         logging.info('Deploy done')
+        logging.info('Run simulation')
+        net.run()
+
         # debug code:
         for domain in net.domains:
             stats = domain.domain.stat.wait() or {}
@@ -165,42 +168,42 @@ class Net(object):
                           self.task, self.state)
         return (self.task, self.state)
 
-    @proxy_call_to_domains
+    @proxy_call_to_domains()
     def create(self):
         """
         Посылает команду на создание удаленных доменов
         """
         self.ensure_domain_state('blank')
 
-    @proxy_call_to_domains
+    @proxy_call_to_domains()
     def upload_config(self):
         """
         Загружает конфиг на удаленные домены
         """
         self.ensure_domain_state('config')
 
-    @proxy_call_to_domains
+    @proxy_call_to_domains()
     def deploy_domains(self):
         """
         Создает пустые домены. Можно не ждать окончания задачи.
         """
         self.ensure_domain_state('deploy_domains')
 
-    @proxy_call_to_domains
+    @proxy_call_to_domains()
     def deploy_layers(self):
         """
         Создает слои. Можно не ждать окончания задачи.
         """
         self.ensure_domain_state('deploy_layers')
 
-    @proxy_call_to_domains
+    @proxy_call_to_domains()
     def deploy_neurons(self):
         """
         Создает нейроны. Можно не ждать окончания задачи.
         """
         self.ensure_domain_state_infinite('deploy_neurons')
 
-    @proxy_call_to_domains
+    @proxy_call_to_domains()
     def pre_deploy_synapses(self):
         """
         Готовимся к созданию нейронов. Синхронизируем все домены после этой
@@ -208,7 +211,7 @@ class Net(object):
         """
         self.ensure_domain_state('pre_deploy_synapses')
 
-    @proxy_call_to_domains
+    @proxy_call_to_domains()
     def deploy_synapses(self):
         """
         Создаем нейроны и синапсы. Это долгая задача. Синхронизируем все домены
@@ -219,14 +222,14 @@ class Net(object):
         self.ensure_domain_time_infinite()
         self.ensure_domain_idle_infinite()
 
-    @proxy_call_to_domains
+    @proxy_call_to_domains()
     def post_deploy_synapses(self):
         """
         Удаляем неиспользованную часть вектора синапсов.
         """
         self.ensure_domain_state_infinite('post_deploy_synapses')
 
-    @proxy_call_to_domains
+    @proxy_call_to_domains()
     def post_deploy(self):
         """
         Создаем индексы и загружаем их в устройство. Эта задача может быть
@@ -241,13 +244,6 @@ class Net(object):
         for domain in self.domains:
             domain.destroy()
 
-    def stop(self):
-        """
-        Останавливает удаленные домены, если они уе были запущены.
-        """
-        for domain in self.domains:
-            domain.stop()
-
     def clean(self):
         """
         Если удаленные домены уже созданы - завершаем их работу.
@@ -255,3 +251,30 @@ class Net(object):
         """
         for domain in self.domains:
             domain.clean()
+
+    @proxy_call_to_domains(priority=-1)
+    def run(self):
+        """
+        Запускает симуляцию на домене
+        """
+
+    @proxy_call_to_domains()
+    def start(self):
+        """
+        Запускает симуляцию, поставленную на паузу
+        """
+
+    @proxy_call_to_domains()
+    def pause(self):
+        """
+        Ставит на паузу симуляцию (без завершения основного цикла)
+        """
+
+    @proxy_call_to_domains()
+    def stop(self):
+        """
+        Останавливает симуляцию, получает все данные с устройства, завершает
+        основной цикл.
+        """
+
+
