@@ -677,7 +677,9 @@ class RPCBroker(object):
                 'no_reply': self._no_reply,
                 'bytes': len(self._bytes),
                 'priority': int(self._priority),
-                'context': self._response_address,
+                'context': {
+                    'event_id': self._response_address,
+                },
                 'args': {
                     'args': args,
                     'kwargs': kwargs

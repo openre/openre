@@ -121,7 +121,7 @@ class Agent(AgentBase):
                     continue
                 data = self.from_json(message[2])
                 logging.debug('Received response message from broker: %s', data)
-                event_id = data['context']
+                event_id = (data.get('context', {}) or {}).get('event_id')
                 if event_id:
                     for event in event_pool.event_list:
                         if event.context.get('event_id') == event_id:
