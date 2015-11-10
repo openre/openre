@@ -1,0 +1,52 @@
+{
+    "layers": [
+        {
+            "name": "V1",
+            "threshold": 30000,
+            "relaxation": 1000,
+            "width": 40,
+            "height": 40,
+            "connect": [
+                {
+                    "name": "V2",
+                    "radius": 1
+                }
+            ]
+        },
+        {
+            "name": "V2",
+            "threshold": 30000,
+            "width": 10,
+            "height": 10
+        },
+        {
+            "name": "V3",
+            "threshold": 30000,
+            "relaxation": 1000,
+            "width": 40,
+            "height": 40,
+            "connect": [
+                {
+                    "name": "V2",
+                    "radius": 1
+                }
+            ]
+        }
+    ],
+    "domains": [
+        {
+            "name"        : "D1",
+            "layers"    : [
+                {"name": "V1"},
+                {"name": "V2"}
+            ]
+        },
+        {
+            "name"        : "D2",
+            "layers"    : [
+                {"name": "V3"}
+            ]
+        }
+    ]
+}
+

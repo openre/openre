@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from openre.agent.decorators import action
-from openre.agent.client.helpers import Domain, DomainError
+from openre.agent.client.helpers import Domain, DomainError, prepare_config
 from openre.agent.client.decorators import proxy_call_to_domains
 import logging
 from openre.agent.decorators import wait
-import uuid
 import datetime
 
 @action(namespace='client')
@@ -68,14 +67,8 @@ class Net(object):
         self.task = None
         self.state = None
         self.set_task('new', state='run')
+        prepare_config(self.config)
         for domain_index, domain_config in enumerate(self.config['domains']):
-            if 'name' not in domain_config:
-                self.set_task(state='error')
-                raise ValueError(
-                    'No name for domain with index %s in config["domains"]',
-                    domain_index)
-            if 'id' not in domain_config:
-                domain_config['id'] = uuid.uuid4()
             domain = Domain(config, domain_index)
             self.domains.append(domain)
         self.set_task(state='success')

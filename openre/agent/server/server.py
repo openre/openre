@@ -168,6 +168,7 @@ class Agent(AgentBase):
                 was_message = True
 
     def clean(self):
+        logging.info('Stopping server necely. Please wait')
         for state in self.process_state.values():
             if state['status'] not in ['exit', 'error', 'kill', 'clean'] \
                and state['pid']:

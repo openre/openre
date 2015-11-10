@@ -2,6 +2,32 @@
 import logging
 from openre.agent.helpers import RPC, RPCBrokerProxy, Transport, RPCException, \
         pretty_func_str
+import uuid
+
+
+def prepare_config(config):
+    """
+    Добавляет уникальный id для доменов. Необходим при создании новых
+    agent.domain.
+    Проверяет имя домена на наличие и на уникальность.
+    """
+    was_name = {}
+    for domain_index, domain_config in enumerate(config['domains']):
+        if 'name' not in domain_config:
+            raise ValueError(
+                'No name for domain with index %s in config["domains"]' %
+                domain_index)
+        name = domain_config['name']
+        if name in was_name:
+            raise ValueError(
+                'Domain name "%s" already was in domain with index %s' %
+                (name, was_name[name])
+            )
+
+        was_name[name] = domain_index
+        if 'id' not in domain_config:
+            domain_config['id'] = uuid.uuid4()
+
 
 class DomainError(Exception):
     pass
@@ -106,3 +132,54 @@ class Domain(Transport):
         """
         logging.debug('Clean domain %s', self.name)
         self.clean_sockets()
+
+def test_config_helpres():
+    from pytest import raises
+    with raises(ValueError):
+        prepare_config({
+            "domains": [
+                {
+                    "layers"    : [
+                        {"name": "V1"},
+                        {"name": "V2"}
+                    ]
+                },
+            ]
+        })
+    with raises(ValueError):
+        prepare_config({
+            "domains": [
+                {
+                    "name"        : "D2",
+                    "layers"    : [
+                        {"name": "V1"},
+                    ]
+                },
+                {
+                    "name"        : "D2",
+                    "layers"    : [
+                        {"name": "V3"}
+                    ]
+                }
+            ]
+        })
+    config = {
+        "domains": [
+            {
+                "name"        : "D1",
+                "layers"    : [
+                    {"name": "V1"},
+                ]
+            },
+            {
+                "name"        : "D2",
+                "layers"    : [
+                    {"name": "V3"}
+                ]
+            }
+        ]
+    }
+    prepare_config(config)
+    assert config['domains'][0]['id']
+    assert config['domains'][1]['id']
+

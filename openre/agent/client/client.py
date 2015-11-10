@@ -14,7 +14,7 @@ class Agent(AgentBase):
         self.init_actions()
         self.net_config = None
     def run(self):
-        if self.config['config'] and self.config['action'] == 'run':
+        if self.config['config']:
             try:
                 self.net_config = from_json(self.config['config'].read())
             except ValueError as error:

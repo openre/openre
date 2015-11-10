@@ -1,0 +1,7 @@
+# This will run simulation on localhost with default parameters for server
+# Run ./server before this script
+
+# Create session.json config file (config with unique ids for domains)
+# for the Net
+../../openrectl config --config config.json --out session.json
+../../openrectl run --config session.json

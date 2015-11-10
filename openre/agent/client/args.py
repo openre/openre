@@ -51,6 +51,14 @@ parser.add_argument(
     help='config json file for net'
 )
 
+parser.add_argument(
+    '--out',
+    dest='out',
+    type=argparse.FileType('w'),
+    help='out file for session config file (config with unique ids for'\
+         ' domains). Use this with "config" action'
+)
+
 
 mixin_log_level(parser)
 
