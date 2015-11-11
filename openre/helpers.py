@@ -27,6 +27,7 @@ try:
     from _abcoll import KeysView, ValuesView, ItemsView
 except ImportError:
     pass
+import numpy as np
 
 class OrderedDict(dict):
     'Dictionary that remembers insertion order'
@@ -298,6 +299,8 @@ class StatsMixin(object):
         """
         Устанавливает значение name равным value
         """
+        if isinstance(value, np.number):
+            value = value.item()
         self._stats[name] = value
 
     def stat(self, name=None):

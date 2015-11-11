@@ -9,6 +9,7 @@ agent.sh
 agent.py
 long_test.sh
 conf.json
+session.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

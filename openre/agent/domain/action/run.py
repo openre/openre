@@ -16,8 +16,9 @@ def run(event):
     agent = event.pool.context['agent']
     net = agent.context['net']
     net.tick()
-    if not net.is_stop:
+    if net.is_stop:
         net.is_stop = False
+    else:
         event.prevent_done()
 
 @action(namespace='domain')
