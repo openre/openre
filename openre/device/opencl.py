@@ -10,7 +10,6 @@ except ImportError:
 from openre.device.abstract import Device
 from openre.templates import env
 from openre.data_types import types, null
-import numpy as np
 from openre import synapses
 
 class OpenCL(Device):
@@ -202,7 +201,6 @@ def test_device():
         # skip test
         return
     from openre import OpenRE
-    from pytest import raises
     import numpy as np
     from openre import neurons
     synapse_max_level = 30000
