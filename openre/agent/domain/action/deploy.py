@@ -23,8 +23,8 @@ def remote_domain_factory(agent):
             def lazy_socket():
                 """Отложенное создание сокета"""
                 self.server_socket = agent.connect(
-                    config.get('host', '127.0.0.1'),
-                    config.get('port', 8932))
+                    config.get('server', {}).get('host', '127.0.0.1'),
+                    config.get('server', {}).get('port', 8932))
                 return self.server_socket
             self.server_socket = lazy_socket
             self.transport = RPCBrokerProxy(
