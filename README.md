@@ -15,14 +15,13 @@ sudo apt-get install build-essential python-dev
 Желательно поставить virtualenvwrapper - иструкция написана исходя из предположения что он стоит.
 
 Для установки pyopencl нужно сначала скачать заголовочные файлы и любой ICD Loader, а так же опционально реализацию (ICD implementation).
-Согласно этой странице http://wiki.tiker.net/OpenCLHowTo#Debian устанавливаем:
+Согласно [этой странице](http://wiki.tiker.net/OpenCLHowTo#Debian) устанавливаем:
 ICD Loader:
 ```bash
 sudo apt-get install amd-libopencl1
 ```
 
-Далее я установил AMD ICD loader и CPU ICD согдласно инструкции тут (Installing the AMD ICD loader and CPU ICD (from the "APP SDK")):
-http://wiki.tiker.net/OpenCLHowTo#Installing_the_AMD_ICD_loader_and_CPU_ICD_.28from_the_.22APP_SDK.22.29
+Далее я установил AMD ICD loader и CPU ICD согдласно инструкции [тут](http://wiki.tiker.net/OpenCLHowTo#Installing_the_AMD_ICD_loader_and_CPU_ICD_.28from_the_.22APP_SDK.22.29) (Installing the AMD ICD loader and CPU ICD (from the "APP SDK")):
 Скачиваем архив для системы, распаковываем и запускаем:
 ```bash
 sudo ./AMD-APP-SDK-VERSION-GA-linux64.sh
