@@ -1,0 +1,3 @@
+include README.md openre-domain openre-agent requirements.txt openre-broker openre-proxy setup.cfg MANIFEST.in openrectl openre-server setup.py
+recursive-include openre/templates *
+recursive-include bin *
