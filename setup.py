@@ -3,8 +3,8 @@
 from setuptools import setup, find_packages
 
 DESCRIPTION = ("OpenRE - self-learning neural network")
-#LONG_DESCRIPTION = open('README.rst').read()
-VERSION = '0.0.2'
+LONG_DESCRIPTION = open('README.md').read()
+VERSION = '0.0.1'
 
 setup(
     name='openre',
@@ -13,7 +13,7 @@ setup(
 #    long_description=LONG_DESCRIPTION,
     author='Dmitriy Boyarshinov',
     author_email='dmitriy.boyarshinov@gmail.com',
-#    license=open('LICENSE').read(),
+    license=open('LICENSE').read(),
     platforms=["any"],
     packages=find_packages(),
     install_requires=[],
@@ -21,7 +21,7 @@ setup(
         'Development Status :: 1 - Planning',
         'Environment :: Console',
         'Intended Audience :: Developers',
-#        'License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)',
+        'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
