@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-from setuptools import setup, find_packages
+from setuptools import setup
 
-DESCRIPTION = ("OpenRE - self-learning neural network")
+DESCRIPTION = "OpenRE - self-learning neural network"
 LONG_DESCRIPTION = open('README.md').read()
 VERSION = '0.0.1'
 
@@ -10,12 +10,14 @@ setup(
     name='openre',
     version=VERSION,
     description=DESCRIPTION,
-#    long_description=LONG_DESCRIPTION,
+    long_description=LONG_DESCRIPTION,
     author='Dmitriy Boyarshinov',
     author_email='dmitriy.boyarshinov@gmail.com',
     license=open('LICENSE').read(),
     platforms=["any"],
-    packages=find_packages(),
+    packages=['openre'],
+    url = 'https://github.com/openre/openre',
+    download_url = 'https://github.com/openre/openre/tarball/%s' % VERSION,
     install_requires=[],
     classifiers=[
         'Development Status :: 1 - Planning',
@@ -34,6 +36,5 @@ setup(
         'bin/openre-proxy',
         'bin/openre-server',
         'bin/openrectl'],
-    package_data={'': ['license.txt']}
 )
 
