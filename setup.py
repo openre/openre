@@ -4,7 +4,7 @@ from setuptools import setup
 
 DESCRIPTION = "OpenRE - self-learning neural network"
 LONG_DESCRIPTION = open('README.md').read()
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 
 setup(
     name='openre',
@@ -47,11 +47,11 @@ setup(
     ],
     include_package_data=True,
     scripts=[
-        'bin/openre-agent',
-        'bin/openre-broker',
-        'bin/openre-domain',
-        'bin/openre-proxy',
-        'bin/openre-server',
-        'bin/openrectl'],
+        'openre/bin/openre-agent',
+        'openre/bin/openre-broker',
+        'openre/bin/openre-domain',
+        'openre/bin/openre-proxy',
+        'openre/bin/openre-server',
+        'openre/bin/openrectl'],
 )
 

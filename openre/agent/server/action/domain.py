@@ -45,7 +45,7 @@ def do_domain_start(event, proccess_id,
     server = event.pool.context['server']
     params = [
         sys.executable,
-        os.path.realpath(os.path.join(BASE_PATH, '../openre-agent')),
+        os.path.realpath(os.path.join(BASE_PATH, 'bin/openre-agent')),
         'domain',
         'start',
         '--server-host', server_host or server.config['host'],
