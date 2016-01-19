@@ -1,5 +1,5 @@
 # This will start server on localhost:8932 and two additional processes
 # agent.proxy on localhost:8934 to proxy local domains pub messages to the net
 # agent.broker - proxy for service messages between server, client and domains
-../../openre-server start --log-level DEBUG
+openre-server start --log-level DEBUG
 
