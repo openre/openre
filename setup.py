@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
 from setuptools import setup
+import os.path
 
 DESCRIPTION = "OpenRE - self-learning neural network"
 LONG_DESCRIPTION = open('README.md').read()
-VERSION = '0.0.2'
+version_file = open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'VERSION'))
+VERSION = version_file.read().strip()
 
 setup(
     name='openre',
