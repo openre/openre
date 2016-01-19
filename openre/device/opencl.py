@@ -96,7 +96,7 @@ class OpenCL(Device):
         ).wait()
         # download layers stats from device once
         # per domain.config['stat_size'] ticks
-        if domain.ticks % domain.config['stat_size'] == 0:
+        if  domain.ticks % domain.config['stat_size'] == 0:
             domain.stat_vector.data.fill(0)
             self.program.update_layers_stat(
                 self.queue, (domain.neurons.length,), None,
@@ -126,16 +126,17 @@ class OpenCL(Device):
                 self.queue, (len(domain.layers_stat),), None,
                 domain.layers_stat.device_data_pointer
             ).wait()
-            # count synapses stats
-            domain.stat_vector.to_device(self)
-            self.program.update_synapses_stat(
-                self.queue, (len(domain.synapses),), None,
-                domain.stat_vector.device_data_pointer,
-                # synapses
-                domain.synapses.learn.device_data_pointer,
-                domain.synapses.flags.device_data_pointer
-            ).wait()
-            domain.stat_vector.from_device(self)
+            if len(domain.synapses):
+                # count synapses stats
+                domain.stat_vector.to_device(self)
+                self.program.update_synapses_stat(
+                    self.queue, (len(domain.synapses),), None,
+                    domain.stat_vector.device_data_pointer,
+                    # synapses
+                    domain.synapses.learn.device_data_pointer,
+                    domain.synapses.flags.device_data_pointer
+                ).wait()
+                domain.stat_vector.from_device(self)
             domain.stat_set('stat_size', domain.config['stat_size'])
             # 0 - total spikes (one per neuron) per self.config['stat_size']
             # ticks
