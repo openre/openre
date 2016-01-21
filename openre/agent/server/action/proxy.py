@@ -40,7 +40,7 @@ def do_proxy_start(event, proccess_id,
             tempfile.gettempdir(), 'openre-proxy.pid')
     return subprocess.Popen([
         sys.executable,
-        os.path.realpath(os.path.join(BASE_PATH, '../openre-agent')),
+        os.path.realpath(os.path.join(BASE_PATH, 'bin/openre-agent')),
         'proxy',
         'start',
         '--host', host or server.config['proxy_host'],

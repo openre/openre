@@ -3,10 +3,10 @@
 
 # Create session.json config file (config with unique ids for domains)
 # for the Net
-run='../../openrectl'
+run='openrectl'
 SESSION_CONFIG_FILE='session.json'
 if [ ! -f $SESSION_CONFIG_FILE  ]; then
-    ../../openrectl config --config config.json --out $SESSION_CONFIG_FILE
+    $run config --config config.json --out $SESSION_CONFIG_FILE
 fi
 $run deploy --config $SESSION_CONFIG_FILE --log-level DEBUG && \
 $run run --config $SESSION_CONFIG_FILE --log-level DEBUG

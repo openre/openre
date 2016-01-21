@@ -8,7 +8,6 @@ from openre.domain import create_domain_factory
 import os.path
 from openre.helpers import set_default
 
-__version__ = '0.0.1'
 BASE_PATH = os.path.dirname(os.path.realpath(__file__))
 
 class OpenRE(object):

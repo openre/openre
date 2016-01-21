@@ -35,7 +35,7 @@ def do_broker_start(event, process_id,
             tempfile.gettempdir(), 'openre-broker.pid')
     return subprocess.Popen([
         sys.executable,
-        os.path.realpath(os.path.join(BASE_PATH, '../openre-agent')),
+        os.path.realpath(os.path.join(BASE_PATH, 'bin/openre-agent')),
         'broker',
         'start',
         '--id', process_id,

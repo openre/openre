@@ -5,7 +5,7 @@
 import logging
 import zmq
 from openre.agent.helpers import AgentBase, RPCBroker
-import os
+import os, errno
 import importlib
 from openre.agent.event import EventPool, ServerEvent, Event
 import uuid
@@ -177,7 +177,13 @@ class Agent(AgentBase):
                 }
                 pid_num = state['pid']
                 logging.debug('Stop process with pid %s' % pid_num)
-                os.kill(pid_num, signal.SIGTERM)
+                try:
+                    os.kill(pid_num, signal.SIGTERM)
+                except OSError as err:
+                    if err.errno == errno.ESRCH:
+                        pass
+                    else:
+                        raise
 
         # number of tries to check (every 1 sec) if all subprocesses is stoped
         tries = 600
