@@ -19,7 +19,8 @@ import math
 from openre.index import SynapsesIndex, TransmitterIndex, ReceiverIndex
 from openre import device
 import numpy as np
-from openre.domain.packets import TransmitterVector, ReceiverVector
+from openre.domain.packets import TransmitterVector, ReceiverVector, \
+        SpikesVector
 from openre.domain.remote import RemoteDomainBase
 import time
 import datetime
@@ -484,6 +485,9 @@ class Domain(DomainBase):
             post_layer_index, post_x, post_y)
 
     def send_synapse_pack(self, bytes=None):
+        """
+        Получаем сгруппированные данные и синапсах из удаленного домена
+        """
         if not bytes:
             return
         packet = TransmitterVector()
@@ -556,11 +560,14 @@ class Domain(DomainBase):
         )
 
     def send_receiver_index_pack(self, bytes=None):
+        """
+        Получаем сгруппированные данные из удаленного домена
+        """
         if not bytes:
             return
         packet = ReceiverVector()
         packet.from_bytes(bytes)
-        for pos in range(packet.length):
+        for pos in xrange(packet.length):
             self.send_receiver_index(
                 packet.post_domain_index.data[pos],
                 packet.pre_neuron_address.data[pos],
@@ -601,6 +608,12 @@ class Domain(DomainBase):
             post_domain = self.net.domains[index.remote_domain[i]]
             receiver_neuron_index = index.remote_receiver_index.data[i]
             post_domain.register_spike(receiver_neuron_index)
+        for post_domain in self.net.domains:
+            if post_domain != self:
+                # если post_domain локальный, то ничего не произойдет
+                # если post_domain удаленный и у него накопились спайки,
+                # то он опубликует эти спайки
+                post_domain.register_spike_pack()
 
     def receive_spikes(self):
         """
@@ -608,9 +621,24 @@ class Domain(DomainBase):
         его в устройство (device).
         """
         # step 3
+        # send to device info about new spikes
         self.receiver_index.flags.to_device(self.device)
         self.device.tick_receiver_index(self)
+        # get flags with dropped IS_SPIKED flag
         self.receiver_index.flags.from_device(self.device)
+
+    def register_spike_pack(self, bytes=None):
+        """
+        Обрабатываем спайки из удаленных доменов
+        """
+        if not bytes:
+            return
+        packet = SpikesVector()
+        packet.from_bytes(bytes)
+        for pos in range(packet.length):
+            self.register_spike(
+                packet.receiver_neuron_index.data[pos],
+            )
 
     def register_spike(self, receiver_neuron_index):
         """

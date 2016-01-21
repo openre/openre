@@ -7,7 +7,7 @@ from openre.agent.decorators import action
 from openre.agent.domain.decorators import state
 from openre.domain import create_domain_factory
 from openre.domain.packets import TransmitterVector, TransmitterMetadata, \
-        ReceiverVector, ReceiverMetadata
+        ReceiverVector, ReceiverMetadata, SpikesVector, SpikesMetadata
 from openre.domain.remote import RemoteDomainBase
 from openre.agent.helpers import RPCBrokerProxy
 import types
@@ -33,6 +33,11 @@ def remote_domain_factory(agent):
                 config['id'],
                 domain_index
             )
+            #agent.sub.connect("tcp://%s:%s" % (
+            #    config.get(
+            #        'proxy_host', config.get('host', '127.0.0.1')),
+            #    config.get('proxy_port', 8934)
+            #))
             self.transmitter_pos = -1
             self.transmitter_vector = TransmitterVector()
             self.transmitter_metadata = TransmitterMetadata(0)
@@ -43,6 +48,10 @@ def remote_domain_factory(agent):
             self.receiver_metadata = ReceiverMetadata(0)
             self.receiver_vector.add(self.receiver_metadata)
 
+            self.spikes_pos = -1
+            self.spikes_vector = SpikesVector()
+            self.spikes_metadata = SpikesMetadata(0)
+            self.spikes_vector.add(self.spikes_metadata)
 
         def send_synapse(self,
             pre_domain_index, pre_layer_index, pre_neuron_address,
@@ -114,6 +123,28 @@ def remote_domain_factory(agent):
                 .set_bytes(pack) \
                 .inc_priority \
                 .no_reply()
+
+        def register_spike(self, receiver_neuron_index):
+            """
+            Накапливаем информацию о спайках что бы переслать в другой домен с
+            помощью self.register_spike_pack
+            """
+            self.spikes_pos += 1
+            pos = self.spikes_pos
+            self.spikes_metadata.receiver_neuron_index[pos] \
+                    = receiver_neuron_index
+
+        def register_spike_pack(self, bytes=None):
+            """
+            Посылаем данные о спайках в удаленный домен
+            """
+            if self.spikes_pos == -1:
+                return
+            self.spikes_vector.shrink()
+            pack = self.spikes_vector.bytes()
+            self.spikes_metadata.resize(length=0)
+            self.spikes_pos = -1
+            self.pub.send_multipart([self.config['id'].bytes, 'S', pack])
 
         def __getattr__(self, name):
             return getattr(self.transport, name)

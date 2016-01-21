@@ -133,7 +133,7 @@ class Agent(AgentBase):
                     message = self.sub.recv_multipart()
                     logging.debug("sub in: %s", message)
                     # TODO: process message
-                # first - receive all messages, then process them
+                # first - receive all messages, and only then process them
                 if was_message:
                     poll_timeout = 0
                     continue

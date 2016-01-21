@@ -42,4 +42,18 @@ class ReceiverMetadata(MultiFieldExtendableMetadata):
     """
     fields = list(ReceiverVector.fields)
 
+class SpikesVector(MultiFieldVector):
+    """
+    Вектор для IS_SPIKED нейронов.
+    Используется в remote_domain.send_spikes и local_domain.receive_spikes
+    """
+    fields = [
+        ('receiver_neuron_index', types.address),
+    ]
+
+class SpikesMetadata(MultiFieldExtendableMetadata):
+    """
+    Метаданные для IS_SPIKED нейронов
+    """
+    fields = list(SpikesVector.fields)
 
