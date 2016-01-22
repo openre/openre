@@ -33,11 +33,12 @@ def remote_domain_factory(agent):
                 config['id'],
                 domain_index
             )
-            #agent.sub.connect("tcp://%s:%s" % (
-            #    config.get(
-            #        'proxy_host', config.get('host', '127.0.0.1')),
-            #    config.get('proxy_port', 8934)
-            #))
+            self.broker = RPCBrokerProxy(
+                self.server_socket,
+                'broker_proxy',
+                config['id'],
+            )
+            self._is_subscribed = {}
             self.transmitter_pos = -1
             self.transmitter_vector = TransmitterVector()
             self.transmitter_metadata = TransmitterMetadata(0)
@@ -144,6 +145,15 @@ def remote_domain_factory(agent):
             pack = self.spikes_vector.bytes()
             self.spikes_metadata.resize(length=0)
             self.spikes_pos = -1
+            # ask base domain to subscribe this domain
+            if not self._is_subscribed.get(self.index):
+                res = self.broker.subscribe.wait(agent.id)
+                if not res:
+                    raise IOError(
+                        "Can't ask domain %s to subscribe me"
+                        % self.config['name']
+                    )
+                self._is_subscribed[self.index] = 1
             self.pub.send_multipart([self.config['id'].bytes, 'S', pack])
 
         def __getattr__(self, name):

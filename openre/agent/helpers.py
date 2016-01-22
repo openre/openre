@@ -670,6 +670,10 @@ class RPCBroker(object):
         def api_call(*args, **kwargs):
             assert self._address
             assert self._response_address
+            # lazy socket
+            if callable(self._socket):
+                # actual connect
+                self._socket = self._socket()
             self._response = None
             message = {
                 'action': name,
