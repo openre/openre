@@ -175,6 +175,11 @@ def deploy_domains(event, local_domains=None):
         remote_domain_class=remote_domain_class,
         local_domains=local_domains
     ))
+    if local_domains and len(local_domains) == 1:
+        for domain in net.domains:
+            if domain.name in local_domains:
+                agent.context['local_domain'] = domain
+    assert agent.context['local_domain']
 
 @action(namespace='domain')
 @state('deploy_layers')

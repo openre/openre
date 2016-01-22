@@ -132,7 +132,13 @@ class Agent(AgentBase):
                     was_message = True
                     message = self.sub.recv_multipart()
                     logging.debug("sub in: %s", message)
-                    # TODO: process message
+                    agent_id = message[0]
+                    data_type = message[1]
+                    data = message[3]
+                    if self.id.bytes == agent_id and data_type == 'S':
+                        if 'local_domain' in self.context:
+                            self.context['local_domain'] \
+                                    .register_spike_pack(bytes=data)
                 # first - receive all messages, and only then process them
                 if was_message:
                     poll_timeout = 0
