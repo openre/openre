@@ -76,6 +76,7 @@ class Agent(AgentBase):
             'name': self.config['name']
         })
 
+        register_spike_pack_cache = None
         # main loop
         while True:
             # receive all messages in while loop
@@ -136,9 +137,14 @@ class Agent(AgentBase):
                     data_type = message[1]
                     data = message[3]
                     if self.id.bytes == agent_id and data_type == 'S':
-                        if 'local_domain' in self.context:
-                            self.context['local_domain'] \
-                                    .register_spike_pack(bytes=data)
+                        try:
+                            register_spike_pack_cache(bytes=data)
+                        except TypeError:
+                            if 'local_domain' in self.context:
+                                register_spike_pack_cache = \
+                                    self.context['local_domain'] \
+                                        .register_spike_pack
+                                register_spike_pack_cache(bytes=data)
                 # first - receive all messages, and only then process them
                 if was_message:
                     poll_timeout = 0
