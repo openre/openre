@@ -36,6 +36,10 @@
     "domains": [
         {
             "name"        : "D1",
+            "device": {
+                "type": "OpenCL",
+                "platform": 0
+            },
             "layers"    : [
                 {"name": "V1"},
                 {"name": "V2"}
@@ -43,6 +47,10 @@
         },
         {
             "name"        : "D2",
+            "device": {
+                "type": "OpenCL",
+                "platform": 0
+            },
             "layers"    : [
                 {"name": "V3"}
             ]
