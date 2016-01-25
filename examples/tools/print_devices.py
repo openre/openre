@@ -15,9 +15,13 @@ def main():
         print platform.version
         for device in platform.get_devices():
             for param in ['NAME', 'BUILT_IN_KERNELS', 'MAX_COMPUTE_UNITS',
-                          'GLOBAL_MEM_SIZE', 'MAX_MEM_ALLOC_SIZE', 'TYPE']:
+                          'GLOBAL_MEM_SIZE', 'MAX_MEM_ALLOC_SIZE', 'TYPE',
+                          'MAX_WORK_GROUP_SIZE']:
+                try:
+                    value = device.get_info(getattr(cl.device_info, param))
+                except (cl.LogicError, AttributeError):
+                    continue
                 print '\t',
-                value = device.get_info(getattr(cl.device_info, param))
                 if param == 'TYPE':
                     value = '%s (%s)' % (
                         value,
