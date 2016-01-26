@@ -142,7 +142,8 @@ def remote_domain_factory(agent):
             if self.spikes_pos == -1:
                 return
             self.spikes_vector.shrink()
-            pack = self.spikes_vector.bytes()
+            pack_length = len(self.spikes_vector)
+            pack = self.spikes_vector.receiver_neuron_index.bytes()
             self.spikes_metadata.resize(length=0)
             self.spikes_pos = -1
             # ask base domain to subscribe this domain
@@ -154,7 +155,8 @@ def remote_domain_factory(agent):
                         % self.config['name']
                     )
                 self._is_subscribed[self.index] = 1
-            self.pub.send_multipart([self.config['id'].bytes, 'S', pack])
+            self.stat_inc('spikes_sent', pack_length)
+            agent.pub.send_multipart([self.config['id'].bytes, 'S', pack])
 
         def __getattr__(self, name):
             return getattr(self.transport, name)

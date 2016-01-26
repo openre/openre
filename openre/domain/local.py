@@ -635,6 +635,7 @@ class Domain(DomainBase):
             return
         packet = SpikesVector()
         packet.from_bytes(bytes)
+        self.stat_inc('spikes_received', packet.length)
         for pos in range(packet.length):
             self.register_spike(
                 packet.receiver_neuron_index.data[pos],

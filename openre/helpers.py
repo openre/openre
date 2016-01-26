@@ -283,17 +283,17 @@ class StatsMixin(object):
         self._stats = {}
         super(StatsMixin, self).__init__(*args, **kwargs)
 
-    def stat_inc(self, name):
+    def stat_inc(self, name, value=1):
         """
         Увеличивает значение name на еденицу
         """
-        self._stats[name] = self._stats.get(name, 0) + 1
+        self._stats[name] = self._stats.get(name, 0) + value
 
-    def stat_dec(self, name):
+    def stat_dec(self, name, value=1):
         """
         Уменьшает значение name на еденицу
         """
-        self._stats[name] = self._stats.get(name, 0) - 1
+        self._stats[name] = self._stats.get(name, 0) - value
 
     def stat_set(self, name, value):
         """

@@ -4,6 +4,7 @@ from openre.agent.decorators import action, wait
 import uuid
 from openre.agent.helpers import RPCBrokerProxy, RPCException
 from openre.agent.client.helpers import Net
+import time
 
 @wait(timeout=10, period=0.5)
 def ensure_domain_state(agent, domain_id, expected_state,
@@ -30,12 +31,6 @@ def run_tests(agent):
         agent.server_socket, 'broker_proxy',
         domain_id
     )
-    remote_domain = RPCBrokerProxy(
-        agent.server_socket, 'broker_domain_proxy',
-        domain_id,
-        domain_index=0
-    )
-
     try:
         agent.server.domain_start(id=domain_id)
         ensure_domain_state(agent, domain_id, 'blank')
@@ -52,6 +47,12 @@ def run_tests(agent):
     D1 = uuid.UUID('39684e0d-6173-4d41-8efe-add8f24dd2c1')
     D2 = uuid.UUID('39684e0d-6173-4d41-8efe-add8f24dd2c2')
     D3 = uuid.UUID('39684e0d-6173-4d41-8efe-add8f24dd2c3')
+    remote_domain3 = RPCBrokerProxy(
+        agent.server_socket, 'broker_domain_proxy',
+        D3,
+        domain_index=2
+    )
+
     config = {
         'layers': [
             {
@@ -82,6 +83,9 @@ def run_tests(agent):
             {
                 'name'        : 'D1',
                 'id': D1,
+                'device'    : {
+                    'type': 'Random',
+                },
                 'layers'    : [
                     {'name': 'V1', 'shape': [0, 0, 10, 10]},
                     {'name': 'V1', 'shape': [10, 0, 10, 10]},
@@ -90,6 +94,9 @@ def run_tests(agent):
             {
                 'name'        : 'D2',
                 'id': D2,
+                'device'    : {
+                    'type': 'Random',
+                },
                 'layers'    : [
                     {'name': 'V1', 'shape': [10, 10, 10, 10]},
                     {'name': 'V1', 'shape': [0, 10, 10, 10]},
@@ -98,6 +105,9 @@ def run_tests(agent):
             {
                 'name'        : 'D3',
                 'id': D3,
+                'device'    : {
+                    'type': 'OpenCL',
+                },
                 'layers'    : [
                     {'name': 'V2'},
                 ],
@@ -116,7 +126,10 @@ def run_tests(agent):
         net.deploy_synapses()
         net.post_deploy_synapses()
         net.post_deploy()
-        assert domain.subscribe.wait(D2) == True
+        net.run()
+        time.sleep(1)
+        net.stop()
+        print remote_domain3.stat.wait()
     finally:
         if net:
             net.destroy()
