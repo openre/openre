@@ -135,7 +135,7 @@ class Agent(AgentBase):
                     logging.debug("sub in: %s", message)
                     agent_id = message[0]
                     data_type = message[1]
-                    data = message[3]
+                    data = message[2]
                     if self.id.bytes == agent_id and data_type == 'S':
                         try:
                             register_spike_pack_cache(bytes=data)

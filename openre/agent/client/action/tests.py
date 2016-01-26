@@ -23,8 +23,31 @@ def ensure_domain_state(agent, domain_id, expected_state,
         return True
     return False
 
+def run_test_proxy(agent):
+    import os.path
+    import tempfile
+    import zmq
+    ipc_pub_file = os.path.join(
+        tempfile.gettempdir(), 'openre-proxy')
+    pub = agent.socket(zmq.PUB)
+    pub.connect("ipc://%s" % ipc_pub_file)
+
+    sub = agent.socket(zmq.SUB)
+    sub.connect('tcp://127.0.0.1:8934')
+    sub.setsockopt(zmq.SUBSCRIBE, agent.id.bytes)
+    #sub.setsockopt(zmq.SUBSCRIBE, '')
+
+    time.sleep(0.1)
+    pub.send_multipart([agent.id.bytes, 'ok'])
+    time.sleep(0.1)
+    data = sub.recv_multipart()
+    assert data == [agent.id.bytes, 'ok']
+
+
 @action(namespace='client')
 def run_tests(agent):
+    run_test_proxy(agent)
+
     agent.connect_server(agent.config['host'], agent.config['port'])
     domain_id = uuid.UUID('39684e0d-6173-4d41-8efe-add8f24dd2c1')
     domain = RPCBrokerProxy(

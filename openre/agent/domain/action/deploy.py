@@ -148,7 +148,7 @@ def remote_domain_factory(agent):
             self.spikes_pos = -1
             # ask base domain to subscribe this domain
             if not self._is_subscribed.get(self.index):
-                res = self.broker.subscribe.wait(agent.id)
+                res = self.broker.subscribe.inc_priority.wait(agent.id)
                 if not res:
                     raise IOError(
                         "Can't ask domain %s to subscribe me"

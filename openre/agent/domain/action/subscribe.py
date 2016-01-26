@@ -29,7 +29,7 @@ def subscribe(event, domain_id):
     if config:
         host = config.get('proxy', {}) \
                 .get('host', config.get('server', {}).get('host', '127.0.0.1'))
-        port = config.get('proxy', {}).get('port', 8932)
+        port = config.get('proxy', {}).get('port', 8934)
         origin = '%s:%s' % (host, port)
         # prevent to connect to the same origin twice
         if agent.context['subscribed_to'].get(origin):
