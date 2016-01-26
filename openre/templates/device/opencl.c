@@ -143,7 +143,8 @@ __kernel void tick_synapses(
     while(post_synapse_address != NULL_ADDRESS && not_infinite){
         not_infinite--; /* TODO: send error to host if infinite loop */
         if(!not_infinite){
-            printf("Warning: infinite loop in post synapse while\n");
+            // TODO: ignore next line only on NVIDIA devices
+            // printf("Warning: infinite loop in post synapse while\n");
         }
         post_neuron_address = s_post[post_synapse_address];
         // synapse is dead
@@ -192,7 +193,8 @@ __kernel void tick_synapses(
     while(pre_synapse_address != NULL_ADDRESS && not_infinite){
         not_infinite--; /* TODO: send error to host if infinite loop */
         if(!not_infinite){
-            printf("Warning: infinite loop in pre synapse while\n");
+            // TODO: ignore next line only on NVIDIA devices
+            // printf("Warning: infinite loop in pre synapse while\n");
         }
         pre_neuron_address = s_pre[pre_synapse_address];
         // synapse is dead
