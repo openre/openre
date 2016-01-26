@@ -4,8 +4,8 @@
             "name": "V1",
             "threshold": 30000,
             "relaxation": 1000,
-            "width": 40,
-            "height": 40,
+            "width": 300,
+            "height": 300,
             "connect": [
                 {
                     "name": "V2",
@@ -16,15 +16,15 @@
         {
             "name": "V2",
             "threshold": 30000,
-            "width": 10,
-            "height": 10
+            "width": 100,
+            "height": 100
         },
         {
             "name": "V3",
             "threshold": 30000,
             "relaxation": 1000,
-            "width": 40,
-            "height": 40,
+            "width": 3,
+            "height": 3,
             "connect": [
                 {
                     "name": "V2",
