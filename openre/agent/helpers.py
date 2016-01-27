@@ -357,6 +357,10 @@ class AgentBase(Transport):
 
             self.__run_user()
         except Exception:
+            if self.__class__.server_connect:
+                logger_level = logging.getLogger().getEffectiveLevel()
+                if logger_level <= logging.DEBUG:
+                    self.send_server('error', traceback.format_exc())
             raise
         finally:
             self.clean()

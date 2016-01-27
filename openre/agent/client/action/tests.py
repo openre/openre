@@ -70,6 +70,18 @@ def run_tests(agent):
     D1 = uuid.UUID('39684e0d-6173-4d41-8efe-add8f24dd2c1')
     D2 = uuid.UUID('39684e0d-6173-4d41-8efe-add8f24dd2c2')
     D3 = uuid.UUID('39684e0d-6173-4d41-8efe-add8f24dd2c3')
+    remote_domain1 = RPCBrokerProxy(
+        agent.server_socket, 'broker_domain_proxy',
+        D1,
+        domain_index=0
+    )
+
+    remote_domain2 = RPCBrokerProxy(
+        agent.server_socket, 'broker_domain_proxy',
+        D2,
+        domain_index=1
+    )
+
     remote_domain3 = RPCBrokerProxy(
         agent.server_socket, 'broker_domain_proxy',
         D3,
@@ -152,7 +164,12 @@ def run_tests(agent):
         net.run()
         time.sleep(1)
         net.stop()
-        print remote_domain3.stat.wait()
+        d1_stats = remote_domain1.stat.wait()
+        d2_stats = remote_domain2.stat.wait()
+        d3_stats = remote_domain3.stat.wait()
+        assert 'spikes_received' in d3_stats
+        assert d1_stats['spikes_sent'] + d2_stats['spikes_sent'] \
+                == d3_stats['spikes_received']
     finally:
         if net:
             net.destroy()

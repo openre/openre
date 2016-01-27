@@ -38,7 +38,7 @@ def remote_domain_factory(agent):
                 'broker_proxy',
                 config['id'],
             )
-            self._is_subscribed = {}
+            self.is_subscribed = False
             self.transmitter_pos = -1
             self.transmitter_vector = TransmitterVector()
             self.transmitter_metadata = TransmitterMetadata(0)
@@ -147,16 +147,15 @@ def remote_domain_factory(agent):
             self.spikes_metadata.resize(length=0)
             self.spikes_pos = -1
             # ask base domain to subscribe this domain
-            if not self._is_subscribed.get(self.index):
-                res = self.broker.subscribe.inc_priority.wait(agent.id)
-                if not res:
-                    raise IOError(
-                        "Can't ask domain %s to subscribe me"
-                        % self.config['name']
-                    )
-                self._is_subscribed[self.index] = 1
-            self.stat_inc('spikes_sent', pack_length)
-            agent.pub.send_multipart([self.config['id'].bytes, 'S', pack])
+            if not self.is_subscribed:
+                self.broker.subscribe.inc_priority \
+                        .no_reply(agent.context['local_domain'].index)
+            else:
+                agent.context['local_domain'] \
+                        .stat_inc('spikes_sent', pack_length)
+                # a few messages at the begining will be discarded because we
+                # asynchronously ask to subscribe
+                agent.pub.send_multipart([self.config['id'].bytes, 'S', pack])
 
         def __getattr__(self, name):
             return getattr(self.transport, name)

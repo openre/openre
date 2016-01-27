@@ -56,7 +56,7 @@ class Agent(AgentBase):
                 }
 
             if event.data.get('context'):
-                ret['context'] = data['context']
+                ret['context'] = event.data['context']
             self.reply(event.address, ret)
         poll_timeout = 0
         event_pool = EventPool()
@@ -126,7 +126,7 @@ class Agent(AgentBase):
                                         % data['action'],
                                 }
                             if event.data.get('context'):
-                                ret['context'] = data['context']
+                                ret['context'] = event.data['context']
                             self.reply(address, ret)
 
                 if socks.get(self.sub) == zmq.POLLIN:

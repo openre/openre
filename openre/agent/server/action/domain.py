@@ -51,6 +51,7 @@ def do_domain_start(event, proccess_id,
         '--server-host', server_host or server.config['host'],
         '--server-port', server_port or server.config['port'],
         '--id', proccess_id,
+        '--log-level', server.config['log_level'],
         '--pid', '-',
     ]
     if name:
