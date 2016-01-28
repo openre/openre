@@ -10,7 +10,8 @@ if [ ! -f $SESSION_CONFIG_FILE  ]; then
 fi
 $run deploy --config $SESSION_CONFIG_FILE --log-level DEBUG && \
 $run run --config $SESSION_CONFIG_FILE --log-level DEBUG
-#$run info --config $SESSION_CONFIG_FILE --log-level INFO
+$run info --config $SESSION_CONFIG_FILE --log-level INFO
+
 #$run pause --config $SESSION_CONFIG_FILE --log-level INFO
 #$run info --config $SESSION_CONFIG_FILE --log-level INFO
 #$run start --config $SESSION_CONFIG_FILE --log-level INFO

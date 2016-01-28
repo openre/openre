@@ -1,0 +1,7 @@
+# This will stop simulation and destroy the Net.
+# Run ./server before this script
+# Run ./client-run before this script
+
+run='openrectl'
+SESSION_CONFIG_FILE='session.json'
+$run destroy --config $SESSION_CONFIG_FILE --log-level INFO

@@ -16,7 +16,16 @@ class Agent(AgentBase):
     def run(self):
         if self.config['config']:
             try:
-                self.net_config = from_json(self.config['config'].read())
+                json_data = None
+                if isinstance(self.config['config'], basestring):
+                    if os.path.isfile(self.config['config']):
+                        with open(self.config['config'], 'r') as inf:
+                            json_data = inf.read()
+                    else:
+                        json_data = self.config['config']
+                else:
+                    json_data = self.config['config'].read()
+                self.net_config = from_json(json_data)
             except ValueError as error:
                 self.die('JSON is invalid: %s', error)
 
