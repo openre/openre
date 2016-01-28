@@ -28,7 +28,7 @@ setup(
         'decorator==3.4.0',
         'docutils==0.12',
         'lockfile==0.10.2',
-        'numpy==1.8.2',
+        'numpy',
         'py==1.4.26',
         'pyopencl==2014.1',
         'pytest==2.6.4',
