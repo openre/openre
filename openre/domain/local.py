@@ -600,10 +600,10 @@ class Domain(DomainBase):
         # step 4
         self.device.tick_transmitter_index(self)
         # step 5
-        self.transmitter_index.flags.from_device(self.device)
+        self.transmitter_index.is_spiked.from_device(self.device)
         index = self.transmitter_index
-        for (i,), flag in np.ndenumerate(index.flags.data):
-            if not flag & IS_SPIKED or flag & IS_DEAD:
+        for i, is_spiked in enumerate(index.is_spiked.data):
+            if not is_spiked:
                 continue
             post_domain = self.net.domains[index.remote_domain[i]]
             receiver_neuron_index = index.remote_receiver_index.data[i]

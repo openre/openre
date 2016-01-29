@@ -158,6 +158,7 @@ class OpenCL(Device):
             # transmitter_index
             domain.transmitter_index.local_address.device_data_pointer,
             domain.transmitter_index.flags.device_data_pointer,
+            domain.transmitter_index.is_spiked.device_data_pointer,
             # neurons
             domain.neurons.flags.device_data_pointer,
         ).wait()

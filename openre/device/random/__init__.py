@@ -22,7 +22,7 @@ class Random(Device):
             args = self.config['args']
         func = getattr(numpy.random, method)
         threshold = self.config.get('threshold', 0.5)
-        def fill_transmitter_index(data):
+        def fill_transmitter_index(data, is_spiked):
             size = self.config.get('size', len(data))
             if not size is None:
                 rnd_data = func(*args, size=size)
@@ -32,8 +32,10 @@ class Random(Device):
             for pos, flag in enumerate(data):
                 if rnd_data[pos] >= threshold:
                     data[pos] = flag | neurons.IS_SPIKED
+                    is_spiked[pos] = 1
                 else:
                     data[pos] = flag & ~neurons.IS_SPIKED
+                    is_spiked[pos] = 0
         self.fill_transmitter_index = fill_transmitter_index
 
     def tick_neurons(self, domain):
@@ -46,7 +48,10 @@ class Random(Device):
         length = len(domain.transmitter_index.local_address)
         if not length:
             return
-        self.fill_transmitter_index(domain.transmitter_index.flags)
+        self.fill_transmitter_index(
+            domain.transmitter_index.flags,
+            domain.transmitter_index.is_spiked
+        )
 
     def tick_receiver_index(self, domain):
         pass
@@ -118,6 +123,8 @@ def test_random_device():
     # D1.transmitter_index
     assert list(D1.transmitter_index.flags.data & neurons.IS_SPIKED) == \
         list(D2.neurons.flags.data[400:] & neurons.IS_SPIKED)
+    assert list((D1.transmitter_index.is_spiked.data + 1) & neurons.IS_SPIKED) \
+            == list(D2.neurons.flags.data[400:] & neurons.IS_SPIKED)
     ore.tick()
     D2.neurons.from_device(device2)
     # at least one spike should happen
