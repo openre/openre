@@ -13,7 +13,6 @@ class Agent(AgentBase):
     def init(self):
         self.init_actions()
         self.net_config = None
-    def run(self):
         if self.config['config']:
             try:
                 json_data = None
@@ -29,6 +28,7 @@ class Agent(AgentBase):
             except ValueError as error:
                 self.die('JSON is invalid: %s', error)
 
+    def run(self):
         result = do_strict_action(self.config['action'], 'client', self)
         """
         result = self.send_server(
