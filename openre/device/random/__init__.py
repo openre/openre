@@ -21,7 +21,7 @@ class Random(Device):
         if 'args' in self.config:
             args = self.config['args']
         func = getattr(numpy.random, method)
-        threshold = self.config.get('threshold', 0.5)
+        threshold = self.config.get('threshold', 0.1)
         def fill_transmitter_index(data):
             size = self.config.get('size', len(data))
             if not size is None:

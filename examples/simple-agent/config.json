@@ -2,20 +2,20 @@
     "layers": [
         {
             "name": "V1",
-            "threshold": 3000,
-            "relaxation": 1000,
+            "threshold": 30,
+            "relaxation": 1,
             "width": 40,
             "height": 40,
             "connect": [
                 {
                     "name": "V2",
-                    "radius": 1
+                    "radius": 3
                 }
             ]
         },
         {
             "name": "R1",
-            "threshold": 30000,
+            "threshold": 30,
             "width": 40,
             "height": 40,
             "connect": [
@@ -27,27 +27,31 @@
         },
         {
             "name": "V2",
-            "threshold": 30000,
+            "threshold": 30,
             "width": 10,
-            "height": 10
+            "height": 10,
+            "connect": [
+                {
+                    "name": "V3",
+                    "radius": 3
+                }
+            ]
         },
         {
             "name": "V3",
-            "threshold": 30000,
-            "relaxation": 1000,
-            "width": 40,
-            "height": 40,
-            "connect": [
-                {
-                    "name": "V1",
-                    "radius": 1
-                }
-            ]
+            "threshold": 30,
+            "relaxation": 1,
+            "width": 10,
+            "height": 10
         }
     ],
     "domains": [
         {
             "name"        : "D1",
+            "device": {
+                "type": "OpenCL",
+                "platform": 0
+            },
             "layers"    : [
                 {"name": "V1"},
                 {"name": "V2"}
@@ -55,6 +59,10 @@
         },
         {
             "name"        : "D2",
+            "device": {
+                "type": "OpenCL",
+                "platform": 0
+            },
             "layers"    : [
                 {"name": "V3"}
             ]
