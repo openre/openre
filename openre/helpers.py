@@ -283,17 +283,57 @@ class StatsMixin(object):
         self._stats = {}
         super(StatsMixin, self).__init__(*args, **kwargs)
 
+    def _get_stats(self, name, default=None):
+        """
+        expand name like ['spikes_sent_to', 'D1'] to
+        self._stats['spikes_sent_to']['D1'].
+        If it does not exists - init it with default value.
+        """
+        if isinstance(name, basestring):
+            return self._stats.get(name, default)
+        stats = self._stats
+        length = len(name)
+        key = name[0]
+        for pos, key in enumerate(name):
+            is_last = pos == (length - 1)
+            if key not in stats:
+                return default
+            if is_last:
+                return stats[key]
+            stats = stats[key]
+        return default
+
+    def _set_stats(self, name, value):
+        """
+        expand name like ['spikes_sent_to', 'D1'] to
+        self._stats['spikes_sent_to']['D1'].
+        If it does not exists - init it with default value.
+        """
+        if isinstance(name, basestring):
+            name = [name]
+        stats = self._stats
+        length = len(name)
+        for pos, key in enumerate(name):
+            is_last = pos == (length - 1)
+            if key not in stats:
+                if not is_last:
+                    stats[key] = {}
+            if is_last:
+                stats[key] = value
+            stats = stats[key]
+        return value
+
     def stat_inc(self, name, value=1):
         """
-        Увеличивает значение name на еденицу
+        Увеличивает значение name на value
         """
-        self._stats[name] = self._stats.get(name, 0) + value
+        self._set_stats(name, self._get_stats(name, 0) + value)
 
     def stat_dec(self, name, value=1):
         """
-        Уменьшает значение name на еденицу
+        Уменьшает значение name на value
         """
-        self._stats[name] = self._stats.get(name, 0) - value
+        self._set_stats(name, self._get_stats(name, 0) - value)
 
     def stat_set(self, name, value):
         """
@@ -301,7 +341,7 @@ class StatsMixin(object):
         """
         if isinstance(value, np.number):
             value = value.item()
-        self._stats[name] = value
+        self._set_stats(name, value)
 
     def stat(self, name=None):
         """
@@ -309,7 +349,7 @@ class StatsMixin(object):
         """
         if name is None:
             return deepcopy(self._stats)
-        return self._stats.get(name)
+        return self._get_stats(name)
 
 def merge(source, destination):
     """

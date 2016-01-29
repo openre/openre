@@ -161,6 +161,7 @@ def run_tests(agent):
         net.deploy_synapses()
         net.post_deploy_synapses()
         net.post_deploy()
+        time.sleep(1)
         net.run()
         time.sleep(1)
         net.stop()
@@ -169,6 +170,9 @@ def run_tests(agent):
         d3_stats = remote_domain3.stat.wait()
         assert 'spikes_received' in d3_stats
         assert d1_stats['spikes_sent'] + d2_stats['spikes_sent'] \
+                == d3_stats['spikes_received']
+        assert d1_stats['spikes_sent_to']['D3'] \
+                + d2_stats['spikes_sent_to']['D3'] \
                 == d3_stats['spikes_received']
     finally:
         if net:

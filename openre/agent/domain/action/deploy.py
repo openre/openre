@@ -151,8 +151,9 @@ def remote_domain_factory(agent):
                 self.broker.subscribe.inc_priority \
                         .no_reply(agent.context['local_domain'].index)
             else:
-                agent.context['local_domain'] \
-                        .stat_inc('spikes_sent', pack_length)
+                local = agent.context['local_domain']
+                local.stat_inc('spikes_sent', pack_length)
+                local.stat_inc(['spikes_sent_to', self.name], pack_length)
                 # a few messages at the begining will be discarded because we
                 # asynchronously ask to subscribe
                 agent.pub.send_multipart([self.config['id'].bytes, 'S', pack])
