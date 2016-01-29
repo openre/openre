@@ -14,19 +14,16 @@ class Agent(AgentBase):
         self.init_actions()
         self.net_config = None
         if self.config['config']:
-            try:
-                json_data = None
-                if isinstance(self.config['config'], basestring):
-                    if os.path.isfile(self.config['config']):
-                        with open(self.config['config'], 'r') as inf:
-                            json_data = inf.read()
-                    else:
-                        json_data = self.config['config']
+            json_data = None
+            if isinstance(self.config['config'], basestring):
+                if os.path.isfile(self.config['config']):
+                    with open(self.config['config'], 'r') as inf:
+                        json_data = inf.read()
                 else:
-                    json_data = self.config['config'].read()
-                self.net_config = from_json(json_data)
-            except ValueError as error:
-                self.die('JSON is invalid: %s', error)
+                    json_data = self.config['config']
+            else:
+                json_data = self.config['config'].read()
+            self.net_config = from_json(json_data)
 
     def run(self):
         result = do_strict_action(self.config['action'], 'client', self)

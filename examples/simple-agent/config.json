@@ -2,7 +2,7 @@
     "layers": [
         {
             "name": "V1",
-            "threshold": 30000,
+            "threshold": 3000,
             "relaxation": 1000,
             "width": 40,
             "height": 40,
@@ -10,6 +10,18 @@
                 {
                     "name": "V2",
                     "radius": 1
+                }
+            ]
+        },
+        {
+            "name": "R1",
+            "threshold": 30000,
+            "width": 40,
+            "height": 40,
+            "connect": [
+                {
+                    "name": "V1",
+                    "radius": 3
                 }
             ]
         },
@@ -27,7 +39,7 @@
             "height": 40,
             "connect": [
                 {
-                    "name": "V2",
+                    "name": "V1",
                     "radius": 1
                 }
             ]
@@ -45,6 +57,15 @@
             "name"        : "D2",
             "layers"    : [
                 {"name": "V3"}
+            ]
+        },
+        {
+            "name"        : "R",
+            "device": {
+                "type": "Random"
+            },
+            "layers"    : [
+                {"name": "R1"}
             ]
         }
     ]
