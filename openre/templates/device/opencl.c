@@ -338,13 +338,11 @@ __kernel void update_synapses_stat(
 // get spiked IS_TRANSMITTER neurons
 __kernel void tick_transmitter_index(
     __global {{ types.address | to_c_type }}        * i_local_address,
-    __global {{ types.neuron_flags | to_c_type }}   * i_flags,
     __global {{ types.neuron_flags | to_c_type }}   * i_is_spiked,
     __global {{ types.neuron_flags | to_c_type }}   * n_flags
 ) {
     {{ types.address | to_c_type }} index = get_global_id(0);
     {{ types.address | to_c_type }} neuron_address = i_local_address[index];
-    i_flags[index] = n_flags[neuron_address];
     if ((n_flags[neuron_address] & IS_SPIKED)
         && !(n_flags[neuron_address] & IS_DEAD)){
         i_is_spiked[index] = 1;
