@@ -602,12 +602,15 @@ class Domain(DomainBase):
         # step 5
         self.transmitter_index.is_spiked.from_device(self.device)
         index = self.transmitter_index
+        domains = self.net.domains
+        remote_domain_data = index.remote_domain.data
+        remote_receiver_index_data = index.remote_receiver_index.data
+        register_spike = [domain.register_spike for domain in domains]
         for i, is_spiked in enumerate(index.is_spiked.data):
             if not is_spiked:
                 continue
-            post_domain = self.net.domains[index.remote_domain[i]]
-            receiver_neuron_index = index.remote_receiver_index.data[i]
-            post_domain.register_spike(receiver_neuron_index)
+            receiver_neuron_index = remote_receiver_index_data[i]
+            register_spike[remote_domain_data[i]](receiver_neuron_index)
         for post_domain in self.net.domains:
             if post_domain != self:
                 # если post_domain локальный, то ничего не произойдет
