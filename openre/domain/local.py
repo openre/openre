@@ -625,10 +625,10 @@ class Domain(DomainBase):
         """
         # step 3
         # send to device info about new spikes
-        self.receiver_index.flags.to_device(self.device)
+        self.receiver_index.is_spiked.to_device(self.device)
         self.device.tick_receiver_index(self)
-        # get flags with dropped IS_SPIKED flag
-        self.receiver_index.flags.from_device(self.device)
+        # get is_spiked filled with 0
+        self.receiver_index.is_spiked.from_device(self.device)
 
     def register_spike_pack(self, bytes=None):
         """
@@ -639,6 +639,7 @@ class Domain(DomainBase):
         packet = SpikesVector()
         packet.from_bytes(bytes)
         self.stat_inc('spikes_received', packet.length)
+        # FIXME: - register spikes in device
         for pos in range(packet.length):
             self.register_spike(
                 packet.receiver_neuron_index.data[pos],
@@ -649,7 +650,7 @@ class Domain(DomainBase):
         Записывает в домен пришедший спайк
         """
         # step 2
-        self.receiver_index.flags.data[receiver_neuron_index] |= IS_SPIKED
+        self.receiver_index.is_spiked.data[receiver_neuron_index] = 1
 
     def tick(self):
         """

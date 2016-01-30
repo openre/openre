@@ -355,12 +355,14 @@ __kernel void tick_transmitter_index(
 // set spiked IS_RECEIVER neurons
 __kernel void tick_receiver_index(
     __global {{ types.address | to_c_type }}        * i_local_address,
-    __global {{ types.neuron_flags | to_c_type }}   * i_flags,
+    __global {{ types.neuron_flags | to_c_type }}   * i_is_spiked,
     __global {{ types.neuron_flags | to_c_type }}   * n_flags
 ) {
     {{ types.address | to_c_type }} index = get_global_id(0);
     {{ types.address | to_c_type }} neuron_address = i_local_address[index];
     // set IS_SPIKED flag only
-    n_flags[neuron_address] = n_flags[neuron_address] | (i_flags[index] & IS_SPIKED);
-    i_flags[index] = i_flags[index] & ~IS_SPIKED;
+    if(i_is_spiked[index]){
+        n_flags[neuron_address] |= IS_SPIKED;
+    }
+    i_is_spiked[index] = 0;
 }

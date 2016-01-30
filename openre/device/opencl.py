@@ -170,7 +170,7 @@ class OpenCL(Device):
             self.queue, (length,), None,
             # transmitter_index
             domain.receiver_index.local_address.device_data_pointer,
-            domain.receiver_index.flags.device_data_pointer,
+            domain.receiver_index.is_spiked.device_data_pointer,
             # neurons
             domain.neurons.flags.device_data_pointer,
         ).wait()
@@ -537,7 +537,7 @@ def test_device():
     assert d1.transmitter_index.is_spiked[0]
     #assert d1.transmitter_index.flags[0] & neurons.IS_INHIBITORY
 
-    assert d2.receiver_index.flags[0] & neurons.IS_SPIKED
+    assert d2.receiver_index.is_spiked[0]
     local_address = d2.receiver_index.local_address[0]
     assert local_address == 400
     assert not d2.neurons.flags[local_address] & neurons.IS_SPIKED
@@ -545,7 +545,7 @@ def test_device():
     assert d2.neurons.flags[local_address] & neurons.IS_RECEIVER
     d2.tick()
     d2.neurons.from_device(d2.device)
-    assert not d2.receiver_index.flags[0] & neurons.IS_SPIKED
+    assert not d2.receiver_index.is_spiked[0]
     assert d2.neurons.flags[local_address] & neurons.IS_SPIKED
     assert d2.neurons.flags[local_address] & neurons.IS_INHIBITORY
     assert d2.neurons.flags[local_address] & neurons.IS_RECEIVER

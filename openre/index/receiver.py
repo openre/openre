@@ -4,7 +4,7 @@
 """
 from openre.vector import Vector
 from openre.metadata import ExtendableMetadata
-from openre.data_types import types, null
+from openre.data_types import types
 
 class ReceiverIndex(object):
     """
@@ -13,8 +13,8 @@ class ReceiverIndex(object):
     i - адрес IS_RECEIVER нейрона в индексе (этот адрес приходит из других
         доменов)
     local_address[i] - адрес IS_RECEIVER нейрона в domain.neurons
-    flags[i] - текущие флаги IS_RECEIVER нейрона (их мы будем полчать из
-        от IS_TRANSMITTER нейрона в другом домене)
+    is_spiked[i] - информация о спайке IS_RECEIVER нейрона (ее мы будем полчать
+        из IS_TRANSMITTER нейрона в другом домене)
     remote_domain[i] - домен IS_TRANSMITTER нейрона
     remote_address[i] - адрес IS_TRANSMITTER нейрона в удаленнном домене
     """
@@ -22,9 +22,9 @@ class ReceiverIndex(object):
         self.local_address = Vector()
         self.meta_local_address = ExtendableMetadata((0, 1), types.address)
         self.local_address.add(self.meta_local_address)
-        self.flags = Vector()
-        self.meta_flags = ExtendableMetadata((0, 1), types.neuron_flags)
-        self.flags.add(self.meta_flags)
+        self.is_spiked = Vector()
+        self.meta_is_spiked = ExtendableMetadata((0, 1), types.neuron_flags)
+        self.is_spiked.add(self.meta_is_spiked)
         self.meta_remote_domain \
                 = ExtendableMetadata((0, 1), types.medium_address)
         self.remote_domain = Vector()
@@ -56,7 +56,7 @@ class ReceiverIndex(object):
         self.address_to_index[local_address] = self.pos
         index = self.pos
 
-        self.meta_flags[index] = 0
+        self.meta_is_spiked[index] = 0
         self.meta_local_address[index] = local_address
         self.meta_remote_domain[index] = remote_domain_index
         self.meta_remote_address[index] = remote_address
@@ -67,7 +67,7 @@ class ReceiverIndex(object):
         self.data = {}
         self.pos = -1
         self.address_to_index = {}
-        for meta in [self.meta_local_address, self.meta_flags,
+        for meta in [self.meta_local_address, self.meta_is_spiked,
                      self.meta_remote_domain,
                      self.meta_remote_address]:
             meta.resize(length=0)
@@ -85,7 +85,7 @@ class ReceiverIndex(object):
         self.shrink()
 
     def shrink(self):
-        for vector in [self.local_address, self.flags,
+        for vector in [self.local_address, self.is_spiked,
                        self.remote_domain, self.remote_address]:
             vector.shrink()
 
@@ -103,21 +103,21 @@ class ReceiverIndex(object):
         Создание указателей на данные на устройстве
         """
         self.local_address.create_device_data_pointer(device)
-        self.flags.create_device_data_pointer(device)
+        self.is_spiked.create_device_data_pointer(device)
 
     def to_device(self, device):
         """
         Загрузка на устройство
         """
         self.local_address.to_device(device)
-        self.flags.to_device(device)
+        self.is_spiked.to_device(device)
 
     def from_device(self, device):
         """
         Выгрузка с устройства
         """
         self.local_address.from_device(device)
-        self.flags.from_device(device)
+        self.is_spiked.from_device(device)
 
 
 def test_index():
@@ -130,12 +130,12 @@ def test_index():
     index = ReceiverIndex(
         data
     )
-    for vector in [index.local_address, index.flags, index.remote_domain,
+    for vector in [index.local_address, index.is_spiked, index.remote_domain,
                    index.remote_address]:
         assert len(vector) == 5
     assert index.pos == 4
     assert list(index.local_address.data) == [200, 220, 211, 222, 213]
-    assert list(index.flags.data) == [0, 0, 0, 0, 0]
+    assert list(index.is_spiked.data) == [0, 0, 0, 0, 0]
     assert list(index.remote_domain.data) == [1, 1, 2, 3, 3]
     assert list(index.remote_address.data) == [100, 120, 111, 122, 126]
     assert index.address_to_index[200] == 0
@@ -155,7 +155,7 @@ def test_index():
                        domain_index, remote_address)
     index2.shrink()
     assert list(index.local_address.data) == list(index2.local_address.data)
-    assert list(index.flags.data) == list(index2.flags.data)
+    assert list(index.is_spiked.data) == list(index2.is_spiked.data)
     assert list(index.remote_domain.data) == list(index2.remote_domain.data)
     assert list(index.remote_address.data) == list(index2.remote_address.data)
 
