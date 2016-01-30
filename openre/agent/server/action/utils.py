@@ -17,12 +17,12 @@ def check_args(event, *args, **kwargs):
 
 @action(namespace='server')
 def debug(event):
-    logging.debug('Debug message: %s', event.data['message'])
+    logging.debug('Debug message: %s', event.data)
 
 @action(namespace='server')
 def error(event):
-    logging.debug('Error message: %s', event.data['message'])
+    logging.error('Error message: %s', event.data)
 
 @action(namespace='server')
 def warn(event):
-    logging.warn('Warn message: %s', event.data['message'])
+    logging.warn('Warn message: %s', event.data)

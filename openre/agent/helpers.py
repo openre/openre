@@ -359,7 +359,7 @@ class AgentBase(Transport):
         except Exception:
             if self.__class__.server_connect:
                 logger_level = logging.getLogger().getEffectiveLevel()
-                if logger_level <= logging.DEBUG:
+                if logger_level <= logging.DEBUG or True:
                     self.send_server('error', traceback.format_exc())
             raise
         finally:
