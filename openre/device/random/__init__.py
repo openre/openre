@@ -21,7 +21,7 @@ class Random(Device):
         if 'args' in self.config:
             args = self.config['args']
         func = getattr(numpy.random, method)
-        threshold = self.config.get('threshold', 0.1)
+        threshold = self.config.get('threshold', 0.9)
         def fill_transmitter_index(data):
             size = self.config.get('size', len(data))
             if not size is None:
@@ -29,11 +29,7 @@ class Random(Device):
             else:
                 rnd_data = func(*args)
 
-            for pos, flag in enumerate(data):
-                if rnd_data[pos] >= threshold:
-                    data[pos] = 1
-                else:
-                    data[pos] = 0
+            data[:] = (rnd_data >= threshold)
         self.fill_transmitter_index = fill_transmitter_index
 
     def tick_neurons(self, domain):
