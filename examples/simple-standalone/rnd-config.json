@@ -1,0 +1,44 @@
+{
+    "layers": [
+        {
+            "name": "random",
+            "threshold": 30000,
+            "width": 40,
+            "height": 40,
+            "connect": [
+                {
+                    "name": "V2",
+                    "radius": 1
+                }
+            ]
+        },
+        {
+            "name": "V2",
+            "threshold": 30000,
+            "width": 1,
+            "height": 1
+        }
+    ],
+    "domains": [
+        {
+            "name"        : "D1",
+            "device": {
+                "type": "OpenCL",
+                "platform": 0
+            },
+            "layers"    : [
+                {"name": "V2"}
+            ]
+        },
+        {
+            "name"        : "R",
+            "device": {
+                "type": "Random"
+            },
+            "layers"    : [
+                {"name": "random"}
+            ]
+        }
+    ]
+}
+
