@@ -1,5 +1,4 @@
 from openre import OpenRE
-print OpenRE
 from openre.agent.helpers import from_json
 import logging
 logging.basicConfig(
