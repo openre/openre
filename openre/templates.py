@@ -4,7 +4,11 @@ Jinja2 templates
 """
 import numpy as np
 from jinja2 import Environment, PackageLoader
-env = Environment(loader=PackageLoader('openre', 'templates'))
+
+def create_env(package_name='openre'):
+    env = Environment(loader=PackageLoader(package_name, 'templates'))
+    env.filters['to_c_type'] = to_c_type
+    return env
 
 def to_c_type(np_type):
     """
@@ -49,4 +53,3 @@ def to_c_type(np_type):
     if np_type == np.float64:
         return 'double'
 
-env.filters['to_c_type'] = to_c_type

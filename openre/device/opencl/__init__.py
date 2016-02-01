@@ -8,9 +8,10 @@ try:
 except ImportError:
     pass
 from openre.device.abstract import Device
-from openre.templates import env
 from openre.data_types import types, null
 from openre import synapses
+from openre.templates import create_env
+
 
 class OpenCL(Device):
     """
@@ -31,6 +32,7 @@ class OpenCL(Device):
         # create an OpenCL context
         self.ctx = cl.Context([self.device], dev_type=None)
         self.queue = cl.CommandQueue(self.ctx)
+        env = create_env('openre.device.opencl')
         code = env.get_template("device/opencl.c").render(
             types=types,
             null=null
