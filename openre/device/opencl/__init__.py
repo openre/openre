@@ -32,7 +32,7 @@ class OpenCL(Device):
         # create an OpenCL context
         self.ctx = cl.Context([self.device], dev_type=None)
         self.queue = cl.CommandQueue(self.ctx)
-        env = create_env('openre.device.opencl')
+        env = create_env()
         code = env.get_template("device/opencl.c").render(
             types=types,
             null=null

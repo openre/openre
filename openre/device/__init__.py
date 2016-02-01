@@ -4,6 +4,7 @@ from openre.device.abstract import Device
 import os
 import importlib
 import inspect
+from openre.templates import TEMPLATES_LOCATIONS
 
 base_dir = os.path.dirname(__file__)
 for module_file in sorted(
@@ -20,6 +21,7 @@ for module_file in sorted(
     module = importlib.import_module(
         'openre.device.%s' % module_name
     )
+    TEMPLATES_LOCATIONS.add('openre.device.%s' % module_name)
     for attr_name in dir(module):
         if attr_name[0:2] == '__' or attr_name in ['Device']:
             continue

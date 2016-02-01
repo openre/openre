@@ -3,10 +3,22 @@
 Jinja2 templates
 """
 import numpy as np
-from jinja2 import Environment, PackageLoader
+from jinja2 import Environment, PackageLoader, ChoiceLoader
 
-def create_env(package_name='openre'):
-    env = Environment(loader=PackageLoader(package_name, 'templates'))
+TEMPLATES_LOCATIONS = set()
+
+def create_env(package_name=None):
+    if package_name is None:
+        package_name = list(TEMPLATES_LOCATIONS)
+    if isinstance(package_name, set):
+        package_name = list(package_name)
+    if isinstance(package_name, basestring):
+        package_name = [package_name]
+    env = Environment(
+        loader=ChoiceLoader([
+            PackageLoader(name, 'templates') for name in package_name
+        ])
+    )
     env.filters['to_c_type'] = to_c_type
     return env
 
