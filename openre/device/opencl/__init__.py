@@ -33,11 +33,43 @@ class OpenCL(Device):
         self.ctx = cl.Context([self.device], dev_type=None)
         self.queue = cl.CommandQueue(self.ctx)
         env = create_env()
-        code = env.get_template("device/opencl.c").render(
+        source_file_name = config.get('source_file_name', "device/opencl.c")
+        code = env.get_template(source_file_name).render(
             types=types,
             null=null
         )
 
+        """
+        # search kernel sources by pattern device/*/templates/device/*.c
+        code = [code]
+        base_dir = os.path.join(os.path.dirname(__file__), '..')
+        for module_name in sorted(
+            [file_name for file_name in os.listdir(base_dir) \
+             if os.path.isdir('%s/%s' % (base_dir, file_name)) \
+                and file_name not in ['opencl'] \
+                and file_name[0:2] != '__'
+            ]
+        ):
+            module_dir = os.path.join(base_dir, module_name)
+            if os.path.isdir(os.path.join(module_dir, 'templates')) \
+               and os.path.isdir(os.path.join(
+                   module_dir, 'templates', 'device')):
+                templates_dir = os.path.join(module_dir, 'templates', 'device')
+                # find *.c
+                for code_file_name in sorted(
+                    [file_name for file_name in os.listdir(templates_dir) \
+                     if os.path.isfile('%s/%s' % (templates_dir, file_name)) \
+                        and file_name[-2:] == '.c'
+                    ]
+                ):
+                    code.append(
+                        env.get_template('device/%s' % code_file_name).render(
+                            types=types,
+                            null=null
+                        )
+                    )
+        code = ''.join(code)
+        """
         # compile the kernel
         self.program = cl.Program(self.ctx, code).build(
             options="-cl-denorms-are-zero " \

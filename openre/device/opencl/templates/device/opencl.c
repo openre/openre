@@ -1,5 +1,6 @@
 {% extends "device/base.c" %}
 {% block code %}
+{{ super() }}
 __kernel void test_kernel(__global unsigned int * res, __const unsigned int num) {
     int i = get_global_id(0);
     unsigned int ui = 2;

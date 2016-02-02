@@ -7,12 +7,14 @@ try:
     import pyopencl as cl
 except ImportError:
     pass
+from openre.templates import create_env
+from openre.data_types import types, null
+
+
 from openre.device.opencl import OpenCL
 import numpy
 from openre import neurons
-from openre.templates import create_env
-from openre.data_types import types, null
-from openre.vector import Vector
+from openre.vector import StandaloneVector
 
 class NumpyInput(OpenCL):
     """
@@ -20,7 +22,8 @@ class NumpyInput(OpenCL):
     """
     def __init__(self, config):
         super(NumpyInput, self).__init__(config)
-        self.data_vector = Vector()
+        self.data_vector = StandaloneVector()
+        # self.config
         env = create_env()
         code = env.get_template("device/numpy.c").render(
             types=types,
@@ -34,8 +37,6 @@ class NumpyInput(OpenCL):
                     "-cl-finite-math-only"
         )
 
-        # self.config
-
     def tick_neurons(self, domain):
         """
         Add value from self.data to neurons.level
@@ -46,6 +47,8 @@ class NumpyInput(OpenCL):
         if not length:
             return
         self.data_vector.to_device(self)
+        # only one layer with the same dims as input data
+        assert len(self.data_vector.data) == len(domain.neurons.level.data)
         self.sub_program.tick_numpy_input_data_uint8(
             self.queue, (length,), None,
             # data
@@ -77,6 +80,7 @@ def test_numpy_input_device():
                 'width': 10,
                 'height': 10,
                 'is_inhibitory': False,
+                'threshold': 128,
                 'connect': [
                     {
                         'name': 'V2',
@@ -114,16 +118,38 @@ def test_numpy_input_device():
     }
     ore = OpenRE(config)
     ore.deploy()
+    device1 = ore.domains[0].device
     device2 = ore.domains[1].device
     D1 = ore.domains[0]
     D2 = ore.domains[1]
+    arr = numpy.arange(0, 200, 2, dtype=numpy.uint8)
+    arr = StandaloneVector(numpy.reshape(arr, (10, 10)))
+    assert arr.type == numpy.uint8
+    packet = arr.bytes()
+    # somewhere here we will send packet to the input device
+    # and in input device will receive it:
+    input_vector = D1.device.data_vector
+    input_vector.from_bytes(packet)
+    assert arr.type == input_vector.type
+    assert list(input_vector.data) == list(arr.data)
+    assert input_vector.length == 100
+    assert len(input_vector) == input_vector.length
+    assert len(D1.neurons.level) == len(input_vector)
+    D1.neurons.level.data[:] = 0
+    D1.neurons.level.to_device(device1)
+    D2.neurons.level.data[:] = 0
+    D2.neurons.level.to_device(device2)
     ore.tick()
+    D1.neurons.from_device(device1)
     D2.neurons.from_device(device2)
-    # receiver neurons in D2 is spiked the same as spikes data in
-    # D1.transmitter_index
-    assert list((D1.transmitter_index.is_spiked.data + 1) & neurons.IS_SPIKED) \
-            == list(D2.neurons.flags.data[100:] & neurons.IS_SPIKED)
-    ore.tick()
-    D2.neurons.from_device(device2)
-    # at least one spike should happen
-    assert sum(list(D2.neurons.flags.data[0:100] & neurons.IS_SPIKED))
+    level_check = numpy.arange(0, 200, 2, dtype=numpy.uint8)
+    level_check[level_check >= 128] = 0
+    assert list(D1.neurons.level.data) == list(level_check)
+    flags_check = numpy.arange(0, 200, 2, dtype=numpy.uint8)
+    flags_check[flags_check < 128] = neurons.IS_TRANSMITTER
+    flags_check[flags_check >= 128] = neurons.IS_TRANSMITTER | neurons.IS_SPIKED
+    assert list(flags_check) == list(D1.neurons.flags.data)
+    # check D2 neuron level
+    # check D2 neuron level should be eq to synapses levels
+    assert 0
+

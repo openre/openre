@@ -1,6 +1,6 @@
 {% extends "device/base.c" %}
-
 {% block code %}
+
 // Add level from data to neuron.level
 __kernel void tick_numpy_input_data_uint8(
     __global unsigned char * np_data,

@@ -7,6 +7,9 @@ from openre.errors import OreError
 from openre.metadata import ExtendableMetadata
 import StringIO
 
+
+
+
 class Vector(object):
     """
     Хранит в себе одномерный массив, который можно копировать на устройство
@@ -85,6 +88,8 @@ class Vector(object):
         """
         Копирует данные из self.data в устройство
         """
+        if self.device_data_pointer is None:
+            self.create_device_data_pointer(device)
         device.upload(
             self.device_data_pointer, self.data, is_blocking=is_blocking)
         return self.device_data_pointer
@@ -130,8 +135,10 @@ class Vector(object):
         input = StringIO.StringIO()
         input.write(value)
         input.seek(0)
-        self.data = np.load(input)
+        self.data = np.ravel(np.load(input))
         self.length = len(self.data)
+        self.type = self.data.dtype.type
+        return self
 
 
 class RandomIntVector(Vector):
@@ -244,6 +251,25 @@ class MultiFieldVector(object):
         for field, _ in self.__class__.fields:
             pos += 1
             getattr(self, field).from_bytes(value[pos])
+        return self
+
+class StandaloneVector(Vector):
+    """
+    Vector without metadata
+    """
+    def __init__(self, data=None, type=None):
+        super(StandaloneVector, self).__init__(type=type)
+        if not data is None:
+            self.data = np.ravel(data)
+        if type is None and isinstance(self.data, (np.ndarray, np.generic)):
+            self.type = self.data.dtype.type
+
+    def add(self, metadata):
+        raise TypeError('This is StandaloneVector - it is should not use with' \
+                        ' metadata class instances')
+
+    def shrink(self):
+        pass
 
 
 def test_vector():
