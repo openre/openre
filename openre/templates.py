@@ -31,6 +31,8 @@ def to_c_type(np_type):
         OpenCL data types:
         https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/scalarDataTypes.html
     """
+    if isinstance(np_type, basestring):
+        np_type = getattr(np, np_type)
     # Byte (-128 to 127)
     if np_type == np.int8:
         return 'char'

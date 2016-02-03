@@ -8,8 +8,6 @@ from openre.metadata import ExtendableMetadata
 import StringIO
 
 
-
-
 class Vector(object):
     """
     Хранит в себе одномерный массив, который можно копировать на устройство
@@ -33,8 +31,8 @@ class Vector(object):
             self.type = metadata.type
         else:
             assert self.type == metadata.type
-        for m in self.metadata:
-            if isinstance(m, ExtendableMetadata):
+        for meta in self.metadata:
+            if isinstance(meta, ExtendableMetadata):
                 raise OreError('You can add only one extendable metadata and ' \
                                'it should be the last one')
         if metadata.vector:
@@ -118,6 +116,15 @@ class Vector(object):
         Заполняет весь вектор значением value
         """
         return self.data.fill(value)
+
+    def set_data(self, data):
+        """
+        Copy elements from data to self.data.
+        """
+        self.data = np.ravel(data)
+        self.length = len(self.data)
+        self.type = self.data.dtype.type
+        return self
 
     def bytes(self):
         """
@@ -265,8 +272,8 @@ class StandaloneVector(Vector):
             self.type = self.data.dtype.type
 
     def add(self, metadata):
-        raise TypeError('This is StandaloneVector - it is should not use with' \
-                        ' metadata class instances')
+        raise TypeError('This is StandaloneVector - it is should not be used' \
+                        ' with metadata class instances')
 
     def shrink(self):
         pass

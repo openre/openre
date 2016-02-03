@@ -148,3 +148,10 @@ class DomainBase(StatsMixin):
         """
         raise NotImplementedError
 
+    def register_input_layer_data(self, layer_index, data):
+        """
+        Регистрирует данные (в виде сериализованного numpy массива),
+        пришедшие из других доменов. В remote домене вызов этой функции
+        опубликует данные в сеть.
+        """
+        raise NotImplementedError

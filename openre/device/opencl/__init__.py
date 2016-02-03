@@ -79,6 +79,7 @@ class OpenCL(Device):
 
 
     def tick_neurons(self, domain):
+        self.tick_layers_input_data(domain)
         length = domain.neurons.length
         if not length:
             return
@@ -207,6 +208,27 @@ class OpenCL(Device):
             domain.receiver_index.is_spiked.device_data_pointer,
             # neurons
             domain.neurons.flags.device_data_pointer,
+        ).wait()
+
+    def tick_layers_input_data(self, domain):
+        """
+        Add value from layer.input_data_vector to neurons.level
+        """
+        raise Exception('rewrite this')
+        if self.data_vector is None:
+            return
+        length = len(self.data_vector)
+        if not length:
+            return
+        self.data_vector.to_device(self)
+        # only one layer with the same dims as input data
+        assert len(self.data_vector.data) == len(domain.neurons.level.data)
+        self.sub_program.tick_numpy_input_data_uint8(
+            self.queue, (length,), None,
+            # data
+            self.data_vector.device_data_pointer,
+            # neurons
+            domain.neurons.level.device_data_pointer
         ).wait()
 
     def create(self, data):
@@ -583,4 +605,111 @@ def test_device():
     assert d2.neurons.flags[local_address] & neurons.IS_SPIKED
     assert d2.neurons.flags[local_address] & neurons.IS_INHIBITORY
     assert d2.neurons.flags[local_address] & neurons.IS_RECEIVER
+
+
+def test_input():
+    import numpy
+    from openre import OpenRE
+    from openre.vector import StandaloneVector
+    from openre import neurons
+    # remote domains
+    config = {
+        'layers': [
+            {
+                'name': 'Input',
+                'width': 10,
+                'height': 10,
+                'is_inhibitory': False,
+                'threshold': 128,
+                'connect': [
+                    {
+                        'name': 'V2',
+                        'radius': 1,
+                        'shift': [0, 0],
+                    },
+                ],
+            },
+            {
+                'name': 'V2',
+                'width': 10,
+                'height': 10,
+            },
+        ],
+        'domains': [
+            {
+                'name'        : 'D1',
+                'device'    : {
+                    'type': 'OpenCL',
+                },
+                'layers'    : [
+                    {'name': 'Input', 'shape': [0, 0, 5, 5]},
+                    {'name': 'Input', 'shape': [0, 5, 5, 5]},
+                    {'name': 'Input', 'shape': [5, 0, 5, 5]},
+                    {'name': 'Input', 'shape': [5, 5, 5, 5]},
+                ],
+            },
+            {
+                'name'        : 'D2',
+                'device'    : {
+                    'type': 'OpenCL',
+                },
+                'layers'    : [
+                    {'name': 'V2'},
+                ],
+            },
+        ],
+    }
+    ore = OpenRE(config)
+    ore.deploy()
+    device1 = ore.domains[0].device
+    device2 = ore.domains[1].device
+    D1 = ore.domains[0]
+    D2 = ore.domains[1]
+    arr = numpy.arange(0, 200, 2, dtype=numpy.uint8)
+
+    #arr = StandaloneVector(numpy.reshape(arr, (10, 10)))
+    arr = numpy.reshape(arr, (10, 10))
+    l0 = arr[0:5, 0:5]
+    l1 = arr[0:5, 5:10]
+    l2 = arr[5:10, 0:5]
+    l3 = arr[5:10, 5:10]
+    # somewhere here we will send packet to the input device
+    # and in input device will receive it:
+    layer_data = [l0, l1, l2, l3]
+    for layer_index, data in enumerate(layer_data):
+        if layer_index % 2:
+            D1.register_input_layer_data(
+                layer_index,
+                StandaloneVector(data).bytes()
+            )
+        else:
+            D1.register_input_layer_data(
+                layer_index,
+                data
+            )
+    neurons_length = 0
+    for layer_index, data in enumerate(layer_data):
+        layer = D1.layers[layer_index]
+        assert list(layer.input_data_vector.data) == list(numpy.ravel(data))
+        assert len(layer.input_data_vector) == len(numpy.ravel(data))
+        assert layer.input_data_vector.type == data.dtype.type
+        neurons_length += len(layer.input_data_vector)
+    assert len(D1.neurons.level) == neurons_length
+    D1.neurons.level.data[:] = 0
+    D1.neurons.level.to_device(device1)
+    D2.neurons.level.data[:] = 0
+    D2.neurons.level.to_device(device2)
+    ore.tick()
+    D1.neurons.from_device(device1)
+    D2.neurons.from_device(device2)
+    level_check = numpy.arange(0, 200, 2, dtype=numpy.uint8)
+    level_check[level_check >= 128] = 0
+    assert list(D1.neurons.level.data) == list(level_check)
+    flags_check = numpy.arange(0, 200, 2, dtype=numpy.uint8)
+    flags_check[flags_check < 128] = neurons.IS_TRANSMITTER
+    flags_check[flags_check >= 128] = neurons.IS_TRANSMITTER | neurons.IS_SPIKED
+    assert list(flags_check) == list(D1.neurons.flags.data)
+    # check D2 neuron level
+    # check D2 neuron level should be eq to synapses levels
+    assert 0
 

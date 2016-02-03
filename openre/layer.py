@@ -6,8 +6,9 @@ import logging
 from openre.neurons import NeuronsMetadata, create_neuron
 from copy import deepcopy
 from openre.metadata import MultiFieldMetadata
-from openre.vector import MultiFieldVector
+from openre.vector import MultiFieldVector, StandaloneVector
 from openre.data_types import types
+import numpy as np
 
 
 class BaseLayer(object):
@@ -68,6 +69,7 @@ class BaseLayer(object):
         self.length = self.width * self.height
         self.spike_cost = self.config['spike_cost']
         self.max_vitality = self.config['max_vitality']
+        self.input_data_vector = None
 
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__, repr(self.config))
@@ -78,6 +80,12 @@ class BaseLayer(object):
     def create_neurons(self):
         """
         Создание слоя нейронов в ранее выделенном для этого векторе
+        """
+        raise NotImplementedError
+
+    def register_input_data(self, data):
+        """
+        Store data (received from the data source) in self.input_data_vector.
         """
         raise NotImplementedError
 
@@ -93,6 +101,8 @@ class Layer(BaseLayer):
         self.layer_metadata = LayersMetadata(1)
         # metadata for current layer neurons
         self.neurons_metadata = NeuronsMetadata((self.width, self.height))
+        # input layer for data from external sources
+        self.input_data_vector = StandaloneVector()
 
     def create_neurons(self):
         """
@@ -102,12 +112,29 @@ class Layer(BaseLayer):
             create_neuron(i, self.neurons_metadata, self,
                           self.layer_metadata.address)
 
+    def register_input_data(self, data):
+        """
+        Fill self.input_data_vector with received data.
+        All previous data will be discarded.
+        """
+        input_data_vector = self.input_data_vector
+        assert not input_data_vector is None
+        if isinstance(data, basestring):
+            input_data_vector.from_bytes(data)
+        else:
+            input_data_vector.set_data(data)
+
+        assert len(input_data_vector) == self.length
+
 
 class RemoteLayer(BaseLayer):
     """
     Удаленный нейрон. Хранит только конфиг.
     """
     def create_neurons(self):
+        pass
+
+    def register_input_data(self, data):
         pass
 
 class LayersVector(MultiFieldVector):

@@ -652,6 +652,13 @@ class Domain(DomainBase):
         # step 2
         self.receiver_index.is_spiked.data[receiver_neuron_index] = 1
 
+    def register_input_layer_data(self, layer_index, data):
+        """
+        Регистрирует данные (в виде сериализованного numpy массива),
+        пришедшие из других доменов.
+        """
+        self.layers[layer_index].register_input_data(data)
+
     def tick(self):
         """
         Один tick домена.
