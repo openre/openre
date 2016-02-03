@@ -356,10 +356,11 @@ __kernel void tick_receiver_index(
 // Add level from np_data with type numpy.{{ type_name }} to neuron.level
 __kernel void tick_numpy_input_data_{{ type_name }}(
     __global {{ type_name | to_c_type  }}         * np_data,
+    __const {{ types.address | to_c_type }}         n_address,
     __global {{ types.neuron_level | to_c_type }} * n_level
 ) {
     {{ types.address | to_c_type }} index = get_global_id(0);
-    n_level[index] += np_data[index];
+    n_level[index + n_address] += np_data[index];
 }
 {% endfor %}
 

@@ -8,7 +8,6 @@ from copy import deepcopy
 from openre.metadata import MultiFieldMetadata
 from openre.vector import MultiFieldVector, StandaloneVector
 from openre.data_types import types
-import numpy as np
 
 
 class BaseLayer(object):
@@ -101,8 +100,6 @@ class Layer(BaseLayer):
         self.layer_metadata = LayersMetadata(1)
         # metadata for current layer neurons
         self.neurons_metadata = NeuronsMetadata((self.width, self.height))
-        # input layer for data from external sources
-        self.input_data_vector = StandaloneVector()
 
     def create_neurons(self):
         """
@@ -117,14 +114,14 @@ class Layer(BaseLayer):
         Fill self.input_data_vector with received data.
         All previous data will be discarded.
         """
-        input_data_vector = self.input_data_vector
-        assert not input_data_vector is None
+        input_data_vector = StandaloneVector()
         if isinstance(data, basestring):
             input_data_vector.from_bytes(data)
         else:
             input_data_vector.set_data(data)
 
         assert len(input_data_vector) == self.length
+        self.input_data_vector = input_data_vector
 
 
 class RemoteLayer(BaseLayer):

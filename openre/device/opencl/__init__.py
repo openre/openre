@@ -214,22 +214,25 @@ class OpenCL(Device):
         """
         Add value from layer.input_data_vector to neurons.level
         """
-        raise Exception('rewrite this')
-        if self.data_vector is None:
-            return
-        length = len(self.data_vector)
-        if not length:
-            return
-        self.data_vector.to_device(self)
-        # only one layer with the same dims as input data
-        assert len(self.data_vector.data) == len(domain.neurons.level.data)
-        self.sub_program.tick_numpy_input_data_uint8(
-            self.queue, (length,), None,
-            # data
-            self.data_vector.device_data_pointer,
-            # neurons
-            domain.neurons.level.device_data_pointer
-        ).wait()
+        for layer in domain.layers:
+            if not layer.input_data_vector:
+                continue
+            input_data_vector = layer.input_data_vector
+            length = len(input_data_vector)
+            if not length:
+                return
+            input_data_vector.to_device(self)
+            # only one layer with the same dims as input data
+            assert length == len(layer.neurons_metadata.level)
+            self.program.tick_numpy_input_data_uint8(
+                self.queue, (length,), None,
+                # data
+                input_data_vector.device_data_pointer,
+                # layer
+                types.address(layer.neurons_metadata.address),
+                # neurons
+                domain.neurons.level.device_data_pointer
+            ).wait()
 
     def create(self, data):
         if not len(data):
@@ -702,7 +705,7 @@ def test_input():
     ore.tick()
     D1.neurons.from_device(device1)
     D2.neurons.from_device(device2)
-    level_check = numpy.arange(0, 200, 2, dtype=numpy.uint8)
+    level_check = numpy.ravel(numpy.concatenate(layer_data))
     level_check[level_check >= 128] = 0
     assert list(D1.neurons.level.data) == list(level_check)
     flags_check = numpy.arange(0, 200, 2, dtype=numpy.uint8)
