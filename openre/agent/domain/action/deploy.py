@@ -149,18 +149,22 @@ def remote_domain_factory(agent):
             self.spikes_metadata.resize(length=0)
             self.spikes_pos = -1
             # ask base domain to subscribe this domain
-            if not self.is_subscribed:
-                if time.time() > self.subscribe_next_try:
-                    self.broker.subscribe.inc_priority \
-                            .no_reply(agent.context['local_domain'].index)
-                    self.subscribe_next_try = time.time() + 1
-            else:
+            if self.subscribe():
                 local = agent.context['local_domain']
                 local.stat_inc('spikes_sent', pack_length)
                 local.stat_inc(['spikes_sent_to', self.name], pack_length)
                 # a few messages at the begining will be discarded because we
                 # asynchronously ask to subscribe
                 agent.pub.send_multipart([self.config['id'].bytes, 'S', pack])
+
+        def subscribe(self):
+            if self.is_subscribed:
+                return True
+            if time.time() > self.subscribe_next_try:
+                self.broker.subscribe.inc_priority \
+                        .no_reply(agent.context['local_domain'].index)
+                self.subscribe_next_try = time.time() + 1
+            return False
 
         def __getattr__(self, name):
             return getattr(self.transport, name)

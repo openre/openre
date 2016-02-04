@@ -80,7 +80,7 @@ def parse_args(parser, *args, **kwargs):
     args = parser.parse_args(*args, **kwargs)
     if hasattr(args, 'log_level') and args.log_level:
         logging.basicConfig(
-            format='%(levelname)s: %(message)s',
+            format='%(asctime)s %(levelname)s: %(message)s',
             level=getattr(logging, args.log_level)
         )
     return args

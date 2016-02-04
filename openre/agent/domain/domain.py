@@ -82,6 +82,7 @@ class Agent(AgentBase):
             # receive all messages in while loop
             while True:
                 was_message = False
+                max_priority = 0
                 socks = dict(self.poller.poll(poll_timeout))
                 if socks.get(self.backend) == zmq.POLLIN:
                     was_message = True
@@ -106,9 +107,12 @@ class Agent(AgentBase):
                             bytes = message[-data['bytes']:]
                         event = DomainEvent(data['action'], 'domain', data,
                                             bytes, address)
-                        event.set_priority(data.get('priority', 0))
+                        priority = data.get('priority', 0)
+                        event.set_priority(priority)
                         event.done_callback(event_done)
                         event_pool.register(event)
+                        if priority > max_priority:
+                            max_priority = priority
                         # send response immediately
                         if not data.get('wait') and not data.get('no_reply'):
                             if is_registered_action(data['action'], 'domain'):
@@ -148,7 +152,9 @@ class Agent(AgentBase):
                 # first - receive all messages, and only then process them
                 if was_message:
                     poll_timeout = 0
-                    continue
+                    # first - proccess messages with priority grater than 0
+                    if max_priority <= 0:
+                        continue
                 event_pool.tick()
                 # if no events - then wait for new events without timeout
                 poll_timeout = event_pool.poll_timeout()
