@@ -673,8 +673,8 @@ def test_input():
     #arr = StandaloneVector(numpy.reshape(arr, (10, 10)))
     arr = numpy.reshape(arr, (10, 10))
     l0 = arr[0:5, 0:5]
-    l1 = arr[0:5, 5:10]
-    l2 = arr[5:10, 0:5]
+    l1 = arr[5:10, 0:5]
+    l2 = arr[0:5, 5:10]
     l3 = arr[5:10, 5:10]
     # somewhere here we will send packet to the input device
     # and in input device will receive it:
@@ -708,11 +708,21 @@ def test_input():
     level_check = numpy.ravel(numpy.concatenate(layer_data))
     level_check[level_check >= 128] = 0
     assert list(D1.neurons.level.data) == list(level_check)
-    flags_check = numpy.arange(0, 200, 2, dtype=numpy.uint8)
+    flags_check = numpy.ravel(numpy.concatenate(layer_data))
     flags_check[flags_check < 128] = neurons.IS_TRANSMITTER
     flags_check[flags_check >= 128] = neurons.IS_TRANSMITTER | neurons.IS_SPIKED
     assert list(flags_check) == list(D1.neurons.flags.data)
     # check D2 neuron level
-    # check D2 neuron level should be eq to synapses levels
-    assert 0
+    flags2_check = numpy.ravel(numpy.concatenate(layer_data))
+    level2_check = numpy.copy(D2.synapses.level.data)
+    level2_check[flags2_check < 128] = 0
+    neurons2_level = numpy.reshape(D2.neurons.level.data[0:len(level2_check)],(10, 10))
+    l20 = neurons2_level[0:5, 0:5]
+    l21 = neurons2_level[5:10, 0:5]
+    l22 = neurons2_level[0:5, 5:10]
+    l23 = neurons2_level[5:10, 5:10]
+    layer2_data = [l20, l21, l22, l23]
+    # D2 neuron level should be eq to synapses levels
+    assert list(numpy.ravel(numpy.concatenate(layer2_data))) \
+            == list(level2_check)
 
