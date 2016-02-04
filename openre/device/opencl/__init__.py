@@ -716,7 +716,10 @@ def test_input():
     flags2_check = numpy.ravel(numpy.concatenate(layer_data))
     level2_check = numpy.copy(D2.synapses.level.data)
     level2_check[flags2_check < 128] = 0
-    neurons2_level = numpy.reshape(D2.neurons.level.data[0:len(level2_check)],(10, 10))
+    neurons2_level = numpy.reshape(
+        D2.neurons.level.data[0:len(level2_check)],
+        (10, 10)
+    )
     l20 = neurons2_level[0:5, 0:5]
     l21 = neurons2_level[5:10, 0:5]
     l22 = neurons2_level[0:5, 5:10]
