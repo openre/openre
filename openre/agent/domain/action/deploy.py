@@ -11,6 +11,7 @@ from openre.domain.packets import TransmitterVector, TransmitterMetadata, \
 from openre.domain.remote import RemoteDomainBase
 from openre.agent.helpers import RPCBrokerProxy
 import types
+import time
 
 
 def remote_domain_factory(agent):
@@ -39,6 +40,7 @@ def remote_domain_factory(agent):
                 config['id'],
             )
             self.is_subscribed = False
+            self.subscribe_next_try = 0
             self.transmitter_pos = -1
             self.transmitter_vector = TransmitterVector()
             self.transmitter_metadata = TransmitterMetadata(0)
@@ -148,8 +150,10 @@ def remote_domain_factory(agent):
             self.spikes_pos = -1
             # ask base domain to subscribe this domain
             if not self.is_subscribed:
-                self.broker.subscribe.inc_priority \
-                        .no_reply(agent.context['local_domain'].index)
+                if time.time() > self.subscribe_next_try:
+                    self.broker.subscribe.inc_priority \
+                            .no_reply(agent.context['local_domain'].index)
+                    self.subscribe_next_try = time.time() + 1
             else:
                 local = agent.context['local_domain']
                 local.stat_inc('spikes_sent', pack_length)

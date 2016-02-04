@@ -164,11 +164,23 @@ def run_tests(agent):
         time.sleep(1)
         net.run()
         time.sleep(1)
+        status1 = agent.server.domain_state(id=D1)
+        status2 = agent.server.domain_state(id=D2)
+        status3 = agent.server.domain_state(id=D3)
         net.stop()
         d1_stats = remote_domain1.stat.wait()
         d2_stats = remote_domain2.stat.wait()
         d3_stats = remote_domain3.stat.wait()
+        for status in [status1, status2, status3]:
+            try:
+                assert status['status'] == 'running'
+            except AssertionError:
+                print status
+                raise
         assert 'spikes_received' in d3_stats
+        print d1_stats
+        print d2_stats
+        print d3_stats
         assert d1_stats['spikes_sent'] + d2_stats['spikes_sent'] \
                 == d3_stats['spikes_received']
         assert d1_stats['spikes_sent_to']['D3'] \
