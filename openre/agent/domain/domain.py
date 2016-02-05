@@ -10,6 +10,7 @@ from openre.agent.helpers import AgentBase, is_registered_action
 import logging
 import importlib
 from openre.agent.event import EventPool, DomainEvent
+from openre.agent.helpers import do_action
 
 class Agent(AgentBase):
     server_connect = True
@@ -149,6 +150,8 @@ class Agent(AgentBase):
                                     self.context['local_domain'] \
                                         .register_spike_pack
                                 register_spike_pack_cache(bytes=data)
+                    elif self.id.bytes == agent_id:
+                        do_action(data_type, 'domain', self, *message[2:])
                 # first - receive all messages, and only then process them
                 if was_message:
                     poll_timeout = 0
