@@ -5,6 +5,7 @@ import os
 import importlib
 import inspect
 from openre.templates import TEMPLATES_LOCATIONS
+import logging
 
 base_dir = os.path.dirname(__file__)
 for module_file in sorted(
@@ -18,9 +19,18 @@ for module_file in sorted(
     if module_name[-1] == 'py':
         del module_name[-1]
     module_name = '.'.join(module_name)
-    module = importlib.import_module(
-        'openre.device.%s' % module_name
-    )
+    try:
+        module = importlib.import_module(
+            'openre.device.%s' % module_name
+        )
+    except ImportError as err:
+        logging.debug(
+            'Module %s not imported, so devices from this module will not be ' \
+            'available. Error: %s',
+            'openre.device.%s' % module_name,
+            str(err)
+        )
+        continue
     TEMPLATES_LOCATIONS.add('openre.device.%s' % module_name)
     for attr_name in dir(module):
         if attr_name[0:2] == '__' or attr_name in ['Device']:
