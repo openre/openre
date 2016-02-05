@@ -178,14 +178,16 @@ def run_tests(agent):
                 print status
                 raise
         assert 'spikes_received' in d3_stats
-        print d1_stats
-        print d2_stats
-        print d3_stats
-        assert d1_stats['spikes_sent'] + d2_stats['spikes_sent'] \
-                == d3_stats['spikes_received']
-        assert d1_stats['spikes_sent_to']['D3'] \
-                + d2_stats['spikes_sent_to']['D3'] \
-                == d3_stats['spikes_received']
+        try:
+            assert d1_stats['spikes_sent'] + d2_stats['spikes_sent'] \
+                    == d3_stats['spikes_received']
+            assert d1_stats['spikes_sent_to']['D3'] \
+                    + d2_stats['spikes_sent_to']['D3'] \
+                    == d3_stats['spikes_received']
+        except (AssertionError, KeyError):
+            for row in [d1_stats, d2_stats, d3_stats]:
+                print row
+            raise
     finally:
         if net:
             net.destroy()
