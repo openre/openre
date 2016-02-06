@@ -214,6 +214,7 @@ class OpenCL(Device):
         """
         Add value from layer.input_data_vector to neurons.level
         """
+        ticks = domain.ticks
         for layer in domain.layers:
             if not layer.input_data_vector:
                 continue
@@ -233,6 +234,8 @@ class OpenCL(Device):
                 # neurons
                 domain.neurons.level.device_data_pointer
             ).wait()
+            if layer.input_expire <= ticks:
+                layer.input_data_vector = None
 
     def create(self, data):
         if not len(data):
@@ -611,10 +614,15 @@ def test_device():
 
 
 def test_input():
+    for expire in range(3):
+        check_input(expire)
+
+def check_input(expire):
     import numpy
     from openre import OpenRE
     from openre.vector import StandaloneVector
     from openre import neurons
+    import logging
     # remote domains
     config = {
         'layers': [
@@ -645,10 +653,10 @@ def test_input():
                     'type': 'OpenCL',
                 },
                 'layers'    : [
-                    {'name': 'Input', 'shape': [0, 0, 5, 5]},
-                    {'name': 'Input', 'shape': [0, 5, 5, 5]},
-                    {'name': 'Input', 'shape': [5, 0, 5, 5]},
-                    {'name': 'Input', 'shape': [5, 5, 5, 5]},
+                    {'name': 'Input', 'shape': [0, 0, 5, 5], 'expire': expire},
+                    {'name': 'Input', 'shape': [0, 5, 5, 5], 'expire': expire},
+                    {'name': 'Input', 'shape': [5, 0, 5, 5], 'expire': expire},
+                    {'name': 'Input', 'shape': [5, 5, 5, 5], 'expire': expire},
                 ],
             },
             {
@@ -728,4 +736,19 @@ def test_input():
     # D2 neuron level should be eq to synapses levels
     assert list(numpy.ravel(numpy.concatenate(layer2_data))) \
             == list(level2_check)
-
+    try:
+        for pass_num in range(2, 4):
+            ore.tick()
+            D1.neurons.from_device(device1)
+            D2.neurons.from_device(device2)
+            if expire and expire >= pass_num:
+                level_check = level_check \
+                        + numpy.ravel(numpy.concatenate(layer_data))
+            level_check[level_check >= 128] = 0
+            assert list(D1.neurons.level.data) == list(level_check)
+            if not expire or expire < pass_num:
+                for layer_index, data in enumerate(layer_data):
+                    assert layer.input_data_vector is None
+    except AssertionError:
+        logging.warn('Expire #%s, pass #%s', expire, pass_num)
+        raise

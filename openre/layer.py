@@ -68,6 +68,8 @@ class BaseLayer(object):
         self.length = self.width * self.height
         self.spike_cost = self.config['spike_cost']
         self.max_vitality = self.config['max_vitality']
+        self.input_expire_per = self.config.get('expire', 0)
+        self.input_expire = 0
         self.input_data_vector = None
 
     def __repr__(self):
@@ -109,7 +111,7 @@ class Layer(BaseLayer):
             create_neuron(i, self.neurons_metadata, self,
                           self.layer_metadata.address)
 
-    def register_input_data(self, data):
+    def register_input_data(self, data, domain_ticks):
         """
         Fill self.input_data_vector with received data.
         All previous data will be discarded.
@@ -122,6 +124,7 @@ class Layer(BaseLayer):
 
         assert len(input_data_vector) == self.length
         self.input_data_vector = input_data_vector
+        self.input_expire = domain_ticks + self.input_expire_per
 
 
 class RemoteLayer(BaseLayer):
@@ -131,7 +134,7 @@ class RemoteLayer(BaseLayer):
     def create_neurons(self):
         pass
 
-    def register_input_data(self, data):
+    def register_input_data(self, data, domain_ticks):
         pass
 
 class LayersVector(MultiFieldVector):

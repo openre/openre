@@ -657,7 +657,7 @@ class Domain(DomainBase):
         Регистрирует данные (в виде сериализованного numpy массива),
         пришедшие из других доменов.
         """
-        self.layers[layer_index].register_input_data(data)
+        self.layers[layer_index].register_input_data(data, self.ticks)
 
     def tick(self):
         """
