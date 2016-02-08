@@ -5,6 +5,11 @@ Helper functions and decorators
 import cProfile
 from functools import wraps
 from copy import deepcopy
+import os
+import importlib
+import inspect
+import logging
+
 
 def profileit(func):
     @wraps(func)
@@ -402,4 +407,85 @@ def test_helpers():
     # check not changed
     assert defaults == {'first': {'all_rows': {'pass': 'dog', 'number': '1'}},
                 'second' :[1, 2], 'none':{1:2}}
+
+class Devices(object):
+    """
+    Device modules import statuses.
+    """
+    def __init__(self):
+        self.messages = []
+        self.devices = {}
+
+    def import_success(self, module_name):
+        if module_name in self.devices:
+            return
+        self.devices[module_name] = 1
+        self.messages.append({
+            'module': module_name,
+            'status': True,
+            'message': '',
+        })
+
+    def import_error(self, module_name, error_help_text):
+        if module_name in self.devices:
+            return
+        self.devices[module_name] = 1
+        self.messages.append({
+            'module': module_name,
+            'status': False,
+            'message': error_help_text,
+        })
+
+    def __str__(self):
+        res = []
+        for row in self.messages:
+            res.append(
+                '%s: %s' % (row['module'], row['status'] and 'OK' or 'FAIL'))
+            if row['message']:
+                res.append(row['message'])
+        return '\n'.join(res)
+
+DEVICES = Devices()
+
+def try_import_devices(file_name, error_help_text):
+    from openre.device.abstract import Device
+    base_dir = os.path.dirname(file_name)
+    device_group_name = os.path.basename(base_dir)
+    for module_file in sorted(
+        [file_name for file_name in os.listdir(base_dir) \
+         if ((os.path.isfile('%s/%s' % (base_dir, file_name)) \
+              and file_name[-3:] == '.py'))
+            and file_name not in ['__init__.py']]
+    ):
+        module_name = module_file.split('.')
+        if module_name[-1] == 'py':
+            del module_name[-1]
+        module_name = '.'.join(module_name)
+        try:
+            module = importlib.import_module(
+                'openre.device.%s.%s' % (device_group_name, module_name)
+            )
+            DEVICES.import_success(
+                'openre.device.%s.%s' % (device_group_name, module_name))
+        except ImportError as err:
+            logging.debug(
+                'Module %s not imported, so devices from this module will not be ' \
+                'available. Error: %s',
+                'openre.device.%s' % module_name,
+                str(err)
+            )
+            DEVICES.import_error(
+                'openre.device.%s.%s' % (device_group_name, module_name),
+                '\n'.join([str(err), error_help_text])
+            )
+            continue
+        for attr_name in dir(module):
+            if attr_name[0:2] == '__' or attr_name in ['Device']:
+                continue
+            attr = getattr(module, attr_name)
+            if not inspect.isclass(attr):
+                continue
+            if issubclass(attr, Device):
+                globals().update({attr_name: attr})
+
 
