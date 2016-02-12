@@ -26,7 +26,6 @@ for module_file in sorted(
         module = importlib.import_module(
             'openre.device.%s' % module_name
         )
-        DEVICES.import_success('openre.device.%s' % module_name)
     except ImportError as err:
         logging.debug(
             'Module %s not imported, so devices from this module will not be ' \
@@ -37,6 +36,7 @@ for module_file in sorted(
         DEVICES.import_error('openre.device.%s' % module_name, str(err))
         continue
     TEMPLATES_LOCATIONS.add('openre.device.%s' % module_name)
+    devices = []
     for attr_name in dir(module):
         if attr_name[0:2] == '__' or attr_name in ['Device']:
             continue
@@ -45,5 +45,7 @@ for module_file in sorted(
             continue
         if issubclass(attr, Device):
             globals().update({attr_name: attr})
+            devices.append(attr_name)
 
+    DEVICES.import_success('openre.device.%s' % module_name, devices)
 

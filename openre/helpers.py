@@ -9,6 +9,7 @@ import os
 import importlib
 import inspect
 import logging
+import sys
 
 
 def profileit(func):
@@ -416,7 +417,9 @@ class Devices(object):
         self.messages = []
         self.devices = {}
 
-    def import_success(self, module_name):
+    def import_success(self, module_name, devices=None):
+        if devices is None:
+            devices = []
         if module_name in self.devices:
             return
         self.devices[module_name] = 1
@@ -424,6 +427,7 @@ class Devices(object):
             'module': module_name,
             'status': True,
             'message': '',
+            'devices': list(devices),
         })
 
     def import_error(self, module_name, error_help_text):
@@ -434,20 +438,24 @@ class Devices(object):
             'module': module_name,
             'status': False,
             'message': error_help_text,
+            'devices': [],
         })
 
     def __str__(self):
         res = []
         for row in self.messages:
             res.append(
-                '%s: %s' % (row['module'], row['status'] and 'OK' or 'FAIL'))
+                '%s: %s %s' % (row['module'],
+                               row['status'] and 'OK' or 'FAIL',
+                               row['devices']))
             if row['message']:
                 res.append(row['message'])
         return '\n'.join(res)
 
 DEVICES = Devices()
 
-def try_import_devices(file_name, error_help_text):
+def try_import_devices(file_name, target_module_name, error_help_text):
+    current_module = sys.modules[target_module_name]
     from openre.device.abstract import Device
     base_dir = os.path.dirname(file_name)
     device_group_name = os.path.basename(base_dir)
@@ -465,12 +473,10 @@ def try_import_devices(file_name, error_help_text):
             module = importlib.import_module(
                 'openre.device.%s.%s' % (device_group_name, module_name)
             )
-            DEVICES.import_success(
-                'openre.device.%s.%s' % (device_group_name, module_name))
         except ImportError as err:
             logging.debug(
-                'Module %s not imported, so devices from this module will not be ' \
-                'available. Error: %s',
+                'Module %s not imported, so devices from this module will ' \
+                'not be available. Error: %s',
                 'openre.device.%s' % module_name,
                 str(err)
             )
@@ -479,6 +485,7 @@ def try_import_devices(file_name, error_help_text):
                 '\n'.join([str(err), error_help_text])
             )
             continue
+        devices = []
         for attr_name in dir(module):
             if attr_name[0:2] == '__' or attr_name in ['Device']:
                 continue
@@ -486,6 +493,9 @@ def try_import_devices(file_name, error_help_text):
             if not inspect.isclass(attr):
                 continue
             if issubclass(attr, Device):
-                globals().update({attr_name: attr})
+                setattr(current_module, attr_name, attr)
+                devices.append(attr_name)
 
+        DEVICES.import_success(
+            'openre.device.%s.%s' % (device_group_name, module_name), devices)
 

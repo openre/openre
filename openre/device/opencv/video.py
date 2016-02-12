@@ -1,24 +1,17 @@
 import cv
+from openre.device.abstract import Device
+import numpy
+from openre import neurons
+
+class Video(Device):
+    pass
 
 def test_video_device():
     from openre import OpenRE
     config = {
         'layers': [
             {
-                'name': 'R1',
-                'width': 20,
-                'height': 20,
-                'is_inhibitory': False,
-                'connect': [
-                    {
-                        'name': 'V2',
-                        'radius': 1,
-                        'shift': [0, 0],
-                    },
-                ],
-            },
-            {
-                'name': 'V2',
+                'name': 'V1',
                 'width': 20,
                 'height': 20,
             },
@@ -30,13 +23,13 @@ def test_video_device():
                     'type': 'Video',
                     'width': 10,   # [c1 c3]
                     'height': 10,  # [c2 c4]
-                    'data': [
-                        {'name': 'c1', 'shape': [0, 0, 5, 5]},
-                        {'name': 'c2', 'shape': [0, 5, 5, 5]},
-                        {'name': 'c3', 'shape': [5, 0, 5, 5]},
-                        {'name': 'c4', 'shape': [5, 5, 5, 5]},
-                    ],
                 },
+                'layers': [
+                    {'name': 'V1', 'source': 'c1', 'shape': [0, 0, 5, 5]},
+                    {'name': 'V1', 'source': 'c2', 'shape': [0, 5, 5, 5]},
+                    {'name': 'V1', 'source': 'c3', 'shape': [5, 0, 5, 5]},
+                    {'name': 'V1', 'source': 'c4', 'shape': [5, 5, 5, 5]},
+                ],
             },
             {
                 'name'        : 'D2',
@@ -44,7 +37,10 @@ def test_video_device():
                     'type': 'OpenCL',
                 },
                 'layers'    : [
-                    {'name': 'V2'},
+                    {'name': 'V1', 'source': 'c1', 'shape': [0, 0, 5, 5]},
+                    {'name': 'V1', 'source': 'c2', 'shape': [0, 5, 5, 5]},
+                    {'name': 'V1', 'source': 'c3', 'shape': [5, 0, 5, 5]},
+                    {'name': 'V1', 'source': 'c4', 'shape': [5, 5, 5, 5]},
                 ],
             },
         ],
