@@ -89,6 +89,9 @@ def test_random_device():
                 'name'        : 'D1',
                 'device'    : {
                     'type': 'Random',
+                    'method': 'randint',
+                    'args': [0, 60000],
+                    'threshold': 30000,
                 },
                 'layers'    : [
                     {'name': 'R1'},
