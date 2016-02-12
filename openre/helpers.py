@@ -457,6 +457,7 @@ DEVICES = Devices()
 def try_import_devices(file_name, target_module_name, error_help_text):
     current_module = sys.modules[target_module_name]
     from openre.device.abstract import Device
+    from openre.device.iobase import IOBase
     base_dir = os.path.dirname(file_name)
     device_group_name = os.path.basename(base_dir)
     for module_file in sorted(
@@ -492,7 +493,7 @@ def try_import_devices(file_name, target_module_name, error_help_text):
             attr = getattr(module, attr_name)
             if not inspect.isclass(attr):
                 continue
-            if issubclass(attr, Device):
+            if issubclass(attr, Device) and not attr in [IOBase]:
                 setattr(current_module, attr_name, attr)
                 devices.append(attr_name)
 

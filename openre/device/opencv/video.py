@@ -1,9 +1,9 @@
 import cv
-from openre.device.abstract import Device
+from openre.device.iobase import IOBase
 import numpy
 from openre import neurons
 
-class Video(Device):
+class Video(IOBase):
     pass
 
 def test_video_device():

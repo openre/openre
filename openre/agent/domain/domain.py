@@ -152,10 +152,10 @@ class Agent(AgentBase):
                                 register_spike_pack_cache(bytes=data)
                     elif self.id.bytes == agent_id:
                         do_action(data_type, 'domain', self, *message[2:])
-                # first - receive all messages, and only then process them
+                # receive all messages, and only then process them
                 if was_message:
                     poll_timeout = 0
-                    # first - proccess messages with priority grater than 0
+                    # we will proccess messages with priority grater than 0
                     if max_priority <= 0:
                         continue
                 event_pool.tick()
