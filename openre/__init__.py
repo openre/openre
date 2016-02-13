@@ -99,6 +99,9 @@ class OpenRE(object):
         domain_index = -1
         for domain_config in self.config['domains']:
             domain_index += 1
+            # No layers in source devices like cams, mics, etc.
+            if 'layers' not in domain_config:
+                domain_config['layers'] = []
             domain_config = deepcopy(domain_config)
             if 'device' not in domain_config:
                 domain_config['device'] = {

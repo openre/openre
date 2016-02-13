@@ -429,8 +429,7 @@ class Domain(DomainBase):
                                 self.synapse_address
                             )
                         else:
-                            # TODO: connect neurons with other
-                            #       domains
+                            # connect neurons with other domains
                             self.connect_remote_neurons(
                                 pre_domain_index,
                                 pre_layer_index,
@@ -654,8 +653,8 @@ class Domain(DomainBase):
 
     def register_input_layer_data(self, layer_index, data):
         """
-        Регистрирует данные (в виде сериализованного numpy массива),
-        пришедшие из других доменов.
+        Регистрирует данные (в виде обычного или сериализованного numpy
+        массива), пришедшие из других доменов.
         """
         self.layers[layer_index].register_input_data(data, self.ticks)
 
