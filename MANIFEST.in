@@ -1,3 +1,4 @@
 include README.md requirements.txt setup.cfg MANIFEST.in setup.py LICENSE
-recursive-include openre/templates *
+recursive-include openre *.py
+recursive-include openre/device/*/templates *
 recursive-include openre/bin *
