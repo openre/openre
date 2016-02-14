@@ -41,8 +41,8 @@ class GrayVideo(IOBase):
 
 
 def test_camera():
-    return
     from openre import OpenRE
+    import os
     config = {
         'layers': [
             {
@@ -56,9 +56,13 @@ def test_camera():
                 'name'        : 'Camera',
                 'device'    : {
                     'type': 'GrayVideo',
+                    'device': os.path.join(
+                        os.path.dirname(__file__),
+                        './templates/device/camera-test.avi'
+                    ),
                     'width': 16,
                     'height': 10,
-                    'window': 'Cam input',
+                    #'window': 'Cam input',
                 },
                 'sources': [
                     # [c1 c2]
@@ -95,4 +99,26 @@ def test_camera():
     ore.tick()
     D1.neurons.from_device(device1)
     D2.neurons.from_device(device2)
+    arr = D2.neurons.level.data
+    a1 = arr[0:40]
+    a2 = arr[40:80]
+    a3 = arr[80:120]
+    a4 = arr[120:160]
+    check = numpy.array(
+        [[  0,   0,   0,   0,   0,   0,   0,   0,  20,  20,  20,  20,  20,  20,  20,  20],
+         [  0,   0,   0,   0,   0,   0,   0,   0,  20,  20,  20,  20,  20,  20,  20,  20],
+         [  2,   2,   2,   2,   2,   2,   2,   2,  21,  21,  21,  21,  21,  21,  21,  21],
+         [  2,   2,   2,   2,   2,   2,   2,   2,  21,  21,  21,  21,  21,  21,  21,  21],
+         [ 19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19],
+         [115, 115, 115, 115, 115, 115, 115, 115, 245, 245, 245, 245, 245, 245, 245, 245],
+         [116, 116, 116, 116, 116, 116, 116, 116, 254, 254, 254, 254, 254, 254, 254, 254],
+         [116, 116, 116, 116, 116, 116, 116, 116, 254, 254, 254, 254, 254, 254, 254, 254],
+         [114, 114, 114, 114, 114, 114, 114, 114, 255, 255, 255, 255, 255, 255, 255, 255],
+         [114, 114, 114, 114, 114, 114, 114, 114, 255, 255, 255, 255, 255, 255, 255, 255],],
+        dtype=numpy.uint8
+    )
+    assert list(numpy.ravel(check[0:5, 0:8])) == list(a1)
+    assert list(numpy.ravel(check[0:5, 8:16])) == list(a2)
+    assert list(numpy.ravel(check[5:10, 0:8])) == list(a3)
+    assert list(numpy.ravel(check[5:10, 8:16])) == list(a4)
     assert sum(D2.neurons.level.data) > 0
