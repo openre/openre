@@ -34,6 +34,9 @@ class GrayVideo(IOBase):
         if config['resize']:
             gray = cv2.resize(gray, (config['width'], config['height']),
                                 interpolation=cv2.INTER_CUBIC)
+        if config.get('window'):
+            cv2.imshow(config['window'], gray)
+            cv2.waitKey(1)
         return gray
 
 
@@ -54,6 +57,7 @@ def test_camera():
                     'type': 'GrayVideo',
                     'width': 16,
                     'height': 10,
+                    'window': 'Cam input',
                 },
                 'sources': [
                     # [c1 c2]
@@ -85,12 +89,9 @@ def test_camera():
     D1 = ore.domains[0]
     D2 = ore.domains[1]
     D2.neurons.level.data[:] = 0
+    assert sum(D2.neurons.level.data) == 0
     D2.neurons.level.to_device(device2)
     ore.tick()
-
     D1.neurons.from_device(device1)
     D2.neurons.from_device(device2)
-    for layer_index, layer in enumerate(D2.layers):
-        for x in xrange(8):
-            for y in xrange(5):
-                assert layer.neurons_metadata.level[x, y] == layer_index
+    assert sum(D2.neurons.level.data) > 0
