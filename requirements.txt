@@ -5,12 +5,12 @@ argparse==1.2.1
 decorator==3.4.0
 docutils==0.12
 lockfile==0.10.2
-numpy
+numpy==1.10.4
 py==1.4.26
 pyopencl==2014.1
 pytest==2.6.4
 python-daemon==2.0.5
 pytools==2014.3.5
-pyzmq==14.7.0
+pyzmq==15.2.0
 six==1.9.0
 wsgiref==0.1.2
