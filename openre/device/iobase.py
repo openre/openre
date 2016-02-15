@@ -32,9 +32,9 @@ class IOBase(Device):
                 if other_domain == domain:
                     continue
                 for layer_index, layer in enumerate(other_domain.layers):
-                    if not layer.config.get('source'):
+                    if not layer.config.get('input'):
                         continue
-                    source_id = layer.config['source']
+                    source_id = layer.config['input']
                     # not our source
                     if source_id not in cache:
                         continue
@@ -176,10 +176,10 @@ def _test_iobase_device(device_type):
                     'type': 'OpenCL',
                 },
                 'layers'    : [
-                    {'name': 'V1', 'source': 'c1', 'shape': [0, 0, 8, 5]},
-                    {'name': 'V1', 'source': 'c2', 'shape': [8, 0, 8, 5]},
-                    {'name': 'V1', 'source': 'c3', 'shape': [0, 5, 8, 5]},
-                    {'name': 'V1', 'source': 'c4', 'shape': [8, 5, 8, 5]},
+                    {'name': 'V1', 'input': 'c1', 'shape': [0, 0, 8, 5]},
+                    {'name': 'V1', 'input': 'c2', 'shape': [8, 0, 8, 5]},
+                    {'name': 'V1', 'input': 'c3', 'shape': [0, 5, 8, 5]},
+                    {'name': 'V1', 'input': 'c4', 'shape': [8, 5, 8, 5]},
                 ],
             },
         ],
@@ -200,3 +200,5 @@ def _test_iobase_device(device_type):
         for x in xrange(8):
             for y in xrange(5):
                 assert layer.neurons_metadata.level[x, y] == layer_index
+
+

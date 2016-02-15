@@ -752,3 +752,65 @@ def check_input(expire):
     except AssertionError:
         logging.warn('Expire #%s, pass #%s', expire, pass_num)
         raise
+
+def test_output():
+    return
+    # TODO: write output layers logic to test it here
+    from openre import OpenRE
+    config = {
+        'layers': [
+            {
+                'name': 'V1',
+                'width': 16,
+                'height': 10,
+                'connect': [
+                    {
+                        'name': 'V2',
+                        'radius': 1,
+                        'shift': [0, 0],
+                    },
+                ],
+            },
+            {
+                'name': 'V2',
+                'width': 16,
+                'height': 10,
+            },
+        ],
+        'domains': [
+            {
+                'name'        : 'D1',
+                'device'    : {
+                    'type': 'OpenCL',
+                },
+                'layers'    : [
+                    {'name': 'V1'},
+                ],
+            },
+            {
+                'name'        : 'D2',
+                'device'    : {
+                    'type': 'OpenCL',
+                },
+                'layers'    : [
+                    {'name': 'V2', 'output': 'o1', 'shape': [0, 0, 8, 5]},
+                    {'name': 'V2', 'output': 'o2', 'shape': [8, 0, 8, 5]},
+                    {'name': 'V2', 'output': 'o3', 'shape': [0, 5, 8, 5]},
+                    {'name': 'V2', 'output': 'o4', 'shape': [8, 5, 8, 5]},
+                ],
+            },
+        ],
+    }
+    ore = OpenRE(config)
+    ore.deploy()
+    device1 = ore.domains[0].device
+    device2 = ore.domains[1].device
+    D1 = ore.domains[0]
+    D2 = ore.domains[1]
+    D2.neurons.level.data[:] = 0
+    D2.neurons.level.to_device(device2)
+    ore.tick()
+
+    D1.neurons.from_device(device1)
+    D2.neurons.from_device(device2)
+
