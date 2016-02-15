@@ -134,9 +134,6 @@ class RemoteLayer(BaseLayer):
     def create_neurons(self):
         pass
 
-    def register_input_data(self, data, domain_ticks):
-        pass
-
 class LayersVector(MultiFieldVector):
     """
     Вектор слоев домена

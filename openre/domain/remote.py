@@ -78,6 +78,9 @@ class RemoteDomainBase(DomainBase):
     def tick(self):
         pass
 
+    def register_input_layer_data(self, layer_index, data):
+        pass
+
 class RemoteDomainDummy(StatsMixin):
     """
     Do nothing

@@ -12,6 +12,7 @@ from openre.domain.remote import RemoteDomainBase
 from openre.agent.helpers import RPCBrokerProxy
 import types
 import time
+from openre.vector import StandaloneVector
 
 
 def remote_domain_factory(agent):
@@ -177,6 +178,13 @@ def remote_domain_factory(agent):
                 params = [self.config['id'].bytes]
                 params.extend(args)
                 agent.pub.send_multipart(params)
+
+        def register_input_layer_data(self, layer_index, data):
+            """
+            Send data over network
+            """
+            vector = StandaloneVector().set_data(data)
+            self.pub_data('NP', str(layer_index), vector.bytes())
 
         def __getattr__(self, name):
             return getattr(self.transport, name)

@@ -44,11 +44,99 @@ def run_test_proxy(agent):
     assert data == [agent.id.bytes, 'ok']
 
 
+def run_test_numpy_input(agent):
+    D1 = uuid.UUID('39684e0d-6173-4d41-8efe-add8f24dd2c1')
+    D2 = uuid.UUID('39684e0d-6173-4d41-8efe-add8f24dd2c2')
+    remote_domain1 = RPCBrokerProxy(
+        agent.server_socket, 'broker_domain_proxy',
+        D1,
+        domain_index=0
+    )
+
+    remote_domain2 = RPCBrokerProxy(
+        agent.server_socket, 'broker_domain_proxy',
+        D2,
+        domain_index=1
+    )
+
+    config = {
+        'layers': [
+            {
+                'name': 'V1',
+                'width': 16,
+                'height': 10,
+            },
+        ],
+        'domains': [
+            {
+                'name': 'D1',
+                'id': D1,
+                'device'    : {
+                    'type': 'IOBaseTesterSimple',
+                    'width': 16,
+                    'height': 10,
+                },
+                'sources': [
+                    # [c1 c2]
+                    # [c3 c4]
+                    {'name': 'c1', 'shape': [0, 0, 8, 5]},
+                    {'name': 'c2', 'shape': [8, 0, 8, 5]},
+                    {'name': 'c3', 'shape': [0, 5, 8, 5]},
+                    {'name': 'c4', 'shape': [8, 5, 8, 5]},
+                ],
+            },
+            {
+                'name': 'D2',
+                'id': D2,
+                'device'    : {
+                    'type': 'OpenCL',
+                },
+                'layers'    : [
+                    {'name': 'V1', 'input': 'c1', 'shape': [0, 0, 8, 5]},
+                    {'name': 'V1', 'input': 'c2', 'shape': [8, 0, 8, 5]},
+                    {'name': 'V1', 'input': 'c3', 'shape': [0, 5, 8, 5]},
+                    {'name': 'V1', 'input': 'c4', 'shape': [8, 5, 8, 5]},
+                ],
+            },
+        ],
+    }
+    net = None
+    try:
+        net = Net(config)
+        net.create()
+        net.upload_config()
+        net.deploy_domains()
+        net.deploy_layers()
+        net.deploy_neurons()
+        net.pre_deploy_synapses()
+        net.deploy_synapses()
+        net.post_deploy_synapses()
+        net.post_deploy()
+        time.sleep(1)
+        net.run()
+        time.sleep(1)
+        status1 = agent.server.domain_state(id=D1)
+        status2 = agent.server.domain_state(id=D2)
+        net.stop()
+        d1_stats = remote_domain1.stat.wait()
+        d2_stats = remote_domain2.stat.wait()
+        for status in [status1, status2]:
+            try:
+                assert status['status'] == 'running'
+            except AssertionError:
+                print status
+                raise
+    finally:
+        if net:
+            net.destroy()
+            net.clean()
+
 @action(namespace='client')
 def run_tests(agent):
-    run_test_proxy(agent)
-
+    #run_test_proxy(agent)
     agent.connect_server(agent.config['host'], agent.config['port'])
+    #run_test_numpy_input(agent)
+
     domain_id = uuid.UUID('39684e0d-6173-4d41-8efe-add8f24dd2c1')
     domain = RPCBrokerProxy(
         agent.server_socket, 'broker_proxy',
@@ -177,8 +265,8 @@ def run_tests(agent):
             except AssertionError:
                 print status
                 raise
-        assert 'spikes_received' in d3_stats
         try:
+            assert 'spikes_received' in d3_stats
             assert d1_stats['spikes_sent'] + d2_stats['spikes_sent'] \
                     == d3_stats['spikes_received']
             assert d1_stats['spikes_sent_to']['D3'] \
