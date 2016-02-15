@@ -234,7 +234,8 @@ class Transport(object):
         self._connection_pool = []
 
     def clean_sockets(self):
-        for socket in self._connection_pool:
+        sockets = list(self._connection_pool)
+        for socket in sockets:
             self.disconnect(socket)
 
     def socket(self, *args, **kwargs):
