@@ -153,6 +153,7 @@ def remote_domain_factory(agent):
             if self.is_subscribed:
                 local = agent.context['local_domain']
                 local.stat_inc('spikes_sent', pack_length)
+                local.stat_inc('spikes_packets_sent')
                 local.stat_inc(['spikes_sent_to', self.name], pack_length)
 
         def subscribe(self):
