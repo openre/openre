@@ -27,7 +27,7 @@ def stop_process(event, name=None, id=None):
         pid = state['pid']
     elif isinstance(pid, int):
         for stt in process_state.values():
-            if stt['pid'] == pid:
+            if stt['pid'] == pid or (stt['pid'] == 0 and stt['was_pid'] == pid):
                 state = stt
                 break
     elif name:
@@ -51,6 +51,8 @@ def stop_process(event, name=None, id=None):
         return event.failed(
             'Process state not found for name="%s", id="%s", cant kill'
             % (name, pid))
+    if state['pid'] == 0 and state['was_pid'] != 0:
+        pid = state['was_pid']
     # first run of the task
     if 'id' not in event.context:
         event.context['id'] = state['id']
@@ -72,6 +74,7 @@ def stop_process(event, name=None, id=None):
                 'status': 'kill',
             }
             event.expire(600)
+            event.timeout(1)
         except OSError:
             process_state[str(state['id'])] = {
                 'status': 'error',
@@ -79,6 +82,27 @@ def stop_process(event, name=None, id=None):
                 'pid': 0,
             }
             return
+    if state['status'] == 'exit' and state['pid'] == 0 \
+       and state['was_pid'] != 0 and pid:
+        try:
+            os.kill(pid, 0)
+            try:
+                os.kill(pid, signal.SIGTERM)
+                logging.debug('Kill hang process %s', pid)
+                event.expire(600)
+            except OSError:
+                process_state[str(state['id'])] = {
+                    'status': 'error',
+                    'message': 'Exit but not properly cleaned',
+                    'pid': 0,
+                }
+        except OSError:  #No process with locked PID
+            pass
+        process_state[str(state['id'])] = {
+            'was_pid': 0,
+        }
+        return
+
     if state['status'] in ['kill', 'clean']:
         try:
             os.kill(pid, 0)

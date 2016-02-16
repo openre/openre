@@ -34,11 +34,17 @@ class State(dict):
 
 def is_running(state):
     if state['status'] in ['exit', 'error', 'kill', 'clean']:
-        return False
-    if not state['pid']:
+        if state['pid'] == 0 and state['was_pid'] != 0:
+            pass
+        else:
+            return False
+    if not state['pid'] and not state['was_pid']:
         return False
     try:
-        os.kill(state['pid'], 0)
+        if state['pid']:
+            os.kill(state['pid'], 0)
+        elif state['was_pid']:
+            os.kill(state['was_pid'], 0)
     except OSError:  #No process with locked PID
         return False
     return True
@@ -50,6 +56,7 @@ class ProcessState(State):
             'id': None,
             'name': '',
             'pid': 0,
+            'was_pid': 0,
             'time': datetime.datetime.utcnow(),
             'message': '',
         }

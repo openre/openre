@@ -6,6 +6,9 @@ from openre.agent.decorators import action
 def process_state(event):
     _process_state = event.pool.context['server'].process_state
     if event.data and event.id:
+        if 'pid' in event.data:
+            if event.data['pid'] != 0:
+                event.data['was_pid'] = event.data['pid']
         _process_state[event.id] = event.data
         if _process_state[event.id]['id'] is None:
             _process_state[event.id] = {'id': event.id}
