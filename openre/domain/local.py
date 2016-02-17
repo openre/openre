@@ -638,11 +638,14 @@ class Domain(DomainBase):
         packet = SpikesVector()
         packet.from_bytes(bytes)
         self.stat_inc('spikes_received', packet.length)
-        # FIXME: - register spikes in device
-        for pos in range(packet.length):
-            self.register_spike(
-                packet.receiver_neuron_index.data[pos],
-            )
+        # speedup for commented version
+        #for pos in range(packet.length):
+        #    self.register_spike(
+        #        packet.receiver_neuron_index.data[pos],
+        #    )
+        self.receiver_index.is_spiked.data[packet.receiver_neuron_index.data] \
+                = 1
+
 
     def register_spike(self, receiver_neuron_index):
         """
