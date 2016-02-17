@@ -136,6 +136,11 @@ class IOBaseTesterSimple(IOBase):
         arr[5:10, 8:16] = 3
         return arr
 
+class IOBaseTesterSimpleSlow(IOBaseTesterSimple):
+    def data_to_send(self, domain):
+        import time
+        time.sleep(0.01)
+        return super(IOBaseTesterSimpleSlow, self).data_to_send(domain)
 
 def test_iobase_device_send_data():
     _test_iobase_device('IOBaseTesterLowLevel')

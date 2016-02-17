@@ -72,7 +72,7 @@ def run_test_numpy_input(agent):
                 'name': 'D1',
                 'id': D1,
                 'device'    : {
-                    'type': 'IOBaseTesterSimple',
+                    'type': 'IOBaseTesterSimpleSlow',
                     'width': 16,
                     'height': 10,
                 },
@@ -89,7 +89,7 @@ def run_test_numpy_input(agent):
                 'name': 'D2',
                 'id': D2,
                 'device'    : {
-                    'type': 'OpenCL',
+                    'type': 'IOBaseTesterSimpleCheck',
                 },
                 'layers'    : [
                     {'name': 'V1', 'input': 'c1', 'shape': [0, 0, 8, 5]},
@@ -126,6 +126,8 @@ def run_test_numpy_input(agent):
             except AssertionError:
                 print status
                 raise
+        assert 'test_io_input' in d2_stats
+        assert d2_stats['test_io_input'] > 4
     finally:
         if net:
             net.destroy()
@@ -135,7 +137,7 @@ def run_test_numpy_input(agent):
 def run_tests(agent):
     run_test_proxy(agent)
     agent.connect_server(agent.config['host'], agent.config['port'])
-    #run_test_numpy_input(agent)
+    run_test_numpy_input(agent)
 
     domain_id = uuid.UUID('39684e0d-6173-4d41-8efe-add8f24dd2c1')
     domain = RPCBrokerProxy(

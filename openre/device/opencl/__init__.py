@@ -259,6 +259,20 @@ class OpenCL(Device):
         cl.enqueue_copy(
             self.queue, data, device_data_pointer, is_blocking=is_blocking)
 
+class IOBaseTesterSimpleCheck(OpenCL):
+    def tick_layers_input_data(self, domain):
+        import numpy as np
+        for layer_index, layer in enumerate(domain.layers):
+            if not layer.input_data_vector:
+                continue
+            check = np.zeros(40, dtype=np.uint8)
+            check.fill(layer_index)
+            assert list(layer.input_data_vector.data) == list(check)
+            domain.stat_inc('test_io_input')
+        return super(IOBaseTesterSimpleCheck,
+                     self).tick_layers_input_data(domain)
+
+
 def test_device():
     if cl is None:
         # skip test

@@ -661,6 +661,7 @@ class Domain(DomainBase):
         """
         self.layers[layer_index].register_input_data(data, self.ticks)
 
+
     def tick(self):
         """
         Один tick домена.
