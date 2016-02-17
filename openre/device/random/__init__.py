@@ -5,6 +5,7 @@ Random input device
 from openre.device.abstract import Device
 import numpy
 from openre import neurons
+import time
 
 class Random(Device):
     """
@@ -59,6 +60,11 @@ class Random(Device):
 
     def download(self, data, device_data_pointer, is_blocking=True):
         pass
+
+class RandomTest(Random):
+    def tick_transmitter_index(self, domain):
+        super(RandomTest, self).tick_transmitter_index(domain)
+        time.sleep(0.01)
 
 def test_random_device():
     from openre import OpenRE

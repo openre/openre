@@ -11,6 +11,7 @@ import logging
 import importlib
 from openre.agent.event import EventPool, DomainEvent
 from openre.agent.helpers import do_action
+import time
 
 class Agent(AgentBase):
     server_connect = True
@@ -27,6 +28,8 @@ class Agent(AgentBase):
             tempfile.gettempdir(), 'openre-proxy')
         self.pub = self.socket(zmq.PUB)
         self.pub.connect("ipc://%s" % ipc_pub_file)
+        time.sleep(0.1)
+        self.pub.send_multipart(['ping', 'connection'])
 
         self.sub = self.socket(zmq.SUB)
         self.sub.setsockopt(zmq.SUBSCRIBE, self.id.bytes)

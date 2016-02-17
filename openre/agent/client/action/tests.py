@@ -133,7 +133,7 @@ def run_test_numpy_input(agent):
 
 @action(namespace='client')
 def run_tests(agent):
-    #run_test_proxy(agent)
+    run_test_proxy(agent)
     agent.connect_server(agent.config['host'], agent.config['port'])
     #run_test_numpy_input(agent)
 
@@ -207,7 +207,7 @@ def run_tests(agent):
                 'name'        : 'D1',
                 'id': D1,
                 'device'    : {
-                    'type': 'Random',
+                    'type': 'RandomTest',
                 },
                 'layers'    : [
                     {'name': 'V1', 'shape': [0, 0, 10, 10]},
@@ -218,7 +218,7 @@ def run_tests(agent):
                 'name'        : 'D2',
                 'id': D2,
                 'device'    : {
-                    'type': 'Random',
+                    'type': 'RandomTest',
                 },
                 'layers'    : [
                     {'name': 'V1', 'shape': [10, 10, 10, 10]},
@@ -251,7 +251,7 @@ def run_tests(agent):
         net.post_deploy()
         time.sleep(1)
         net.run()
-        time.sleep(1)
+        time.sleep(4)
         status1 = agent.server.domain_state(id=D1)
         status2 = agent.server.domain_state(id=D2)
         status3 = agent.server.domain_state(id=D3)
