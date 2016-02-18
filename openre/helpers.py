@@ -10,6 +10,7 @@ import importlib
 import inspect
 import logging
 import sys
+import time
 
 
 def profileit(func):
@@ -499,4 +500,30 @@ def try_import_devices(file_name, target_module_name, error_help_text):
 
         DEVICES.import_success(
             'openre.device.%s.%s' % (device_group_name, module_name), devices)
+
+# https://gist.github.com/gregburek/1441055
+def rate_limited(max_per_second):
+    """
+    Decorator that make functions not be called faster than
+    """
+    min_interval = 1.0 / float(max_per_second)
+
+    def decorate(func):
+        last_time_called = [0.0]
+
+        @wraps(func)
+        def rate_limited_function(*args, **kwargs):
+            elapsed = time.time() - last_time_called[0]
+            left_to_wait = min_interval - elapsed
+
+            if left_to_wait > 0:
+                time.sleep(left_to_wait)
+
+            ret = func(*args, **kwargs)
+            last_time_called[0] = time.time()
+            return ret
+
+        return rate_limited_function
+
+    return decorate
 

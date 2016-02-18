@@ -6,7 +6,7 @@ from types import GeneratorType
 from openre.data_types import types
 from openre.domain import create_domain_factory
 import os.path
-from openre.helpers import set_default
+from openre.helpers import set_default, rate_limited
 
 BASE_PATH = os.path.dirname(os.path.realpath(__file__))
 
@@ -79,7 +79,8 @@ class OpenRE(object):
                 'learn_threshold': 9000,
                 'spike_learn_threshold': 0,
                 'spike_forget_threshold': 0,
-            }
+            },
+            'rate_limit': 1000,
         }
         set_default(self.config, defaults)
         layer_defaults = {
@@ -116,6 +117,9 @@ class OpenRE(object):
             domain_class = domain_factory(domain_config['name'])
             domain = domain_class(domain_config, self, domain_index)
             self.domains.append(domain)
+
+        if self.config.get('rate_limit'):
+            self.tick = rate_limited(self.config['rate_limit'])(self.tick)
 
     def deploy_layers(self):
         for domain in self.domains:
