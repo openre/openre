@@ -8,12 +8,13 @@ def main():
     for dev_type in ['ACCELERATOR', 'ALL', 'CPU', 'CUSTOM', 'DEFAULT', 'GPU']:
         dev_type_str[getattr(cl.device_type, dev_type)] = dev_type
     for platform_index, platform in enumerate(cl.get_platforms()):
-        print 'ID: %s' % platform_index
-        print platform.name
-        print platform.profile
-        print platform.vendor
-        print platform.version
+        print 'platform: %s' % platform_index
+        print '%s' % platform.name
+        print '%s' % platform.profile
+        print '%s' % platform.vendor
+        print '%s' % platform.version
         for device in platform.get_devices():
+            print '    device: %s' % platform_index
             for param in ['NAME', 'BUILT_IN_KERNELS', 'MAX_COMPUTE_UNITS',
                           'GLOBAL_MEM_SIZE', 'MAX_MEM_ALLOC_SIZE', 'TYPE',
                           'MAX_WORK_GROUP_SIZE']:
@@ -21,7 +22,7 @@ def main():
                     value = device.get_info(getattr(cl.device_info, param))
                 except (cl.LogicError, AttributeError):
                     continue
-                print '\t',
+                print '   ',
                 if param == 'TYPE':
                     value = '%s (%s)' % (
                         value,
