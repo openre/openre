@@ -5,7 +5,7 @@
 import numpy as np
 from openre.errors import OreError
 from openre.metadata import ExtendableMetadata
-import StringIO
+import cPickle
 
 
 class Vector(object):
@@ -130,19 +130,13 @@ class Vector(object):
         """
         Vector to string
         """
-        output = StringIO.StringIO()
-        np.save(output, self.data)
-        output.seek(0)
-        return output.read()
+        return cPickle.dumps(self.data)
 
     def from_bytes(self, value):
         """
         String to vector
         """
-        input = StringIO.StringIO()
-        input.write(value)
-        input.seek(0)
-        self.data = np.ravel(np.load(input))
+        self.data = np.ravel(cPickle.loads(value))
         self.length = len(self.data)
         self.type = self.data.dtype.type
         return self
@@ -430,3 +424,42 @@ def test_vector():
                                     3, 0, 0,
                                    ]
     assert v2.length == 3*4
+
+def test_stanalone_vector():
+    data = np.zeros((1000), dtype=np.uint8)
+    v1 = StandaloneVector()
+    v1.set_data(data)
+    bytes_data = v1.bytes()
+    v2 = StandaloneVector()
+    v2.from_bytes(bytes_data)
+    assert v1.data.dtype.type == v1.type
+    assert v1.data.dtype.type == np.uint8
+    assert v1.type == v2.type
+    assert list(v1.data) == list(v2.data)
+    """ Speed test
+    import time
+    import pickle
+    import marshal
+    import cPickle
+    pdata = pickle.dumps(data)
+    ldata = list(data)
+    mdata = marshal.dumps(ldata)
+    print marshal.loads(mdata)[0] == 0
+    pldata = pickle.dumps(list(data))
+    cdata = cPickle.dumps(data)
+    cldata = cPickle.dumps(ldata)
+    start = time.time()
+    for _ in xrange(1000):
+        cPickle.loads(cdata)
+        #pickle.loads(pldata)
+        #marshal.loads(mdata)
+        #np.array(ldata)
+        #input = StringIO.StringIO()
+        #input.write(bytes_data)
+        #input.seek(0)
+        #check_data = np.load(input)
+        #check_data = np.ravel(check_data)
+        v2.from_bytes(bytes_data)
+    print time.time() - start
+    assert 0
+    """
