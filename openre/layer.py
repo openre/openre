@@ -6,7 +6,7 @@ import logging
 from openre.neurons import NeuronsMetadata, create_neuron
 from copy import deepcopy
 from openre.metadata import MultiFieldMetadata
-from openre.vector import MultiFieldVector, StandaloneVector
+from openre.vector import MultiFieldVector
 from openre.data_types import types
 
 
@@ -70,7 +70,8 @@ class BaseLayer(object):
         self.max_vitality = self.config['max_vitality']
         self.input_expire_per = self.config.get('expire', 0)
         self.input_expire = 0
-        self.input_data_vector = None
+        self.input_data = None
+        self.input_data_cache = None
 
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__, repr(self.config))
@@ -86,7 +87,7 @@ class BaseLayer(object):
 
     def register_input_data(self, data):
         """
-        Store data (received from the data source) in self.input_data_vector.
+        Store data (received from the data source) in self.input_data.
         """
         raise NotImplementedError
 
@@ -113,17 +114,11 @@ class Layer(BaseLayer):
 
     def register_input_data(self, data, domain_ticks):
         """
-        Fill self.input_data_vector with received data.
+        Set self.input_data to received data.
         All previous data will be discarded.
         """
-        input_data_vector = StandaloneVector()
-        if isinstance(data, basestring):
-            input_data_vector.from_bytes(data)
-        else:
-            input_data_vector.set_data(data)
-
-        assert len(input_data_vector) == self.length
-        self.input_data_vector = input_data_vector
+        self.input_data = data
+        self.input_data_cache = None
         self.input_expire = domain_ticks + self.input_expire_per
 
 

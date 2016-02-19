@@ -11,6 +11,7 @@ from openre.device.abstract import Device
 from openre.data_types import types, null
 from openre import synapses
 from openre.templates import create_env
+from openre.vector import StandaloneVector
 
 
 class OpenCL(Device):
@@ -212,13 +213,23 @@ class OpenCL(Device):
 
     def tick_layers_input_data(self, domain):
         """
-        Add value from layer.input_data_vector to neurons.level
+        Add value from layer.input_data to neurons.level
         """
         ticks = domain.ticks
         for layer in domain.layers:
-            if not layer.input_data_vector:
+            if layer.input_data is None and layer.input_data_cache is None:
                 continue
-            input_data_vector = layer.input_data_vector
+            data = layer.input_data
+            layer.input_data = None
+            input_data_vector = layer.input_data_cache
+            if input_data_vector is None:
+                input_data_vector = StandaloneVector()
+                if isinstance(data, basestring):
+                    input_data_vector.from_bytes(data)
+                else:
+                    input_data_vector.set_data(data)
+                assert len(input_data_vector) == layer.length
+                layer.input_data_cache = input_data_vector
             length = len(input_data_vector)
             if not length:
                 return
@@ -235,7 +246,8 @@ class OpenCL(Device):
                 domain.neurons.level.device_data_pointer
             ).wait()
             if layer.input_expire <= ticks:
-                layer.input_data_vector = None
+                layer.input_data = None
+                layer.input_data_cache = None
 
     def create(self, data):
         if not len(data):
@@ -263,15 +275,22 @@ class IOBaseTesterSimpleCheck(OpenCL):
     def tick_layers_input_data(self, domain):
         import numpy as np
         for layer_index, layer in enumerate(domain.layers):
-            if not layer.input_data_vector:
+            if not layer.input_data:
                 continue
+            input_data_vector = StandaloneVector()
+            data = layer.input_data
+            if isinstance(data, basestring):
+                input_data_vector.from_bytes(data)
+            else:
+                input_data_vector.set_data(data)
             check = np.zeros(40, dtype=np.uint8)
             check.fill(layer_index)
-            assert list(layer.input_data_vector.data) == list(check)
+            assert list(input_data_vector.data) == list(check)
             domain.stat_inc('test_io_input')
-        return super(IOBaseTesterSimpleCheck,
+        ret = super(IOBaseTesterSimpleCheck,
                      self).tick_layers_input_data(domain)
-
+        assert layer.input_data is None
+        return ret
 
 def test_device():
     if cl is None:
@@ -715,10 +734,14 @@ def check_input(expire):
     neurons_length = 0
     for layer_index, data in enumerate(layer_data):
         layer = D1.layers[layer_index]
-        assert list(layer.input_data_vector.data) == list(numpy.ravel(data))
-        assert len(layer.input_data_vector) == len(numpy.ravel(data))
-        assert layer.input_data_vector.type == data.dtype.type
-        neurons_length += len(layer.input_data_vector)
+        vector = StandaloneVector()
+        if isinstance(layer.input_data, basestring):
+            vector.from_bytes(layer.input_data)
+        else:
+            vector.set_data(layer.input_data)
+        assert list(vector.data) == list(numpy.ravel(data))
+        assert len(vector.data) == len(numpy.ravel(data))
+        neurons_length += len(vector.data)
     assert len(D1.neurons.level) == neurons_length
     D1.neurons.level.data[:] = 0
     D1.neurons.level.to_device(device1)
@@ -762,7 +785,8 @@ def check_input(expire):
             assert list(D1.neurons.level.data) == list(level_check)
             if not expire or expire < pass_num:
                 for layer_index, data in enumerate(layer_data):
-                    assert layer.input_data_vector is None
+                    assert layer.input_data_cache is None
+                    assert layer.input_data is None
     except AssertionError:
         logging.warn('Expire #%s, pass #%s', expire, pass_num)
         raise
