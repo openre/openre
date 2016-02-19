@@ -135,9 +135,9 @@ def run_test_numpy_input(agent):
 
 @action(namespace='client')
 def run_tests(agent):
-    #run_test_proxy(agent)
+    run_test_proxy(agent)
     agent.connect_server(agent.config['host'], agent.config['port'])
-    #run_test_numpy_input(agent)
+    run_test_numpy_input(agent)
 
     domain_id = uuid.UUID('39684e0d-6173-4d41-8efe-add8f24dd2c1')
     domain = RPCBrokerProxy(
@@ -209,7 +209,7 @@ def run_tests(agent):
                 'name'        : 'D1',
                 'id': D1,
                 'device'    : {
-                    'type': 'Random',
+                    'type': 'RandomTest',
                 },
                 'layers'    : [
                     {'name': 'V1', 'shape': [0, 0, 10, 10]},
@@ -220,7 +220,7 @@ def run_tests(agent):
                 'name'        : 'D2',
                 'id': D2,
                 'device'    : {
-                    'type': 'Random',
+                    'type': 'RandomTest',
                 },
                 'layers'    : [
                     {'name': 'V1', 'shape': [10, 10, 10, 10]},
