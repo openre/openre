@@ -34,7 +34,7 @@ setup(
         'pytest==2.6.4',
         'python-daemon==2.0.5',
         'pytools==2014.3.5',
-        'pyzmq==14.7.0',
+        'pyzmq==15.2.0',
         'six==1.9.0',
         'wsgiref==0.1.2',
     ],
