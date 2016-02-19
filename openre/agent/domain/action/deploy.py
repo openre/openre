@@ -149,8 +149,7 @@ def remote_domain_factory(agent):
             pack = self.spikes_vector.receiver_neuron_index.bytes()
             self.spikes_metadata.resize(length=0)
             self.spikes_pos = -1
-            self.pub_data('S', pack)
-            if self.is_subscribed:
+            if self.pub_data('S', pack):
                 local = agent.context['local_domain']
                 local.stat_inc('spikes_sent', pack_length)
                 local.stat_inc('spikes_packets_sent')
@@ -173,12 +172,14 @@ def remote_domain_factory(agent):
             Pub data for remote domain, where self domain is local
             """
             # ask base domain to subscribe this domain
-            if self.subscribe():
-                # a few messages at the begining will be discarded because we
-                # asynchronously ask to subscribe
-                params = [self.config['id'].bytes]
-                params.extend(args)
-                agent.pub.send_multipart(params)
+            if not self.subscribe():
+                return False
+            # a few messages at the begining will be discarded because we
+            # asynchronously ask to subscribe
+            params = [self.config['id'].bytes]
+            params.extend(args)
+            agent.pub.send_multipart(params)
+            return True
 
         def register_input_layer_data(self, layer_index, data):
             """
