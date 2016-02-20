@@ -35,7 +35,6 @@ class OutputIndex(object):
             self.pos += 1
             index = self.pos
             self.meta_address[index] = neurons_metadata_address + i
-        self.shrink()
 
     def clear(self):
         self.pos = -1
@@ -104,6 +103,7 @@ def test_output_index():
     for layer in D1.layers:
         if layer.config.get('output'):
             index.add(layer)
+    index.shrink()
     assert len(index.address.data) == 80
     assert index.data.data.dtype.type == types.output
     assert list(index.address.data) \
