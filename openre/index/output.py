@@ -100,7 +100,11 @@ def test_output_index():
     ore.deploy()
     D1 = ore.domains[0]
     assert len(index.address.data) == 0
+    num = -1
     for layer in D1.layers:
+        for i in xrange(len(layer.neurons_metadata.level)):
+            num += 1
+            layer.neurons_metadata.level[i] = num
         if layer.config.get('output'):
             index.add(layer)
     index.shrink()
@@ -108,3 +112,4 @@ def test_output_index():
     assert index.data.data.dtype.type == types.output
     assert list(index.address.data) \
             == range(40) + [80 + x for x in range(40)]
+
