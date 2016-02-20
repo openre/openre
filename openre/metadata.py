@@ -103,7 +103,7 @@ class ExtendableMetadata(Metadata):
                 raise IndexError
         else:
             if key >= self.length:
-                self.shape = (key + 1, self.shape[1])
+                self.shape = (key + 1, self.shape[1] or 1)
                 portion = self.shape[0] * self.shape[1] - self.length
                 self.length += portion
                 if self.length > self.vector.length:

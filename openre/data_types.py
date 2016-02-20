@@ -18,6 +18,7 @@ class DataTypes(object):
         self.address = np.uint32
         self.tick = np.uint32
         self.vitality = np.uint32
+        self.output = np.uint8
         self.allowed_input_data_type_names = [
             'int8', 'int16', 'int32', 'int64',
             'uint8', 'uint16', 'uint32', 'uint64']
