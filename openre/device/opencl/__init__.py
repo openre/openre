@@ -773,8 +773,9 @@ def check_input(expire):
     ore.tick()
     D1.neurons.from_device(device1)
     D2.neurons.from_device(device2)
-    level_check = numpy.ravel(numpy.concatenate(layer_data))
-    level_check[level_check >= 128] = 0
+    level_check \
+            = numpy.ravel(numpy.concatenate(layer_data)).astype(numpy.uint32)
+    level_check[level_check >= 128] -= 128
     assert list(D1.neurons.level.data) == list(level_check)
     flags_check = numpy.ravel(numpy.concatenate(layer_data))
     flags_check[flags_check < 128] = neurons.IS_TRANSMITTER
@@ -804,7 +805,7 @@ def check_input(expire):
             if expire and expire >= pass_num:
                 level_check = level_check \
                         + numpy.ravel(numpy.concatenate(layer_data))
-            level_check[level_check >= 128] = 0
+            level_check[level_check >= 128] -= 128
             assert list(D1.neurons.level.data) == list(level_check)
             if not expire or expire < pass_num:
                 for layer_index, data in enumerate(layer_data):

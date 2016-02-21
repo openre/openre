@@ -147,10 +147,8 @@ def test_output_index():
             if D1.neurons.flags[neuron_address] & neurons.IS_SPIKED:
                 assert oi.tick[index] == D1.ticks
         assert oi.tick[0] == 0
-        print D1.output_index.data.data
-    assert list(D1.output_index.data.data) == \
-       [  0,   1,   1, 171, 129, 205, 173, 186, 193, 204, 209, 217, 221, 221, 229, 239, 225, 241,
-        241, 239, 235, 235, 241, 241, 243, 243, 241, 241, 241, 244, 244, 244, 241, 241, 241, 241,
-        241, 246, 246, 246, 249, 249, 249, 249, 249, 253, 253, 253, 253, 253, 253, 253, 253, 253,
-        253, 253, 253, 253, 253, 253, 253, 253, 253, 253, 253, 253, 253, 253, 253, 253, 253, 253,
-        253, 253, 253, 253, 253, 253, 253, 253,]
+    assert oi.tick.data[1] == 255
+    assert oi.data.data[1] == 1
+    assert oi.tick.data[2] == 255
+    assert oi.data.data[2] == 129
+

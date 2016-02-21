@@ -56,9 +56,9 @@ __kernel void tick_neurons(
             n_vitality[neuron_address] -= l_spike_cost[layer_address];
             // set neuron spiked flag
             n_flags[neuron_address] |= IS_SPIKED;
-            // reset neuron.level (or decrease it by layer.threshold,
-            // I don't know which one is better)
-            n_level[neuron_address] = 0;
+            // decrease neuron's level by threshold. Its better than just zero
+            // it, becouse we can better convert numbers to spikes
+            n_level[neuron_address] -= l_threshold[layer_address];
             // store neurons last tick for better training
             n_spike_tick[neuron_address] = d_ticks;
         }
