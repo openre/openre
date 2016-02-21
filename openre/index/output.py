@@ -33,6 +33,8 @@ class OutputIndex(object):
         self.tick.add(self.meta_tick)
 
         self.pos = -1
+        self.cache = []
+
 
     def add(self, layer):
         """
@@ -42,12 +44,23 @@ class OutputIndex(object):
             return
         neurons_metadata = layer.neurons_metadata
         neurons_metadata_address = neurons_metadata.address
+        self.cache.append([
+            self.pos + 1,
+            len(layer),
+            layer.config['output']
+        ])
         for i in xrange(len(layer)):
             self.pos += 1
             index = self.pos
             self.meta_address[index] = neurons_metadata_address + i
             self.meta_data[index] = 0
             self.meta_tick[index] = 0
+
+    def data_to_send(self):
+        ret = []
+        for pos, length, source_id in self.cache:
+            ret.append([source_id, self.data.data[pos:pos + length]])
+        return ret
 
     def clear(self):
         self.pos = -1
@@ -128,6 +141,17 @@ def test_output_index():
     assert index.data.data.dtype.type == types.output
     assert list(index.address.data) \
             == range(40) + [80 + x for x in range(40)]
+    for i in xrange(len(index.data.data)):
+        index.data.data[i] = i
+    assert index.data_to_send()
+    was = {}
+    for source_id, data in index.data_to_send():
+        if source_id == 'o1':
+            assert list(data) == range(40)
+        if source_id == 'o3':
+            assert list(data) == [40 + x for x in range(40)]
+        was[source_id] = 1
+    assert was == {'o1': 1, 'o3':1}
     assert list(D1.output_index.address.data) == list(index.address.data)
     assert len(D1.output_index.address.data) == len(index.address.data)
     for _ in xrange(255):

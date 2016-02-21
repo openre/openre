@@ -77,6 +77,7 @@ class OpenCL(Device):
                     "-cl-no-signed-zeros " \
                     "-cl-finite-math-only"
         )
+        self._source_cache = None
 
 
     def tick_neurons(self, domain):
@@ -270,6 +271,33 @@ class OpenCL(Device):
             # neurons
             domain.neurons.flags.device_data_pointer
         ).wait()
+        # find all source consumers and cache it
+        if self._source_cache is None:
+            self._source_cache = {}
+            cache = self._source_cache
+            for layer in domain.layers:
+                if 'output' not in layer.config:
+                    continue
+                source_id = layer.config['output']
+                cache[source_id] = []
+            net = domain.net
+            # consumers
+            for other_domain in net.domains:
+                for layer_index, layer in enumerate(other_domain.layers):
+                    if not layer.config.get('input'):
+                        continue
+                    source_id = layer.config['input']
+                    # not our source
+                    if source_id not in cache:
+                        continue
+                    cache[source_id].append([other_domain, layer_index])
+
+        domain.neurons.flags.from_device(self)
+        output_index.data.from_device(self)
+        cache = self._source_cache
+        for source_id, data in output_index.data_to_send():
+            for consumer_domain, layer_index in cache[source_id]:
+                consumer_domain.register_input_layer_data(layer_index, data)
 
 
     def create(self, data):
@@ -816,8 +844,6 @@ def check_input(expire):
         raise
 
 def test_output():
-    return
-    # TODO: write output layers logic to test it here
     from openre import OpenRE
     config = {
         'layers': [
@@ -825,13 +851,6 @@ def test_output():
                 'name': 'V1',
                 'width': 16,
                 'height': 10,
-                'connect': [
-                    {
-                        'name': 'V2',
-                        'radius': 1,
-                        'shift': [0, 0],
-                    },
-                ],
             },
             {
                 'name': 'V2',
@@ -846,7 +865,10 @@ def test_output():
                     'type': 'OpenCL',
                 },
                 'layers'    : [
-                    {'name': 'V1'},
+                    {'name': 'V2', 'output': 'o1', 'shape': [0, 0, 8, 5]},
+                    {'name': 'V2', 'output': 'o2', 'shape': [8, 0, 8, 5]},
+                    {'name': 'V2', 'output': 'o3', 'shape': [0, 5, 8, 5]},
+                    {'name': 'V2', 'output': 'o4', 'shape': [8, 5, 8, 5]},
                 ],
             },
             {
@@ -855,10 +877,10 @@ def test_output():
                     'type': 'OpenCL',
                 },
                 'layers'    : [
-                    {'name': 'V2', 'output': 'o1', 'shape': [0, 0, 8, 5]},
-                    {'name': 'V2', 'output': 'o2', 'shape': [8, 0, 8, 5]},
-                    {'name': 'V2', 'output': 'o3', 'shape': [0, 5, 8, 5]},
-                    {'name': 'V2', 'output': 'o4', 'shape': [8, 5, 8, 5]},
+                    {'name': 'V1', 'input': 'o1', 'shape': [0, 0, 8, 5]},
+                    {'name': 'V1', 'input': 'o2', 'shape': [8, 0, 8, 5]},
+                    {'name': 'V1', 'input': 'o3', 'shape': [0, 5, 8, 5]},
+                    {'name': 'V1', 'input': 'o4', 'shape': [8, 5, 8, 5]},
                 ],
             },
         ],
@@ -869,10 +891,18 @@ def test_output():
     device2 = ore.domains[1].device
     D1 = ore.domains[0]
     D2 = ore.domains[1]
+    D1.neurons.level.data[0] = 35000
     D2.neurons.level.data[:] = 0
+    D1.neurons.level.to_device(device1)
     D2.neurons.level.to_device(device2)
     ore.tick()
-
     D1.neurons.from_device(device1)
     D2.neurons.from_device(device2)
-
+    assert D2.neurons.level.data[0] == 255
+    D1.neurons.level.data[1] = 35000
+    D1.neurons.level.to_device(device1)
+    ore.tick()
+    D1.neurons.from_device(device1)
+    D2.neurons.from_device(device2)
+    assert D2.neurons.level.data[0] == 255 + 254
+    assert D2.neurons.level.data[1] == 254
