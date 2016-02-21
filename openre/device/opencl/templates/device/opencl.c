@@ -56,8 +56,8 @@ __kernel void tick_neurons(
             n_vitality[neuron_address] -= l_spike_cost[layer_address];
             // set neuron spiked flag
             n_flags[neuron_address] |= IS_SPIKED;
-            // reset neuron.level (or decrease it by layer.threshold, I don't know
-            // which one is better)
+            // reset neuron.level (or decrease it by layer.threshold,
+            // I don't know which one is better)
             n_level[neuron_address] = 0;
             // store neurons last tick for better training
             n_spike_tick[neuron_address] = d_ticks;
@@ -361,6 +361,41 @@ __kernel void tick_numpy_input_data_{{ type_name }}(
 ) {
     {{ types.address | to_c_type }} index = get_global_id(0);
     n_level[index + n_address] += np_data[index];
+}
+{% endfor %}
+
+{% for type_name in types.allowed_output_data_type_names %}
+// Add level from np_data with type numpy.{{ type_name }} to neuron.level
+__kernel void tick_numpy_output_data_{{ type_name }}(
+    /* domain */
+    __const {{ types.tick | to_c_type }}            d_ticks,
+    /* output index */
+    __global {{ types.address | to_c_type }}        * oi_address,
+    __global {{ type_name | to_c_type  }}           * oi_data,
+    __global {{ types.tick | to_c_type }}           * oi_tick,
+    /* neuron */
+    __global {{ types.neuron_flags | to_c_type }}   * n_flags
+) {
+    {{ types.address | to_c_type }} index = get_global_id(0);
+    {{ types.address | to_c_type }} neuron_address = oi_address[index];
+    {{ types.tick | to_c_type }} diff = 0;
+    int threshold = 255; // FIXME: should be max of type_name
+    if ((n_flags[neuron_address] & IS_SPIKED)
+        && !(n_flags[neuron_address] & IS_DEAD)){
+        diff = d_ticks - oi_tick[index] - 1;
+        if(diff >= threshold){
+            oi_data[index] = 1; /* was spike - let us notice that */
+        }
+        else{
+            oi_data[index] = threshold - diff;
+        }
+        oi_tick[index] = d_ticks;
+    }
+    else{
+        if(oi_data[index]){
+            oi_data[index] -= 1; /* relax */
+        }
+    }
 }
 {% endfor %}
 

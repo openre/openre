@@ -26,6 +26,11 @@ class DataTypes(object):
         self.allowed_input_data_types = [
             getattr(np, name) for name in self.allowed_input_data_type_names]
 
+        self.allowed_output_data_type_names \
+                = self.allowed_input_data_type_names
+
+        self.allowed_output_data_types = self.allowed_input_data_types
+
     def is_allowed_input_data_type(self, np_type):
         if isinstance(np_type, basestring):
             np_type = getattr(np, np_type)

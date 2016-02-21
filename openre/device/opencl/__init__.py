@@ -80,10 +80,10 @@ class OpenCL(Device):
 
 
     def tick_neurons(self, domain):
-        self.tick_layers_input_data(domain)
         length = domain.neurons.length
         if not length:
             return
+        self.tick_layers_input_data(domain)
         self.program.tick_neurons(
             self.queue, (length,), None,
             # domain
@@ -100,6 +100,7 @@ class OpenCL(Device):
             domain.neurons.layer.device_data_pointer,
             domain.neurons.vitality.device_data_pointer
         ).wait()
+        self.tick_layers_output_data(domain)
 
     def tick_synapses(self, domain):
         length = domain.neurons.length
@@ -248,6 +249,28 @@ class OpenCL(Device):
             if layer.input_expire <= ticks:
                 layer.input_data = None
                 layer.input_data_cache = None
+
+    def tick_layers_output_data(self, domain):
+        """
+        Convert layer ticks to numpy array
+        (if layer.config.get('output') is True)
+        """
+        length = len(domain.output_index.address)
+        if not length:
+            return
+        output_index = domain.output_index
+        self.program.tick_numpy_output_data_uint8(
+            self.queue, (length,), None,
+            # domain
+            types.tick(domain.ticks),
+            # output index
+            output_index.address.device_data_pointer,
+            output_index.data.device_data_pointer,
+            output_index.tick.device_data_pointer,
+            # neurons
+            domain.neurons.flags.device_data_pointer
+        ).wait()
+
 
     def create(self, data):
         if not len(data):

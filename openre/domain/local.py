@@ -16,7 +16,8 @@ import uuid
 import random
 from copy import deepcopy
 import math
-from openre.index import SynapsesIndex, TransmitterIndex, ReceiverIndex
+from openre.index import SynapsesIndex, TransmitterIndex, ReceiverIndex, \
+        OutputIndex
 from openre import device
 import numpy as np
 from openre.domain.packets import TransmitterVector, ReceiverVector, \
@@ -115,6 +116,8 @@ class Domain(DomainBase):
 
         self.transmitter_index = TransmitterIndex()
         self.receiver_index = ReceiverIndex()
+
+        self.output_index = OutputIndex()
 
         logging.debug('Domain created (name: %s)', self.name)
 
@@ -225,6 +228,11 @@ class Domain(DomainBase):
             len(self.neurons), self.synapses.post)
         self.transmitter_index.shrink()
         self.receiver_index.shrink()
+        logging.debug('Create output indexes')
+        for layer in self.layers:
+            self.output_index.add(layer)
+        self.output_index.shrink()
+
 
     def deploy_device(self):
         """
@@ -241,6 +249,7 @@ class Domain(DomainBase):
             self.layers_stat,
             self.transmitter_index,
             self.receiver_index,
+            self.output_index,
         ]:
             vector.create_device_data_pointer(self.device)
         logging.debug('Domain deployed (name: %s)', self.name)

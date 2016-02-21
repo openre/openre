@@ -3,3 +3,4 @@
 from openre.index.synapses import SynapsesIndex
 from openre.index.transmitter import TransmitterIndex
 from openre.index.receiver import ReceiverIndex
+from openre.index.output import OutputIndex
