@@ -12,10 +12,11 @@ class GrayVideo(IOBase):
         cap = self.cap
         if config.get('window'):
             cv2.namedWindow(config['window'])
+            cv2.namedWindow(config['window']+'_OUT')
         cap.set(3, config['width'])
         cap.set(4, config['height'])
         config['cap_width'] = cap.get(3)
-        config['cap_height'] = cap.get(3)
+        config['cap_height'] = cap.get(4)
         config['resize'] = False
         if config['cap_width'] != config['width'] \
            or config['cap_height'] != config['height']:
@@ -39,6 +40,12 @@ class GrayVideo(IOBase):
             cv2.waitKey(1)
         return gray
 
+    def receive_data(self, domain, data):
+        config = self.config
+        for row in data:
+            if config.get('window'):
+                cv2.imshow(config['window'] + '_OUT', row[1])
+                cv2.waitKey(1)
 
 def test_camera():
     from openre import OpenRE

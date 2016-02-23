@@ -1,0 +1,46 @@
+{
+    "layers": [
+        {
+            "name": "V1",
+            "threshold": 255,
+            "relaxation": 0,
+            "width": 160,
+            "height": 120
+        },
+        {
+            "name": "V2",
+            "threshold": 255,
+            "relaxation": 0,
+            "width": 160,
+            "height": 120
+        }
+    ],
+    "domains": [
+        {
+            "name"        : "Eye",
+            "device": {
+                "type": "GrayVideo",
+                "window": "IN",
+                "width": 160,
+                "height": 120
+            },
+            "layers"    : [
+                {"name": "V2", "input": "VOUT"}
+            ],
+            "sources"    : [
+                {"name": "VIN" }
+            ]
+        },
+        {
+            "name"        : "D1",
+            "device": {
+                "type": "OpenCL",
+                "platform": 0
+            },
+            "layers"    : [
+                {"name": "V1", "input": "VIN", "output": "VOUT"}
+            ]
+        }
+    ]
+}
+

@@ -1,0 +1,9 @@
+# Show info about running domains (described in session.json)
+# Run ./server before this script
+# Run ./client-run before this script
+
+# Create session.json config file (config with unique ids for domains)
+# for the Net
+run='openrectl'
+SESSION_CONFIG_FILE='session.json'
+$run info --config $SESSION_CONFIG_FILE --log-level INFO

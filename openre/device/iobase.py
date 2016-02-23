@@ -4,6 +4,7 @@ Base for numpy input and output devices
 """
 from openre.device.abstract import Device
 import numpy as np
+from openre.vector import StandaloneVector
 
 class IOBase(Device):
     """
@@ -15,10 +16,17 @@ class IOBase(Device):
         self._source_cache = None
 
     def tick_neurons(self, domain):
+        self.tick_layers_output_data(domain)
+        self.tick_layers_input_data(domain)
+
+    def tick_layers_output_data(self, domain):
+        """
+        Send data from our device to other domains
+        """
         rows = self.data_to_send_ex(domain)
         if not rows:
             return
-        # find all source consumers and cache it
+        # find all data consumers by source attribute and cache it
         if self._source_cache is None:
             self._source_cache = {}
             cache = self._source_cache
@@ -45,6 +53,40 @@ class IOBase(Device):
             for consumer_domain, layer_index in cache[source_id]:
                 consumer_domain.register_input_layer_data(layer_index, data)
 
+    def tick_layers_input_data(self, domain):
+        """
+        Process data from other domains
+        """
+        ticks = domain.ticks
+        ret = []
+        for layer in domain.layers:
+            if layer.input_data is None and layer.input_data_cache is None:
+                continue
+            data = layer.input_data
+            layer.input_data = None
+            input_data_vector = layer.input_data_cache
+            if input_data_vector is None:
+                input_data_vector = StandaloneVector()
+                if isinstance(data, basestring):
+                    input_data_vector.from_bytes(data)
+                else:
+                    input_data_vector.set_data(data)
+                assert len(input_data_vector) == layer.length
+                layer.input_data_cache = input_data_vector
+            length = len(input_data_vector)
+            if not length:
+                return
+            ret.append([
+                layer.config['input'],
+                np.reshape(input_data_vector.data, (layer.height, layer.width))
+            ])
+            # only one layer with the same dims as input data
+            assert length == len(layer.neurons_metadata.level)
+            if layer.input_expire <= ticks:
+                layer.input_data = None
+                layer.input_data_cache = None
+        if ret:
+            self.receive_data(domain, ret)
 
 
     def tick_synapses(self, domain):
@@ -103,7 +145,14 @@ class IOBase(Device):
         self.config['width'] x self.config['height']
         For example: in devices like camera - here you take frame from
         previously initialized device, resize it to given width and height
-        and return.
+        if needed and return.
+        """
+        raise NotImplementedError
+
+    def receive_data(self, domain, data):
+        """
+        Here we process incoming data.
+        data: [source_id, numpy_array]
         """
         raise NotImplementedError
 

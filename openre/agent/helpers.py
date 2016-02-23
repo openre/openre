@@ -358,6 +358,9 @@ class AgentBase(Transport):
 
             self.__run_user()
         except Exception:
+            with open('/tmp/openre-domain-exception.dump', 'a') as out:
+                out.write(traceback.format_exc())
+                out.write('\n')
             if self.__class__.server_connect:
                 logger_level = logging.getLogger().getEffectiveLevel()
                 if logger_level <= logging.DEBUG or True:
