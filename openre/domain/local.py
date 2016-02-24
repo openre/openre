@@ -767,4 +767,5 @@ class Domain(DomainBase):
         # step 6
         self.device.tick_synapses(self)
 
-
+    def clean(self):
+        self.device.clean()

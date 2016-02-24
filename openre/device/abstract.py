@@ -54,3 +54,8 @@ class Device(object):
         """
         raise NotImplementedError
 
+    def clean(self):
+        """
+        Правильно завершаем работу устройства, если это необходимо
+        """
+        pass

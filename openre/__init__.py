@@ -175,18 +175,22 @@ class OpenRE(object):
         last_sec = int(time())
         tick_per_sec = 0
         logger_level = logging.getLogger().getEffectiveLevel()
-        while True:
-            if logger_level <= logging.DEBUG:
-                now = int(time())
-                if last_sec != now:
-                    last_sec = now
-                    logging.debug('Ticks/sec: %s', tick_per_sec)
-                    tick_per_sec = 0
-                tick_per_sec += 1
-            if self.is_stop:
-                self.is_stop = False
-                break
-            self.tick()
+        try:
+            while True:
+                if logger_level <= logging.DEBUG:
+                    now = int(time())
+                    if last_sec != now:
+                        last_sec = now
+                        logging.debug('Ticks/sec: %s', tick_per_sec)
+                        tick_per_sec = 0
+                    tick_per_sec += 1
+                if self.is_stop:
+                    self.is_stop = False
+                    break
+                self.tick()
+        except:
+            self.clean()
+            raise
 
     def find(self, layer_name, x, y):
         """
@@ -254,6 +258,13 @@ class OpenRE(object):
         Ставим флаг self.is_pause = True
         """
         self.is_pause = True
+
+    def clean(self):
+        """
+        Завершаем работу сети
+        """
+        for domain in self.domains:
+            domain.clean()
 
 
 def test_openre():

@@ -31,6 +31,8 @@ class GrayVideo(IOBase):
             return
         config = self.config
         ret, frame = cap.read()
+        if not ret:
+            return None
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         if config['resize']:
             gray = cv2.resize(gray, (config['width'], config['height']),
@@ -46,6 +48,12 @@ class GrayVideo(IOBase):
             if config.get('window'):
                 cv2.imshow(config['window'] + '_OUT', row[1])
                 cv2.waitKey(1)
+
+    def clean(self):
+        if self.cap:
+            self.cap.release()
+            self.cap = None
+        cv2.destroyAllWindows()
 
 def test_camera():
     from openre import OpenRE

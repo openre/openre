@@ -155,3 +155,9 @@ class DomainBase(StatsMixin):
         опубликует данные в сеть.
         """
         raise NotImplementedError
+
+    def clean(self):
+        """
+        Завершаем работу домена
+        """
+        pass
