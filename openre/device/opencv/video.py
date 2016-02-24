@@ -50,7 +50,7 @@ class GrayVideo(IOBase):
                 cv2.waitKey(1)
 
     def clean(self):
-        if self.cap:
+        if hasattr(self, 'cap') and self.cap:
             self.cap.release()
             self.cap = None
         cv2.destroyAllWindows()
