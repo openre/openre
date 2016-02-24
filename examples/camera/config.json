@@ -5,10 +5,22 @@
             "threshold": 255,
             "relaxation": 0,
             "width": 160,
-            "height": 120
+            "height": 120,
+            "connect": [
+                {
+                    "name": "V2",
+                    "radius": 1
+                }
+            ]
         },
         {
             "name": "V2",
+            "relaxation": 10,
+            "width": 160,
+            "height": 120
+        },
+        {
+            "name": "Dump",
             "threshold": 255,
             "relaxation": 0,
             "width": 160,
@@ -24,9 +36,6 @@
                 "width": 160,
                 "height": 120
             },
-            "layers"    : [
-                {"name": "V2", "input": "VOUT"}
-            ],
             "sources"    : [
                 {"name": "VIN" }
             ]
@@ -38,7 +47,27 @@
                 "platform": 0
             },
             "layers"    : [
-                {"name": "V1", "input": "VIN", "output": "VOUT"}
+                {"name": "V1", "input": "VIN"}
+            ]
+        },
+        {
+            "name"        : "D2",
+            "device": {
+                "type": "OpenCL",
+                "platform": 0
+            },
+            "layers"    : [
+                {"name": "V2", "output": "VOUT"}
+            ]
+        },
+        {
+            "name"        : "Dumper",
+            "device": {
+                "type": "GrayVideoOut",
+                "window": "Dump"
+            },
+            "layers"    : [
+                {"name": "Dump", "input": "VOUT"}
             ]
         }
     ]

@@ -147,14 +147,16 @@ class IOBase(Device):
         previously initialized device, resize it to given width and height
         if needed and return.
         """
-        raise NotImplementedError
+        # disable method
+        self.tick_layers_output_data = lambda domain: None
 
     def receive_data(self, domain, data):
         """
         Here we process incoming data.
         data: [source_id, numpy_array]
         """
-        raise NotImplementedError
+        # disable method
+        self.tick_layers_input_data = lambda domain: None
 
 
 class IOBaseTesterLowLevel(IOBase):

@@ -12,7 +12,6 @@ class GrayVideo(IOBase):
         cap = self.cap
         if config.get('window'):
             cv2.namedWindow(config['window'])
-            cv2.namedWindow(config['window']+'_OUT')
         cap.set(3, config['width'])
         cap.set(4, config['height'])
         config['cap_width'] = cap.get(3)
@@ -42,17 +41,28 @@ class GrayVideo(IOBase):
             cv2.waitKey(1)
         return gray
 
-    def receive_data(self, domain, data):
-        config = self.config
-        for row in data:
-            if config.get('window'):
-                cv2.imshow(config['window'] + '_OUT', row[1])
-                cv2.waitKey(1)
-
     def clean(self):
         if hasattr(self, 'cap') and self.cap:
             self.cap.release()
             self.cap = None
+        cv2.destroyAllWindows()
+
+
+class GrayVideoOut(IOBase):
+    def __init__(self, config):
+        super(GrayVideoOut, self).__init__(config)
+        config = self.config
+        if config.get('window'):
+            cv2.namedWindow(config['window'])
+
+    def receive_data(self, domain, data):
+        config = self.config
+        for row in data:
+            if config.get('window'):
+                cv2.imshow(config['window'], row[1])
+                cv2.waitKey(1)
+
+    def clean(self):
         cv2.destroyAllWindows()
 
 def test_camera():

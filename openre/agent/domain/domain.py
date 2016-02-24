@@ -29,7 +29,8 @@ class Agent(AgentBase):
         self.pub = self.socket(zmq.PUB)
         self.pub.connect("ipc://%s" % ipc_pub_file)
         time.sleep(0.1)
-        self.pub.send_multipart(['ping', 'connection'])
+        for _ in xrange(999):
+            self.pub.send_multipart(['ping', 'connection'])
 
         self.sub = self.socket(zmq.SUB)
         self.sub.setsockopt(zmq.SUBSCRIBE, self.id.bytes)
