@@ -5,6 +5,22 @@ Base for numpy input and output devices
 from openre.device.abstract import Device
 import numpy as np
 from openre.vector import StandaloneVector
+from copy import deepcopy
+
+
+class InputRow(object):
+    """
+    Store input data in instances of this class
+    """
+    def __init__(self, config):
+        self.config = config
+        self.input_data = None
+        self.input_data_cache = None
+        self.input_expire = 0
+        self.input_expire_per = self.config.get('expire', 0)
+        self.width = self.config['width']
+        self.height = self.config['height']
+        self.length = self.width * self.height
 
 class IOBase(Device):
     """
@@ -13,13 +29,24 @@ class IOBase(Device):
 
     def __init__(self, config):
         super(IOBase, self).__init__(config)
-        self._source_cache = None
+        self._output_cache = None
+        self.input = []
+        width = self.config.get('width', 0)
+        height = self.config.get('height', 0)
+        if 'input' in self.config:
+            if not isinstance(self.config['input'], (list, tuple)):
+                self.config['input'] = [self.config['input']]
+            for row in self.config['input']:
+                row = deepcopy(row)
+                row['width'] = row.get('width', width)
+                row['height'] = row.get('height', height)
+                self.input.append(InputRow(row))
 
     def tick_neurons(self, domain):
-        self.tick_layers_output_data(domain)
-        self.tick_layers_input_data(domain)
+        self.tick_output_data(domain)
+        self.tick_input_data(domain)
 
-    def tick_layers_output_data(self, domain):
+    def tick_output_data(self, domain):
         """
         Send data from our device to other domains
         """
@@ -27,11 +54,11 @@ class IOBase(Device):
         if not rows:
             return
         # find all data consumers by source attribute and cache it
-        if self._source_cache is None:
-            self._source_cache = {}
-            cache = self._source_cache
-            for source_config in domain.config['sources']:
-                source_id = source_config['name']
+        if self._output_cache is None:
+            self._output_cache = {}
+            cache = self._output_cache
+            for output_config in self.config['output']:
+                source_id = output_config['name']
                 cache[source_id] = []
             net = domain.net
             # consumers
@@ -47,19 +74,38 @@ class IOBase(Device):
                     if source_id not in cache:
                         continue
                     cache[source_id].append([other_domain, layer_index])
+                for input_index, input_row in enumerate(
+                    other_domain.config['device'].get('input', [])
+                ):
+                    source_id = input_row['name']
+                    # not our source
+                    if source_id not in cache:
+                        continue
+                    cache[source_id].append([other_domain, input_index])
 
-        cache = self._source_cache
+        cache = self._output_cache
         for source_id, data in rows:
             for consumer_domain, layer_index in cache[source_id]:
                 consumer_domain.register_input_layer_data(layer_index, data)
 
-    def tick_layers_input_data(self, domain):
+    def tick_input_data(self, domain):
+        """
+        Run once. If we have config for input - then we will be calling
+        self._tick_input_data, otherwise this will become dummy method
+        """
+        if self.input:
+            self.tick_input_data = self._tick_input_data
+        else:
+            self.tick_input_data = lambda domain: None
+        return self.tick_input_data(domain)
+
+    def _tick_input_data(self, domain):
         """
         Process data from other domains
         """
         ticks = domain.ticks
         ret = []
-        for layer in domain.layers:
+        for layer in self.input:
             if layer.input_data is None and layer.input_data_cache is None:
                 continue
             data = layer.input_data
@@ -77,11 +123,9 @@ class IOBase(Device):
             if not length:
                 return
             ret.append([
-                layer.config['input'],
+                layer.config['name'],
                 np.reshape(input_data_vector.data, (layer.height, layer.width))
             ])
-            # only one layer with the same dims as input data
-            assert length == len(layer.neurons_metadata.level)
             if layer.input_expire <= ticks:
                 layer.input_data = None
                 layer.input_data_cache = None
@@ -122,16 +166,15 @@ class IOBase(Device):
             ]
         """
         ret = []
-        domain_config = domain.config
         data = self.data_to_send(domain)
         if data is None:
             return
         if not len(data):
             return
-        for source_index, source_config in enumerate(domain_config['sources']):
-            source_id = source_config['name']
-            if 'shape' in source_config:
-                from_x, from_y, width, height = source_config['shape']
+        for output_config in self.config['output']:
+            source_id = output_config['name']
+            if 'shape' in output_config:
+                from_x, from_y, width, height = output_config['shape']
                 part = data[from_y:from_y+height, from_x:from_x+width]
             else:
                 part = data
@@ -148,7 +191,7 @@ class IOBase(Device):
         if needed and return.
         """
         # disable method
-        self.tick_layers_output_data = lambda domain: None
+        self.tick_output_data = lambda domain: None
 
     def receive_data(self, domain, data):
         """
@@ -156,18 +199,28 @@ class IOBase(Device):
         data: [source_id, numpy_array]
         """
         # disable method
-        self.tick_layers_input_data = lambda domain: None
+        self.tick_input_data = lambda domain: None
+
+    def register_input_data(self, input_index, data, domain_ticks):
+        """
+        Set self.input_data to received data.
+        All previous data will be discarded.
+        """
+        input_row = self.input[input_index]
+        input_row.input_data = data
+        input_row.input_data_cache = None
+        input_row.input_expire = domain_ticks + input_row.input_expire_per
+
 
 
 class IOBaseTesterLowLevel(IOBase):
     def data_to_send_ex(self, domain):
         ret = []
-        domain_config = domain.config
         length = 0
         assert self.config['width'] == 16
         assert self.config['height'] == 10
-        for source_index, source_config in enumerate(domain_config['sources']):
-            source_id = source_config['name']
+        for source_index, output_config in enumerate(self.config['output']):
+            source_id = output_config['name']
             area_length = 8*5
             data = np.zeros(area_length).astype(np.uint8)
             data.fill(source_index)
@@ -216,15 +269,15 @@ def _test_iobase_device(device_type):
                     'type': device_type,
                     'width': 16,
                     'height': 10,
+                    'output': [
+                        # [c1 c2]
+                        # [c3 c4]
+                        {'name': 'c1', 'shape': [0, 0, 8, 5]},
+                        {'name': 'c2', 'shape': [8, 0, 8, 5]},
+                        {'name': 'c3', 'shape': [0, 5, 8, 5]},
+                        {'name': 'c4', 'shape': [8, 5, 8, 5]},
+                    ],
                 },
-                'sources': [
-                    # [c1 c2]
-                    # [c3 c4]
-                    {'name': 'c1', 'shape': [0, 0, 8, 5]},
-                    {'name': 'c2', 'shape': [8, 0, 8, 5]},
-                    {'name': 'c3', 'shape': [0, 5, 8, 5]},
-                    {'name': 'c4', 'shape': [8, 5, 8, 5]},
-                ],
             },
             {
                 'name'        : 'D2',

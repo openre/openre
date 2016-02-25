@@ -88,15 +88,15 @@ def test_camera():
                     'width': 16,
                     'height': 10,
                     #'window': 'Cam input',
+                    'output': [
+                        # [c1 c2]
+                        # [c3 c4]
+                        {'name': 'c1', 'shape': [0, 0, 8, 5]},
+                        {'name': 'c2', 'shape': [8, 0, 8, 5]},
+                        {'name': 'c3', 'shape': [0, 5, 8, 5]},
+                        {'name': 'c4', 'shape': [8, 5, 8, 5]},
+                    ],
                 },
-                'sources': [
-                    # [c1 c2]
-                    # [c3 c4]
-                    {'name': 'c1', 'shape': [0, 0, 8, 5]},
-                    {'name': 'c2', 'shape': [8, 0, 8, 5]},
-                    {'name': 'c3', 'shape': [0, 5, 8, 5]},
-                    {'name': 'c4', 'shape': [8, 5, 8, 5]},
-                ],
             },
             {
                 'name'        : 'D2',

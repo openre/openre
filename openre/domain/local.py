@@ -668,7 +668,25 @@ class Domain(DomainBase):
         Регистрирует данные (в виде обычного или сериализованного numpy
         массива), пришедшие из других доменов.
         """
+        if isinstance(self.device, device.IOBase):
+            self.register_input_layer_data = self._register_input_io_data
+        else:
+            self.register_input_layer_data = self._register_input_layer_data
+        return self.register_input_layer_data(layer_index, data)
+
+    def _register_input_layer_data(self, layer_index, data):
+        """
+        Регистрирует данные (в виде обычного или сериализованного numpy
+        массива), пришедшие из других доменов.
+        """
         self.layers[layer_index].register_input_data(data, self.ticks)
+
+    def _register_input_io_data(self, layer_index, data):
+        """
+        Сохраняет данные (в виде обычного или сериализованного numpy массива)
+        для использования в IO устройствах, пришедшие из других доменов.
+        """
+        self.device.register_input_data(layer_index, data, self.ticks)
 
 
     def tick(self):

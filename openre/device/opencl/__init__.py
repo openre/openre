@@ -290,6 +290,14 @@ class OpenCL(Device):
                     if source_id not in cache:
                         continue
                     cache[source_id].append([other_domain, layer_index])
+                for input_index, input_row in enumerate(
+                    other_domain.config['device'].get('input', [])
+                ):
+                    source_id = input_row['name']
+                    # not our source
+                    if source_id not in cache:
+                        continue
+                    cache[source_id].append([other_domain, input_index])
 
         domain.neurons.flags.from_device(self)
         output_index.data.from_device(self)

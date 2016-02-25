@@ -18,13 +18,6 @@
             "relaxation": 10,
             "width": 160,
             "height": 120
-        },
-        {
-            "name": "Dump",
-            "threshold": 255,
-            "relaxation": 0,
-            "width": 160,
-            "height": 120
         }
     ],
     "domains": [
@@ -34,11 +27,11 @@
                 "type": "GrayVideo",
                 "window": "IN",
                 "width": 160,
-                "height": 120
-            },
-            "sources"    : [
-                {"name": "VIN" }
-            ]
+                "height": 120,
+                "output"    : [
+                    {"name": "VIN" }
+                ]
+            }
         },
         {
             "name"        : "D1",
@@ -64,11 +57,13 @@
             "name"        : "Dumper",
             "device": {
                 "type": "GrayVideoOut",
-                "window": "Dump"
-            },
-            "layers"    : [
-                {"name": "Dump", "input": "VOUT"}
-            ]
+                "window": "Dump",
+                "width": 160,
+                "height": 120,
+                "input"    : [
+                    {"name": "VOUT"}
+                ]
+            }
         }
     ]
 }
