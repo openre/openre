@@ -1,4 +1,7 @@
 {
+    "synapse": {
+        "max_level": 3000
+    },
     "layers": [
         {
             "name": "V1",
@@ -9,12 +12,13 @@
             "connect": [
                 {
                     "name": "V2",
-                    "radius": 1
+                    "radius": 3
                 }
             ]
         },
         {
             "name": "V2",
+            "threshold": 30000,
             "relaxation": 10,
             "width": 160,
             "height": 120
