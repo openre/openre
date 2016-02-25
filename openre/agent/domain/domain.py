@@ -28,6 +28,7 @@ class Agent(AgentBase):
             tempfile.gettempdir(), 'openre-proxy')
         self.pub = self.socket(zmq.PUB)
         self.pub.connect("ipc://%s" % ipc_pub_file)
+        self.pub.set_hwm(1000)
         time.sleep(0.1)
         for _ in xrange(999):
             self.pub.send_multipart(['ping', 'connection'])
