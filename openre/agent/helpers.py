@@ -11,6 +11,8 @@ import datetime
 import re
 from types import FunctionType
 import traceback
+from parse_func import explain
+from functools import partial
 
 ZMQ = {'context':None}
 def get_zmq_context():
@@ -67,6 +69,15 @@ def daemon_stop(pid_file=None):
     except OSError:
         logging.debug('Process not running')
 
+CAN_SERIALIZE_FUNCTIONS = [
+    min
+]
+NAME_TO_FUNCTION = {}
+for func in CAN_SERIALIZE_FUNCTIONS:
+    NAME_TO_FUNCTION[func.__name__] = func
+
+CAN_SERIALIZE_FUNCTIONS = NAME_TO_FUNCTION.values()
+
 class OREEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, (datetime.datetime, datetime.date)):
@@ -75,6 +86,30 @@ class OREEncoder(json.JSONEncoder):
             return obj.isoformat()
         elif isinstance(obj, uuid.UUID):
             return 'UUID("%s")' % str(obj)
+        elif callable(obj) and obj in CAN_SERIALIZE_FUNCTIONS:
+            return '@%s()' % str(obj.__name__)
+        elif isinstance(obj, partial) and obj.func in CAN_SERIALIZE_FUNCTIONS:
+            # no arguments
+            if obj.args is None and obj.keywords is None:
+                return '@%s()' % (obj.func.__name__, )
+            args = obj.args
+            kwargs = obj.keywords
+            # args
+            if args:
+                if not isinstance(args, (list, tuple)):
+                    args = [args]
+                args = ', '.join([to_json(x) for x in args])
+            # args and kwargs
+            if kwargs:
+                kwargs = ['%s=%s' % (key, to_json(value))
+                          for key, value in kwargs.items()]
+                kwargs = ', '.join(kwargs)
+            if all([args, kwargs]):
+                return '@%s(%s, %s)' % (obj.func.__name__, args, kwargs)
+            elif any([args, kwargs]):
+                return '@%s(%s)' % (obj.func.__name__, args or kwargs)
+            else:
+                return '@%s()' % str(obj.func.__name__)
         return json.JSONEncoder.default(self, obj)
 
 
@@ -115,6 +150,22 @@ class OREDecoder(json.JSONDecoder):
         uuid_result = OREDecoder.uuid_regex.match(obj)
         if uuid_result:
             return uuid.UUID(uuid_result.group(1))
+        # restore function
+        if obj[0] == '@':
+            try:
+                exp = explain(obj[1:])
+                if exp:
+                    exp = exp[0]
+                func = NAME_TO_FUNCTION[exp.func]
+                args = exp.args or []
+                kwargs = exp.keywords or {}
+                #args = [from_json(x) for x in args]
+                kwargs = dict([
+                    (key, value) for key, value in kwargs.items()
+                ])
+                return partial(func, *args, **kwargs)
+            except (SyntaxError, TypeError, KeyError):
+                pass
         return obj
 
 
@@ -725,3 +776,15 @@ def pretty_func_str(__name, *args, **kwargs):
     pretty_args = ', '.join(pretty_args)
     return '%s(%s)' % (__name, pretty_args)
 
+
+def test_json():
+    dump = to_json({'shift': [
+        partial(min, 0, 1, 2, test='kw argument test', num = 1)
+    ]})
+    assert dump == '{"shift": ["@min(0, 1, 2, test=\\"kw argument test\\", num=1)"]}'
+    recover = from_json(dump)
+    func = recover['shift'][0]
+    assert isinstance(func, partial)
+    assert func.func == min
+    assert func.args == (0, 1, 2)
+    assert func.keywords == {'test': 'kw argument test', 'num': 1}

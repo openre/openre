@@ -12,7 +12,8 @@
             "connect": [
                 {
                     "name": "V2",
-                    "radius": 3
+                    "radius": 3,
+                    "shift": [-10, -10]
                 }
             ]
         },
