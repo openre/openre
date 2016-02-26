@@ -75,7 +75,7 @@ def remote_domain_factory(agent):
             self.transmitter_metadata.post_layer_index[pos] = post_layer_index
             self.transmitter_metadata.post_x[pos] = post_x
             self.transmitter_metadata.post_y[pos] = post_y
-            if self.transmitter_pos >= 999:
+            if self.transmitter_pos >= 99999:
                 self.send_synapse_pack()
 #            return self.__getattr__('send_synapse').no_reply(
 #                pre_domain_index, pre_layer_index, pre_neuron_address,
@@ -109,7 +109,7 @@ def remote_domain_factory(agent):
                     = remote_pre_neuron_address
             self.receiver_metadata.remote_pre_neuron_receiver_index[pos] \
                     = remote_pre_neuron_receiver_index
-            if self.receiver_pos >= 999:
+            if self.receiver_pos >= 99999:
                 self.send_receiver_index_pack()
 #            return self.__getattr__('send_receiver_index').no_reply(
 #                post_domain_index, pre_neuron_address,
