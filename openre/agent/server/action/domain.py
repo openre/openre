@@ -38,7 +38,7 @@ def domain_start(
     return True
 
 @start_process('domain')
-def do_domain_start(event, proccess_id,
+def do_domain_start(event, process_id,
                     server_host=None, server_port=None,
                     name=None
                    ):
@@ -50,7 +50,7 @@ def do_domain_start(event, proccess_id,
         'start',
         '--server-host', server_host or server.config['host'],
         '--server-port', server_port or server.config['port'],
-        '--id', proccess_id,
+        '--id', process_id,
         '--pid', '-',
     ]
     if name:
@@ -61,6 +61,21 @@ def do_domain_start(event, proccess_id,
         params.extend([
             '--log-level', server.config['log_level'],
         ])
+        # FIXME: store logs in the proper path
+        base_dir = os.getcwd()
+        if not os.access(base_dir, os.W_OK):
+            import tempfile
+            base_dir = tempfile.gettempdir()
+        log_file_name = os.path.join(
+                base_dir, 'openre.domain.%s.log' % (name or str(process_id))
+        )
+        log_file = open(log_file_name, 'a')
+        log_file.write(
+            'Server starting domain %s, %s\n' % (name, str(process_id)))
+        log_file.flush()
+        return subprocess.Popen(
+            params, stdout=log_file, stderr=log_file, close_fds=True
+        )
     return subprocess.Popen(params)
 
 @action(namespace='server')

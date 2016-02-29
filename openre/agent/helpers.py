@@ -13,8 +13,18 @@ from types import FunctionType
 import traceback
 from parse_func import explain
 from functools import partial
+import random
 
 ZMQ = {'context':None}
+CAN_SERIALIZE_FUNCTIONS = [
+    min, random.randint
+]
+NAME_TO_FUNCTION = {}
+for func in CAN_SERIALIZE_FUNCTIONS:
+    NAME_TO_FUNCTION[func.__name__] = func
+
+CAN_SERIALIZE_FUNCTIONS = NAME_TO_FUNCTION.values()
+
 def get_zmq_context():
     """
     Создает один глобальный контекст для zmq.
@@ -68,15 +78,6 @@ def daemon_stop(pid_file=None):
         logging.debug('Pid file not found')
     except OSError:
         logging.debug('Process not running')
-
-CAN_SERIALIZE_FUNCTIONS = [
-    min
-]
-NAME_TO_FUNCTION = {}
-for func in CAN_SERIALIZE_FUNCTIONS:
-    NAME_TO_FUNCTION[func.__name__] = func
-
-CAN_SERIALIZE_FUNCTIONS = NAME_TO_FUNCTION.values()
 
 class OREEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -151,7 +152,7 @@ class OREDecoder(json.JSONDecoder):
         if uuid_result:
             return uuid.UUID(uuid_result.group(1))
         # restore function
-        if obj[0] == '@':
+        if obj and obj[0] == '@':
             try:
                 exp = explain(obj[1:])
                 if exp:
@@ -788,3 +789,4 @@ def test_json():
     assert func.func == min
     assert func.args == (0, 1, 2)
     assert func.keywords == {'test': 'kw argument test', 'num': 1}
+    assert from_json('{"empty_string":""}') == {"empty_string":""}

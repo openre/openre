@@ -335,13 +335,13 @@ class Domain(DomainBase):
                 shift = connect.get('shift', [0, 0])
                 if callable(shift[0]):
                     def shift_x():
-                        return shift[0](self.random)
+                        return shift[0]()
                 else:
                     def shift_x():
                         return shift[0]
                 if callable(shift[1]):
                     def shift_y():
-                        return shift[1](self.random)
+                        return shift[1]()
                 else:
                     def shift_y():
                         return shift[1]

@@ -29,7 +29,7 @@ def proxy_start(event, wait=True, exit_on_error=False, id=None,
     )
 
 @start_process('proxy')
-def do_proxy_start(event, proccess_id,
+def do_proxy_start(event, process_id,
                    host=None, port=None,
                    server_host=None, server_port=None,
                    pid=None
@@ -47,7 +47,7 @@ def do_proxy_start(event, proccess_id,
         '--port', port or server.config['proxy_port'],
         '--server-host', server_host or server.config['host'],
         '--server-port', server_port or server.config['port'],
-        '--id', proccess_id,
+        '--id', process_id,
         '--pid', pid,
     ])
 
