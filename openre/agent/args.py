@@ -57,6 +57,15 @@ def mixin_log_level(parser):
              ' DEBUG, NOTSET (default: none)'
     )
 
+    parser.add_argument(
+        '--log-file',
+        metavar='',
+        dest='log_file',
+        default=None,
+        help='log file name (default: none)',
+    )
+
+
 def mixin_server_endpoint(parser):
     """
     Add --server-host and --server-port arguments in parser
@@ -79,10 +88,17 @@ def mixin_server_endpoint(parser):
 def parse_args(parser, *args, **kwargs):
     args = parser.parse_args(*args, **kwargs)
     if hasattr(args, 'log_level') and args.log_level:
-        logging.basicConfig(
-            format='%(asctime)s %(levelname)s: %(message)s',
-            level=getattr(logging, args.log_level)
-        )
+        if hasattr(args, 'log_file') and args.log_file:
+            logging.basicConfig(
+                filename=args.log_file,
+                format='%(asctime)s %(levelname)s: %(message)s',
+                level=getattr(logging, args.log_level)
+            )
+        else:
+            logging.basicConfig(
+                format='%(asctime)s %(levelname)s: %(message)s',
+                level=getattr(logging, args.log_level)
+            )
     return args
 
 

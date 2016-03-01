@@ -363,12 +363,6 @@ class AgentBase(Transport):
                 'pid': os.getpid(),
                 'name': self.config['type'],
             })
-        if 'log_level' in self.config and self.config['log_level']:
-            logging.basicConfig(
-                format='%(levelname)s:%(message)s',
-                level=getattr(logging, self.config['log_level'])
-            )
-
 
         try:
             self.init()

@@ -41,6 +41,18 @@ class Agent(AgentBase):
         self.poller.register(self.sub, zmq.POLLIN)
 
         self.context = {}
+        if self.config.get('log_level') == 'DEBUG' \
+           and self.config.get('log_file'):
+            root = logging.getLogger()
+            if root.handlers:
+                for handler in root.handlers:
+                    root.removeHandler(handler)
+            logging.basicConfig(
+                filename=self.config['log_file'],
+                format='%(asctime)s %(levelname)s: %(message)s',
+                level=getattr(logging, self.config['log_level'])
+            )
+
 
     def run(self):
         def event_done(event):
@@ -93,7 +105,12 @@ class Agent(AgentBase):
                 if socks.get(self.backend) == zmq.POLLIN:
                     was_message = True
                     message = self.backend.recv_multipart()
-                    logging.debug("in: %s", message)
+                    if len(message) > 4:
+                        logging.debug("in binary: %s", message[:4])
+                    else:
+                        logging.debug("in: %s", message)
+
+
                     data = self.from_json(message[3])
                     address = [message[0], '', message[2]]
                     if not isinstance(data, dict) or 'action' not in data:
@@ -142,7 +159,6 @@ class Agent(AgentBase):
                 if socks.get(self.sub) == zmq.POLLIN:
                     was_message = True
                     message = self.sub.recv_multipart()
-                    logging.debug("sub in: %s", message)
                     agent_id = message[0]
                     data_type = message[1]
                     data = message[2]
