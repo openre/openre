@@ -35,7 +35,8 @@ __kernel void tick_neurons(
     __global {{ types.neuron_flags | to_c_type }}   * n_flags,
     __global {{ types.tick | to_c_type }}           * n_spike_tick,
     __global {{ types.medium_address | to_c_type }} * n_layer,
-    __global {{ types.vitality | to_c_type }}       * n_vitality
+    __global {{ types.vitality | to_c_type }}       * n_vitality,
+    __global {{ types.threshold | to_c_type }}       * n_threshold
 ) {
     {{ types.address | to_c_type }} neuron_address = get_global_id(0);
     // get layer
@@ -51,15 +52,18 @@ __kernel void tick_neurons(
         return;
     }
     // is spiked
-    if(n_level[neuron_address] >= l_threshold[layer_address]){
+    if(n_level[neuron_address] >= n_threshold[neuron_address]){
         if(n_vitality[neuron_address] > l_spike_cost[layer_address]){
             n_vitality[neuron_address] -= l_spike_cost[layer_address];
             // set neuron spiked flag
             n_flags[neuron_address] |= IS_SPIKED;
             // decrease neuron's level by threshold. Its better than just zero
             // it, becouse we can better convert numbers to spikes
-            n_level[neuron_address] -= l_threshold[layer_address];
+            n_level[neuron_address] -= n_threshold[neuron_address];
             // store neurons last tick for better training
+            if (d_ticks - n_spike_tick[neuron_address] < 10){
+                n_threshold[neuron_address] += 1;
+            }
             n_spike_tick[neuron_address] = d_ticks;
         }
         else{
@@ -75,6 +79,10 @@ __kernel void tick_neurons(
     }
     if(n_level[neuron_address] < 0){
         n_level[neuron_address] = 0;
+    }
+    if(d_ticks - n_spike_tick[neuron_address] > 100000
+       && n_threshold[neuron_address] > l_threshold[layer_address]){
+        n_threshold[neuron_address] -= 1;
     }
     if(n_vitality[neuron_address] < l_max_vitality[layer_address]){
         n_vitality[neuron_address] += 1;

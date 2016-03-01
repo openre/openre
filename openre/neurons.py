@@ -23,6 +23,7 @@ def create_neuron(address, neurons_metadata, layer, layer_index):
         neurons_metadata.flags[address] |= IS_INHIBITORY
     neurons_metadata.layer[address] = layer_index
     neurons_metadata.vitality[address] = layer.max_vitality
+    neurons_metadata.threshold[address] = layer.threshold
 
 
 class NeuronsVector(MultiFieldVector):
@@ -52,6 +53,10 @@ class NeuronsVector(MultiFieldVector):
                                Максимум - max_vitality. При достижении слишком
                                маленького значениея нейрон умирает
                                (устанавливается флаг IS_DEAD)
+    threshold: types.threshold - Эта величина плавающая. Зависит от частоты
+        поступающих спайков. Если спайки поступают слишком часто - threshold
+        медленно начинает увеличиваться. Если спайки поступают слишком редко
+        - threshold уменьшается. По умолчанию равно layer.threshold.
     """
 
     fields = [
@@ -60,6 +65,7 @@ class NeuronsVector(MultiFieldVector):
         ('spike_tick', types.tick),
         ('layer', types.medium_address),
         ('vitality', types.vitality),
+        ('threshold', types.threshold),
     ]
 
 class NeuronsMetadata(MultiFieldMetadata):

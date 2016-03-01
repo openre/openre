@@ -98,7 +98,8 @@ class OpenCL(Device):
             domain.neurons.flags.device_data_pointer,
             domain.neurons.spike_tick.device_data_pointer,
             domain.neurons.layer.device_data_pointer,
-            domain.neurons.vitality.device_data_pointer
+            domain.neurons.vitality.device_data_pointer,
+            domain.neurons.threshold.device_data_pointer
         ).wait()
         self.tick_layers_output_data(domain)
 
@@ -416,6 +417,7 @@ def test_device():
     assert len(domain.synapses.level) == 400
     assert len(domain.synapses) == 400
     assert domain.neurons.length == 800
+    assert layer.neurons_metadata.threshold[0] == synapse_max_level
     assert layer.neurons_metadata.level.length == 400
     assert layer2.neurons_metadata.level.length == 400
     for field, field_type in domain.synapses_metadata.__class__.fields:
