@@ -587,7 +587,7 @@ def test_device():
     assert domain.stat_vector[4] == domain.stat('synapse_learn_level')
 
     # test kernel
-    test_length = 15
+    test_length = 16
     test_kernel = np.zeros((test_length,)).astype(np.uint32)
     test_kernel_buf = cl.Buffer(
             device.ctx,
@@ -598,7 +598,8 @@ def test_device():
     device.program.test_kernel(
         device.queue, (test_length,), None,
         test_kernel_buf,
-        np.int32(test_length)
+        np.int32(test_length),
+        np.uint32(types.max(types.vitality))
     )
     cl.enqueue_copy(device.queue, test_kernel, test_kernel_buf)
     assert 8 | (3 & neurons.IS_SPIKED) == 10
@@ -621,6 +622,7 @@ def test_device():
         3,
         8 | (3 & neurons.IS_SPIKED),
         7 & ~neurons.IS_SPIKED,
+        types.max(types.vitality),
     ]
 
 

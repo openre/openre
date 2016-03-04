@@ -1,7 +1,11 @@
 {% extends "device/base.c" %}
 {% block code %}
 {{ super() }}
-__kernel void test_kernel(__global unsigned int * res, __const unsigned int num) {
+__kernel void test_kernel(
+        __global unsigned int * res,
+        __const unsigned int num,
+        __const unsigned int max_vitality
+) {
     int i = get_global_id(0);
     unsigned int ui = 2;
     if(i == 0){res[i] = IS_INHIBITORY;}
@@ -19,6 +23,7 @@ __kernel void test_kernel(__global unsigned int * res, __const unsigned int num)
     if(i == 12){res[i] = -ui + 5;}
     if(i == 13){res[i] = 8 | (3 & IS_SPIKED);}
     if(i == 14){res[i] = 7 & ~IS_SPIKED;}
+    if(i == 15){res[i] = max_vitality;}
 }
 
 // for each neuron
@@ -89,7 +94,7 @@ __kernel void tick_neurons(
        && n_threshold[neuron_address] > 200){
         n_threshold[neuron_address] -= 5;
     }
-    if(n_vitality[neuron_address] < l_max_vitality[layer_address]){
+    if(n_vitality[neuron_address] < l_max_vitality[layer_address] && 0){
         n_vitality[neuron_address] += 1;
     }
 }
@@ -289,7 +294,7 @@ __kernel void update_layers_stat(
                 /* start of the stat of the layer with layer_address */
                 layer_stat_start
                 /* start of the field */
-                + 1 * d_stat_size
+                + 1/* * d_stat_size*/
             ],
             1
         );
@@ -304,7 +309,7 @@ __kernel void update_layers_stat(
                 /* start of the stat of the layer with layer_address */
                 layer_stat_start
                 /* start of the field */
-                + 3 * d_stat_size
+                + 3/* * d_stat_size*/
             ],
             l_max_vitality[layer_address] - n_vitality[neuron_address]
         );
