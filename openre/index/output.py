@@ -116,6 +116,8 @@ def test_output_index():
                 'name'        : 'D1',
                 'device'    : {
                     'type': 'OpenCL',
+                    'threshold_inc': 0,
+                    'threshold_dec': 0
                 },
                 'layers'    : [
                     {'name': 'V1', 'output': 'o1', 'shape': [0, 0, 8, 5]},

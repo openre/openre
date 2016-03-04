@@ -35,9 +35,12 @@ class OpenCL(Device):
         self.queue = cl.CommandQueue(self.ctx)
         env = create_env()
         source_file_name = config.get('source_file_name', "device/opencl.c")
+        self.config['threshold_inc'] = self.config.get('threshold_inc', 10)
+        self.config['threshold_dec'] = self.config.get('threshold_dec', 5)
         code = env.get_template(source_file_name).render(
             types=types,
-            null=null
+            null=null,
+            config=self.config
         )
 
         # search kernel sources by pattern device/*/templates/device/*.c
@@ -393,6 +396,8 @@ def test_device():
                 'name'        : 'D1',
                 'device'    : {
                     'type': 'OpenCL',
+                    'threshold_inc': 0,
+                    'threshold_dec': 0
                 },
                 'stat_size': 1,
                 'layers'    : [
@@ -746,6 +751,8 @@ def check_input(expire):
                 'name'        : 'D1',
                 'device'    : {
                     'type': 'OpenCL',
+                    'threshold_inc': 0,
+                    'threshold_dec': 0
                 },
                 'layers'    : [
                     {'name': 'Input', 'shape': [0, 0, 5, 5], 'expire': expire},
@@ -758,6 +765,8 @@ def check_input(expire):
                 'name'        : 'D2',
                 'device'    : {
                     'type': 'OpenCL',
+                    'threshold_inc': 0,
+                    'threshold_dec': 0
                 },
                 'layers'    : [
                     {'name': 'V2'},

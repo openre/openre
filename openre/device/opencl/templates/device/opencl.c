@@ -67,11 +67,15 @@ __kernel void tick_neurons(
             // decrease neuron's level by threshold. Its better than just zero
             // it, becouse we can better convert numbers to spikes
             n_level[neuron_address] -= n_threshold[neuron_address];
+            {% if config.threshold_inc %}
             // higher threshold in case of high spikes rate
             tick_diff = d_ticks - n_spike_tick[neuron_address];
-            if (tick_diff < 10){
-                n_threshold[neuron_address] += 10 - tick_diff;
+            if (tick_diff < 10
+                && n_threshold[neuron_address] < {{ types.max(types.threshold) - config.threshold_inc}}
+            ){
+                n_threshold[neuron_address] += {{config.threshold_inc}} - tick_diff;
             }
+            {% endif %}
             // store neurons last tick for better training
             n_spike_tick[neuron_address] = d_ticks;
         }
@@ -89,12 +93,15 @@ __kernel void tick_neurons(
     if(n_level[neuron_address] < 0){
         n_level[neuron_address] = 0;
     }
+    {% if config.threshold_dec %}
     tick_diff = d_ticks - n_spike_tick[neuron_address];
     if(tick_diff > 100
-       && n_threshold[neuron_address] > 200){
-        n_threshold[neuron_address] -= 5;
+        && n_threshold[neuron_address] > {{config.threshold_dec}}
+    ){
+        n_threshold[neuron_address] -= {{config.threshold_dec}};
     }
-    if(n_vitality[neuron_address] < l_max_vitality[layer_address] && 0){
+    {% endif %}
+    if(n_vitality[neuron_address] < l_max_vitality[layer_address]){
         n_vitality[neuron_address] += 1;
     }
 }
