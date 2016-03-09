@@ -81,15 +81,21 @@ class OpenRE(object):
                 'spike_forget_threshold': 0,
             },
             'rate_limit': 1000,
+            'layer': {
+                'threshold': 30000,
+                'is_inhibitory': False,
+                # we want one spike per 10 ticks
+                'spike_cost': 10,
+                'max_vitality': types.max(types.vitality)
+            }
         }
-        set_default(self.config, defaults)
-        layer_defaults = {
-            'threshold': self.config['synapse']['max_level'],
-            'is_inhibitory': False,
-            # we want one spike per 10 ticks
-            'spike_cost': 10,
-            'max_vitality': types.max(types.vitality)
-        }
+        set_default(self.config, {'defaults': defaults})
+        # all except layer key
+        set_default(
+            self.config,
+            dict((k, v) for k, v in self.config['defaults'].items()
+                 if k not in ('layer',)))
+        layer_defaults = self.config['defaults']['layer']
         for layer in self.config['layers']:
             set_default(layer, layer_defaults)
             layer_by_name[layer['name']] = layer
@@ -275,6 +281,9 @@ def test_openre():
     from pytest import raises
     synapse_max_level = 30000
     config = {
+        'defaults': {
+            'rate_limit': 0,
+        },
         'synapse': {
             'max_level': synapse_max_level,
             'learn_rate': 10,
@@ -384,6 +393,8 @@ def test_openre():
     # domain layers
     assert isinstance(ore.domains[0].device, Dummy)
     assert ore.domains[0].config['stat_size'] == 1000
+    # defaults
+    assert ore.config['rate_limit'] == 0
     # 200 synapses in domain D1
     assert len(ore.domains[0].stat_vector.data) \
             == ore.domains[0].stat_fields
