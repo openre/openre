@@ -14,10 +14,11 @@ import traceback
 from parse_func import explain
 from functools import partial
 import random
+from openre.helpers import randshift
 
 ZMQ = {'context':None}
 CAN_SERIALIZE_FUNCTIONS = [
-    min, random.randint
+    max, min, random.randint, randshift
 ]
 NAME_TO_FUNCTION = {}
 for func in CAN_SERIALIZE_FUNCTIONS:

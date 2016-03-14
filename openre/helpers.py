@@ -11,6 +11,7 @@ import inspect
 import logging
 import sys
 import time
+from random import randint
 
 
 def profileit(func):
@@ -527,3 +528,12 @@ def rate_limited(max_per_second):
 
     return decorate
 
+def randshift(start, end):
+    """
+    Returns number between:
+        -end.....-start and start.....end
+    """
+    return (randint(0, 1) and -1 or 1) * randint(start, end)
+
+def test_randshift():
+    assert randshift(5, 5) in [-5, 5]

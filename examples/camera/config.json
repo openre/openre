@@ -13,7 +13,7 @@
                 {
                     "name": "V2",
                     "radius": 3,
-                    "shift": ["@randint(-3, 3)", "@randint(-3, 3)"]
+                    "shift": ["@randshift(2, 4)", "@randshift(2, 4)"]
                 }
             ]
         },
