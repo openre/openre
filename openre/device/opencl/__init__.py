@@ -233,7 +233,9 @@ class OpenCL(Device):
                     input_data_vector.from_bytes(data)
                 else:
                     input_data_vector.set_data(data)
-                assert len(input_data_vector) == layer.length
+                assert len(input_data_vector) == layer.length, \
+                    "Domain '%s': len(input_data_vector)=%s, layer.length=%s" \
+                    % (domain.name, len(input_data_vector), layer.length)
                 layer.input_data_cache = input_data_vector
             length = len(input_data_vector)
             if not length:
