@@ -70,7 +70,7 @@ __kernel void tick_neurons(
             {% if config.threshold_inc %}
             // higher threshold in case of high spikes rate
             tick_diff = d_ticks - n_spike_tick[neuron_address];
-            if (tick_diff < 10
+            if (tick_diff < {{config.threshold_inc}}
                 && n_threshold[neuron_address] < {{ types.max(types.threshold) - config.threshold_inc}}
             ){
                 n_threshold[neuron_address] += {{config.threshold_inc}} - tick_diff;
