@@ -12,7 +12,7 @@ class DataTypes(object):
         self.neuron_level = np.int32
         self.neuron_flags = np.uint8
         self.index_flags = np.uint8
-        self.synapse_level = np.uint16
+        self.synapse_level = np.int16
         self.synapse_flags = np.uint8
         self.medium_address = np.uint16
         self.address = np.uint32

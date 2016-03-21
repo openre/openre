@@ -590,7 +590,7 @@ def test_device():
                 * domain.layers_stat[0 + len(domain.stat_vector)]
     assert domain.stat_vector[3] == domain.stat('neurons_tiredness')
     # field 4 - sum(synapse.learn)
-    assert domain.stat_vector[4] >= (domain.learn_rate - 1) * 3
+    assert domain.stat_vector[4] >= (domain.learn_rate - 1)
     assert domain.stat_vector[4] == domain.stat('synapse_learn_level')
 
     # test kernel
