@@ -150,6 +150,7 @@ __kernel void tick_synapses(
         return;
     }
     // for each post-synapses
+    // neuron ----------- synapse -o)---------- post-neuron
     not_infinite = 1000000;
     while(post_synapse_address != NULL_ADDRESS && not_infinite){
         not_infinite--; /* TODO: send error to host if infinite loop */
@@ -204,6 +205,7 @@ __kernel void tick_synapses(
         post_synapse_address = pre_value[post_synapse_address];
     }
     // for each pre-synapses
+    // pre-neuron ------ pre-synapse -o)---------- neuron
     not_infinite = 1000000;
     while(pre_synapse_address != NULL_ADDRESS && not_infinite){
         not_infinite--; /* TODO: send error to host if infinite loop */
