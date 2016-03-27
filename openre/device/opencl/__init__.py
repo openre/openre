@@ -535,9 +535,8 @@ def test_device():
     s_learn_after_7 = domain.synapses.learn[domain.post_synapse_index.key[
         layer2.neurons_metadata.level.to_address(0, 7)
     ]]
-    assert s_level_before_7 + domain.learn_threshold == s_level_after_7
-    assert s_learn_after_7 <= domain.learn_rate
-    assert domain.synapses.flags[domain.post_synapse_index.key[
+    assert s_level_before_7 == s_level_after_7
+    assert not domain.synapses.flags[domain.post_synapse_index.key[
         layer2.neurons_metadata.level.to_address(0, 7)
     ]] & synapses.IS_STRENGTHENED
     assert not domain.synapses.flags[domain.post_synapse_index.key[
@@ -560,7 +559,7 @@ def test_device():
     ]] == 0
     assert domain.synapses.learn[domain.pre_synapse_index.key[
         layer.neurons_metadata.level.to_address(0, 0)
-    ]] == domain.learn_rate - 1
+    ]] == 0
     # check stats
     for field_num in range(0, domain.stat_fields):
         if field_num not in [2, 4]:
@@ -580,7 +579,7 @@ def test_device():
     assert domain.stat_vector[1] == domain.stat('dead_neurons')
     assert domain.layers_stat[1 + len(domain.stat_vector)] == 1
     # field 2 - number of synapses with IS_STRENGTHENED flag
-    assert domain.stat_vector[2] == 1
+    assert domain.stat_vector[2] == 0
     assert domain.stat_vector[2] == domain.stat('strengthened_synapses')
     # field 3 - tiredness
     assert domain.layers_stat[3] \
