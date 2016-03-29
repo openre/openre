@@ -6,6 +6,7 @@ from openre.device.abstract import Device
 import numpy as np
 from openre.vector import StandaloneVector
 from copy import deepcopy
+from threading import Thread
 
 
 class InputRow(object):
@@ -22,6 +23,7 @@ class InputRow(object):
         self.height = self.config['height']
         self.length = self.width * self.height
 
+
 class IOBase(Device):
     """
     Base class for numpy input and output devices
@@ -30,7 +32,9 @@ class IOBase(Device):
     def __init__(self, config):
         super(IOBase, self).__init__(config)
         self._output_cache = None
-        self.input = []
+        self.input = []  # input data from other domains
+        self.output = None  # output data from this domain
+        self._input = []
         width = self.config.get('width', 0)
         height = self.config.get('height', 0)
         if 'input' in self.config:
@@ -40,7 +44,7 @@ class IOBase(Device):
                 row = deepcopy(row)
                 row['width'] = row.get('width', width)
                 row['height'] = row.get('height', height)
-                self.input.append(InputRow(row))
+                self._input.append(InputRow(row))
 
     def tick_neurons(self, domain):
         self.tick_output_data(domain)
@@ -93,7 +97,7 @@ class IOBase(Device):
         Run once. If we have config for input - then we will be calling
         self._tick_input_data, otherwise this will become dummy method
         """
-        if self.input:
+        if self._input:
             self.tick_input_data = self._tick_input_data
         else:
             self.tick_input_data = lambda domain: None
@@ -105,7 +109,7 @@ class IOBase(Device):
         """
         ticks = domain.ticks
         ret = []
-        for layer in self.input:
+        for layer in self._input:
             if layer.input_data is None and layer.input_data_cache is None:
                 continue
             data = layer.input_data
@@ -209,11 +213,49 @@ class IOBase(Device):
         Set self.input_data to received data.
         All previous data will be discarded.
         """
-        input_row = self.input[input_index]
+        input_row = self._input[input_index]
         input_row.input_data = data
         input_row.input_data_cache = None
         input_row.input_expire = domain_ticks + input_row.input_expire_per
 
+
+class IOThreadBase(IOBase):
+    def __init__(self, config):
+        super(IOThreadBase, self).__init__(config)
+        self._start = None
+        self._thread = None
+        self.start()
+
+    def start(self):
+        if self._start:
+            return
+        self._start = True
+        self._thread = Thread(target=self._update, args=())
+        self._thread.start()
+
+    def stop(self):
+        self._start = False
+        self._thread.join()
+
+    def update(self):
+        self.stop()
+        self.tick_input_data = lambda domain: None
+        self.tick_output_data = lambda domain: None
+
+    def _update(self):
+        update = self.update
+        while self._start:
+            update()
+
+    def clean(self):
+        super(IOThreadBase, self).clean()
+        self.stop()
+
+    def data_to_send(self, domain):
+        return self.output
+
+    def receive_data(self, domain, data):
+        self.input = data
 
 
 class IOBaseTesterLowLevel(IOBase):

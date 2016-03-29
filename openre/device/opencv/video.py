@@ -1,10 +1,10 @@
 import cv2
-from openre.device.iobase import IOBase
+from openre.device.iobase import IOThreadBase, IOBase
 import numpy
-from openre import neurons
 
 class GrayVideo(IOBase):
     def __init__(self, config):
+        self.cap = None
         super(GrayVideo, self).__init__(config)
         config = self.config
         device = config.get('device', -1)
@@ -21,7 +21,7 @@ class GrayVideo(IOBase):
            or config['cap_height'] != config['height']:
             config['resize'] = True
 
-    def data_to_send(self, domain):
+    def update(self):
         cap = self.cap
         if not cap:
             # TODO: try to reconnect?
@@ -39,14 +39,18 @@ class GrayVideo(IOBase):
         if config.get('window'):
             cv2.imshow(config['window'], gray)
             cv2.waitKey(1)
-        return gray
+        self.output = gray
+
+    def data_to_send(self, domain):
+        self.update()
+        return self.output
 
     def clean(self):
+        super(GrayVideo, self).clean()
         if hasattr(self, 'cap') and self.cap:
             self.cap.release()
             self.cap = None
         cv2.destroyAllWindows()
-
 
 class GrayVideoOut(IOBase):
     def __init__(self, config):
@@ -63,6 +67,26 @@ class GrayVideoOut(IOBase):
                 cv2.waitKey(1)
 
     def clean(self):
+        super(GrayVideoOut, self).clean()
+        cv2.destroyAllWindows()
+
+
+class GrayVideoThreadOut(IOThreadBase):
+    def __init__(self, config):
+        super(GrayVideoThreadOut, self).__init__(config)
+        config = self.config
+        if config.get('window'):
+            cv2.namedWindow(config['window'])
+
+    def update(self):
+        config = self.config
+        for row in self.input:
+            if config.get('window'):
+                cv2.imshow(config['window'], row[1])
+                cv2.waitKey(1)
+
+    def clean(self):
+        super(GrayVideoThreadOut, self).clean()
         cv2.destroyAllWindows()
 
 def test_camera():
@@ -147,3 +171,4 @@ def test_camera():
     assert list(numpy.ravel(check[5:10, 0:8])) == list(a3)
     assert list(numpy.ravel(check[5:10, 8:16])) == list(a4)
     assert sum(D2.neurons.level.data) > 0
+    ore.clean()
