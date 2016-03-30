@@ -227,7 +227,7 @@ __kernel void tick_synapses(
         }
         // pre-synapse learning
         if(n_spike_tick[neuron_address] - n_spike_tick[pre_neuron_address]
-                < d_spike_forget_threshold){
+                < d_spike_learn_threshold){
             s_learn[pre_synapse_address] -= d_learn_rate;
             if(s_learn[pre_synapse_address] > d_learn_threshold){
                 if((s_flags[pre_synapse_address] & IS_STRENGTHENED) == 0){
