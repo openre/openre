@@ -237,12 +237,18 @@ class IOThreadBase(IOBase):
         self._start = False
         self._thread.join()
 
+    def init(self):
+        """
+        Init inside thread
+        """
+
     def update(self):
         self.stop()
         self.tick_input_data = lambda domain: None
         self.tick_output_data = lambda domain: None
 
     def _update(self):
+        self.init()
         update = self.update
         while self._start:
             update()

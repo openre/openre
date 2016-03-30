@@ -55,7 +55,6 @@ class GrayVideo(IOBase):
 class GrayVideoOut(IOBase):
     def __init__(self, config):
         super(GrayVideoOut, self).__init__(config)
-        config = self.config
         if config.get('window'):
             cv2.namedWindow(config['window'])
 
@@ -72,18 +71,16 @@ class GrayVideoOut(IOBase):
 
 
 class GrayVideoThreadOut(IOThreadBase):
-    def __init__(self, config):
-        super(GrayVideoThreadOut, self).__init__(config)
-        config = self.config
-        if config.get('window'):
-            cv2.namedWindow(config['window'])
+    def init(self):
+        if self.config.get('window'):
+            cv2.namedWindow(self.config['window'])
 
     def update(self):
         config = self.config
         for row in self.input:
             if config.get('window'):
                 cv2.imshow(config['window'], row[1])
-                cv2.waitKey(1)
+                cv2.waitKey(30)
 
     def clean(self):
         super(GrayVideoThreadOut, self).clean()
