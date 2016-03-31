@@ -15,10 +15,8 @@ def config(agent):
     if not config:
         raise ValueError('No net config')
     prepare_config(config)
-    config = to_json(config)
     if agent.config['out']:
-        agent.config['out'].write(config)
-    else:
-        print config
+        agent.config['out'].write(to_json(config))
+    return config
 
 

@@ -21,12 +21,19 @@ class Agent(AgentBase):
                         json_data = inf.read()
                 else:
                     json_data = self.config['config']
+            elif isinstance(self.config['config'], dict):
+                json_data = self.config['config']
             else:
                 json_data = self.config['config'].read()
-            self.net_config = from_json(json_data)
+            if isinstance(json_data, dict):
+                self.net_config = json_data
+            else:
+                self.net_config = from_json(json_data)
 
     def run(self):
         result = do_strict_action(self.config['action'], 'client', self)
+        if result is not None:
+            print result
         """
         result = self.send_server(
             self.config['action'],

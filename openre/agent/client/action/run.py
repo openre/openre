@@ -20,13 +20,18 @@ def info(agent):
     if not config:
         raise ValueError('No net config')
     net = Net(config)
+    ret = ''
     for domain in net.domains:
         stats = domain.domain.stat.wait() or {}
-        print '%s:' % domain.name
+        ret += '%s:' % domain.name
+        ret += '\n'
         for key in sorted(stats.keys()):
-            print '    %s %s' % (key, stats[key])
-        print "    events count: %s" % domain.broker.events\
+            ret += '    %s %s' % (key, stats[key])
+            ret += '\n'
+        ret += "    events count: %s" % domain.broker.events\
                 .set_priority(2000000).wait()
+        ret += '\n'
+    return ret
 
 @action(namespace='client')
 def destroy(agent):
