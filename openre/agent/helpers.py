@@ -6,25 +6,11 @@ import os
 import time
 import zmq
 import uuid
-import json
-import datetime
-import re
 from types import FunctionType
 import traceback
-from parse_func import explain
-from functools import partial
-import random
-from openre.helpers import randshift
+from openre.helpers import from_json, to_json
 
 ZMQ = {'context':None}
-CAN_SERIALIZE_FUNCTIONS = [
-    max, min, random.randint, randshift
-]
-NAME_TO_FUNCTION = {}
-for func in CAN_SERIALIZE_FUNCTIONS:
-    NAME_TO_FUNCTION[func.__name__] = func
-
-CAN_SERIALIZE_FUNCTIONS = NAME_TO_FUNCTION.values()
 
 def get_zmq_context():
     """
@@ -79,128 +65,6 @@ def daemon_stop(pid_file=None):
         logging.debug('Pid file not found')
     except OSError:
         logging.debug('Process not running')
-
-class OREEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, (datetime.datetime, datetime.date)):
-            return 'ISODate("%s")' % date_to_str(obj)
-        elif isinstance(obj, datetime.time):
-            return obj.isoformat()
-        elif isinstance(obj, uuid.UUID):
-            return 'UUID("%s")' % str(obj)
-        elif callable(obj) and obj in CAN_SERIALIZE_FUNCTIONS:
-            return '@%s()' % str(obj.__name__)
-        elif isinstance(obj, partial) and obj.func in CAN_SERIALIZE_FUNCTIONS:
-            # no arguments
-            if obj.args is None and obj.keywords is None:
-                return '@%s()' % (obj.func.__name__, )
-            args = obj.args
-            kwargs = obj.keywords
-            # args
-            if args:
-                if not isinstance(args, (list, tuple)):
-                    args = [args]
-                args = ', '.join([to_json(x) for x in args])
-            # args and kwargs
-            if kwargs:
-                kwargs = ['%s=%s' % (key, to_json(value))
-                          for key, value in kwargs.items()]
-                kwargs = ', '.join(kwargs)
-            if all([args, kwargs]):
-                return '@%s(%s, %s)' % (obj.func.__name__, args, kwargs)
-            elif any([args, kwargs]):
-                return '@%s(%s)' % (obj.func.__name__, args or kwargs)
-            else:
-                return '@%s()' % str(obj.func.__name__)
-        return json.JSONEncoder.default(self, obj)
-
-
-class OREDecoder(json.JSONDecoder):
-    datetime_regex = re.compile(
-        r'ISODate\(\"(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})' \
-        r'(?:\.(\d+))?Z\"\)'
-    )
-    uuid_regex = re.compile(
-        r'UUID\(\"([a-f0-9]{8}\-[a-f0-9]{4}\-[a-f0-9]{4}' \
-        r'\-[a-f0-9]{4}\-[a-f0-9]{12})\"\)'
-    )
-
-    def decode(self, obj):
-        ret = super(OREDecoder, self).decode(obj)
-        ret = self.parse_result(ret)
-        return ret
-
-    def parse_result(self, obj):
-        if isinstance(obj, dict):
-            for k, v in obj.items():
-                obj[k] = self.parse_result(v)
-        elif isinstance(obj, list):
-            for k, v in enumerate(obj):
-                obj[k] = self.parse_result(v)
-        elif isinstance(obj, basestring):
-            obj = self._hook(obj)
-        return obj
-
-    def _hook(self, obj):
-        dt_result = OREDecoder.datetime_regex.match(obj)
-        if dt_result:
-            year, month, day, hour, minute, second, milliseconds \
-                    = map(lambda x: int(x or 0), dt_result.groups())
-            return datetime.datetime(year, month, day, hour, minute, second,
-                                     milliseconds)
-
-        uuid_result = OREDecoder.uuid_regex.match(obj)
-        if uuid_result:
-            return uuid.UUID(uuid_result.group(1))
-        # restore function
-        if obj and obj[0] == '@':
-            try:
-                exp = explain(obj[1:])
-                if exp:
-                    exp = exp[0]
-                func = NAME_TO_FUNCTION[exp.func]
-                args = exp.args or []
-                kwargs = exp.keywords or {}
-                #args = [from_json(x) for x in args]
-                kwargs = dict([
-                    (key, value) for key, value in kwargs.items()
-                ])
-                return partial(func, *args, **kwargs)
-            except (SyntaxError, TypeError, KeyError):
-                pass
-        return obj
-
-
-def to_json(data, sort_keys=False):
-    return json.dumps(data, sort_keys=sort_keys, cls=OREEncoder)
-
-def from_json(data):
-    return json.loads(data, cls=OREDecoder)
-
-def date_to_str(date):
-    """ Converts a datetime value to the corresponding RFC-1123 string."""
-    if date and date.year == 1 and date.month == 1 and date.day == 1:
-        date = None
-    if not date:
-        return None
-    ret = None
-    try:
-        ret = datetime.datetime.strftime(date, '%Y-%m-%dT%H:%M:%S.%fZ')
-    except ValueError:
-        ret = date.isoformat()
-        try:
-            ret.index('T')
-        except ValueError:
-            ret += 'T00:00:00.000000Z'
-        try:
-            ret.index('.')
-        except ValueError:
-            ret += '.000000Z'
-        try:
-            ret.index('Z')
-        except ValueError:
-            ret += 'Z'
-    return ret
 
 def priority_func(row):
     if type(row['priority']) == FunctionType:
@@ -770,15 +634,4 @@ def pretty_func_str(__name, *args, **kwargs):
     return '%s(%s)' % (__name, pretty_args)
 
 
-def test_json():
-    dump = to_json({'shift': [
-        partial(min, 0, 1, 2, test='kw argument test', num = 1)
-    ]})
-    assert dump == '{"shift": ["@min(0, 1, 2, test=\\"kw argument test\\", num=1)"]}'
-    recover = from_json(dump)
-    func = recover['shift'][0]
-    assert isinstance(func, partial)
-    assert func.func == min
-    assert func.args == (0, 1, 2)
-    assert func.keywords == {'test': 'kw argument test', 'num': 1}
-    assert from_json('{"empty_string":""}') == {"empty_string":""}
+

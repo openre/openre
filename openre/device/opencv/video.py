@@ -93,6 +93,7 @@ def test_camera():
         'layers': [
             {
                 'name': 'V1',
+                'relaxation': 0,
                 'width': 16,
                 'height': 10,
             },

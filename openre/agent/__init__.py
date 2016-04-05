@@ -30,8 +30,8 @@ def run():
 
 def test_agents():
     import zmq
-    from openre.agent.helpers import RPCBroker, Transport, RPC, AgentBase, \
-            from_json
+    from openre.agent.helpers import RPCBroker, Transport, RPC, AgentBase
+    from openre.helpers import from_json
     from openre.agent.server import Agent as ServerAgent
     transport = Transport()
     class ServerAgentTest(ServerAgent):
