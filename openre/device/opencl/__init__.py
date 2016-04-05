@@ -535,8 +535,8 @@ def test_device():
     s_learn_after_7 = domain.synapses.learn[domain.post_synapse_index.key[
         layer2.neurons_metadata.level.to_address(0, 7)
     ]]
-    assert s_level_before_7 == s_level_after_7
-    assert not domain.synapses.flags[domain.post_synapse_index.key[
+    #assert s_level_before_7 == s_level_after_7
+    assert domain.synapses.flags[domain.post_synapse_index.key[
         layer2.neurons_metadata.level.to_address(0, 7)
     ]] & synapses.IS_STRENGTHENED
     assert not domain.synapses.flags[domain.post_synapse_index.key[
@@ -579,7 +579,7 @@ def test_device():
     assert domain.stat_vector[1] == domain.stat('dead_neurons')
     assert domain.layers_stat[1 + len(domain.stat_vector)] == 1
     # field 2 - number of synapses with IS_STRENGTHENED flag
-    assert domain.stat_vector[2] == 0
+    assert domain.stat_vector[2] == 1
     assert domain.stat_vector[2] == domain.stat('strengthened_synapses')
     # field 3 - tiredness
     assert domain.layers_stat[3] \
@@ -733,6 +733,7 @@ def check_input(expire):
                 'height': 10,
                 'is_inhibitory': False,
                 'threshold': 128,
+                'relaxation': 0,
                 'connect': [
                     {
                         'name': 'V2',
@@ -745,6 +746,7 @@ def check_input(expire):
                 'name': 'V2',
                 'width': 10,
                 'height': 10,
+                'relaxation': 0,
             },
         ],
         'domains': [
@@ -870,11 +872,13 @@ def test_output():
         'layers': [
             {
                 'name': 'V1',
+                'relaxation': 0,
                 'width': 16,
                 'height': 10,
             },
             {
                 'name': 'V2',
+                'relaxation': 0,
                 'width': 16,
                 'height': 10,
             },

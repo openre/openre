@@ -7,6 +7,7 @@ from openre.data_types import types
 from openre.domain import create_domain_factory
 import os.path
 from openre.helpers import set_default, rate_limited
+from openre.config import Config
 
 BASE_PATH = os.path.dirname(os.path.realpath(__file__))
 
@@ -40,7 +41,7 @@ class OpenRE(object):
         }
     """
     def __init__(self, config):
-        self.config = deepcopy(config)
+        self.config = Config(config)
         self.domains = []
         self._find = None
         self.is_pause = False
@@ -72,32 +73,7 @@ class OpenRE(object):
         if domain_factory is None:
             domain_factory = create_domain_factory()
         layer_by_name = {}
-        defaults = {
-            'synapse': {
-                'max_level': 30000,
-                'learn_rate': 10,
-                'learn_threshold': 9000,
-                'spike_learn_threshold': 0,
-                'spike_forget_threshold': 0,
-            },
-            'rate_limit': 1000,
-            'layer': {
-                'threshold': 30000,
-                'is_inhibitory': False,
-                # we want one spike per 10 ticks
-                'spike_cost': 10,
-                'max_vitality': types.max(types.vitality)
-            }
-        }
-        set_default(self.config, {'defaults': defaults})
-        # all except layer key
-        set_default(
-            self.config,
-            dict((k, v) for k, v in self.config['defaults'].items()
-                 if k not in ('layer',)))
-        layer_defaults = self.config['defaults']['layer']
         for layer in self.config['layers']:
-            set_default(layer, layer_defaults)
             layer_by_name[layer['name']] = layer
 
         # TODO: - выдавать предупреждение если не весь слой моделируется
@@ -110,13 +86,6 @@ class OpenRE(object):
             if 'layers' not in domain_config:
                 domain_config['layers'] = []
             domain_config = deepcopy(domain_config)
-            if 'device' not in domain_config:
-                domain_config['device'] = {
-                    'type': 'OpenCL'
-                }
-            if 'stat_size' not in domain_config:
-                # how many ticks collect stats before get them from device
-                domain_config['stat_size'] = 1000
             for domain_layer in domain_config['layers']:
                 domain_layer.update(
                     deepcopy(layer_by_name[domain_layer['name']]))

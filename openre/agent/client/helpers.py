@@ -2,34 +2,11 @@
 import logging
 from openre.agent.helpers import RPC, RPCBrokerProxy, Transport, RPCException, \
         pretty_func_str
-import uuid
 from openre.agent.client.decorators import proxy_call_to_domains
 from openre.agent.decorators import wait
 import datetime
+from openre.config import Config
 
-
-def prepare_config(config):
-    """
-    Добавляет уникальный id для доменов. Необходим при создании новых
-    agent.domain.
-    Проверяет имя домена на наличие и на уникальность.
-    """
-    was_name = {}
-    for domain_index, domain_config in enumerate(config['domains']):
-        if 'name' not in domain_config:
-            raise ValueError(
-                'No name for domain with index %s in config["domains"]' %
-                domain_index)
-        name = domain_config['name']
-        if name in was_name:
-            raise ValueError(
-                'Domain name "%s" already was in domain with index %s' %
-                (name, was_name[name])
-            )
-
-        was_name[name] = domain_index
-        if 'id' not in domain_config:
-            domain_config['id'] = uuid.uuid4()
 
 class SimpleRCPCall(object):
     def __init__(self, proxy, name, domain_name):
@@ -144,12 +121,11 @@ class Net(object):
 
     """
     def __init__(self, config):
-        self.config = config
+        self.config = Config(config).make_unique()
         self.domains = []
         self.task = None
         self.state = None
         self.set_task('new', state='run')
-        prepare_config(self.config)
         for domain_index, domain_config in enumerate(self.config['domains']):
             domain = Domain(config, domain_index)
             self.domains.append(domain)
@@ -351,55 +327,5 @@ class Net(object):
         Останавливает симуляцию, получает все данные с устройства, завершает
         основной цикл.
         """
-
-def test_config_helpres():
-    from pytest import raises
-    with raises(ValueError):
-        prepare_config({
-            "domains": [
-                {
-                    "layers"    : [
-                        {"name": "V1"},
-                        {"name": "V2"}
-                    ]
-                },
-            ]
-        })
-    with raises(ValueError):
-        prepare_config({
-            "domains": [
-                {
-                    "name"        : "D2",
-                    "layers"    : [
-                        {"name": "V1"},
-                    ]
-                },
-                {
-                    "name"        : "D2",
-                    "layers"    : [
-                        {"name": "V3"}
-                    ]
-                }
-            ]
-        })
-    config = {
-        "domains": [
-            {
-                "name"        : "D1",
-                "layers"    : [
-                    {"name": "V1"},
-                ]
-            },
-            {
-                "name"        : "D2",
-                "layers"    : [
-                    {"name": "V3"}
-                ]
-            }
-        ]
-    }
-    prepare_config(config)
-    assert config['domains'][0]['id']
-    assert config['domains'][1]['id']
 
 

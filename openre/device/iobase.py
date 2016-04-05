@@ -311,6 +311,7 @@ def _test_iobase_device(device_type):
                 'name': 'V1',
                 'width': 16,
                 'height': 10,
+                'relaxation': 0,
             },
         ],
         'domains': [

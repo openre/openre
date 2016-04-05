@@ -4,7 +4,7 @@
 """
 from openre.agent.helpers import AgentBase
 #import pprint
-from openre.agent.helpers import from_json
+from openre.helpers import from_json
 import os.path
 import importlib
 from openre.agent.helpers import do_strict_action

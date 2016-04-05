@@ -109,6 +109,7 @@ def test_output_index():
                 'width': 16,
                 'height': 10,
                 'threshold': 255,
+                'relaxation': 0,
             },
         ],
         'domains': [
