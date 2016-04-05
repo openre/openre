@@ -198,9 +198,9 @@ __kernel void tick_synapses(
                 }
             }
         }
-        if (s_learn[post_synapse_address] < 0){
+        /*if (s_learn[post_synapse_address] < 0){
             s_learn[post_synapse_address] += 1;
-        }
+        }*/
         // next synapse
         post_synapse_address = pre_value[post_synapse_address];
     }
@@ -242,9 +242,9 @@ __kernel void tick_synapses(
                 }
             }
         }
-        if (s_learn[pre_synapse_address] > 0){
+        /*if (s_learn[pre_synapse_address] > 0){
             s_learn[pre_synapse_address] -= 1;
-        }
+        }*/
         // next pre-synapse
         pre_synapse_address = post_value[pre_synapse_address];
     }
