@@ -29,7 +29,7 @@ setup(
         'docutils==0.12',
         'lockfile==0.10.2',
         'numpy==1.22.0',
-        'py==1.4.26',
+        'py==1.10.0',
         'pyopencl==2014.1',
         'pytest==2.6.4',
         'python-daemon==2.0.5',
