@@ -21,7 +21,7 @@ setup(
     url = 'https://github.com/openre/openre',
     download_url = 'https://github.com/openre/openre/tarball/%s' % VERSION,
     install_requires=[
-        'Jinja2==2.11.3',
+        'Jinja2==3.1.3',
         'MarkupSafe==0.23',
         'appdirs==1.4.0',
         'argparse==1.2.1',
